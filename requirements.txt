@@ -1,0 +1,5 @@
+urwid
+sqlalchemy
+GitPython>=0.3.2.RC1
+python-dateutil
+requests
