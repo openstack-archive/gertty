@@ -24,6 +24,7 @@ import Queue
 import datetime
 
 import dateutil.parser
+import ordereddict
 import requests
 
 HIGH_PRIORITY=0
@@ -32,7 +33,10 @@ LOW_PRIORITY=2
 
 class MultiQueue(object):
     def __init__(self, priorities):
-        self.queues = collections.OrderedDict()
+        try:
+            self.queues = collections.OrderedDict()
+        except ImportError:
+            self.queues = ordereddict.OrderedDict()
         for key in priorities:
             self.queues[key] = collections.deque()
         self.condition = threading.Condition()
