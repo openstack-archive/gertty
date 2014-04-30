@@ -23,8 +23,14 @@ class Config(object):
     def __init__(self, server=None, path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
         self.config = ConfigParser.RawConfigParser()
-        with open(self.path, 'r') as f:
-            self.config.readfp(f, filename=f.name)
+
+        try:
+            with open(self.path, 'r') as f:
+                self.config.readfp(f, filename=f.name)
+        except IOError:
+            self.print_sample()
+            exit(1)
+
         if server is None:
             server = self.config.sections()[0]
         self.server = server
@@ -50,3 +56,20 @@ class Config(object):
             self.log_file = os.path.expanduser(self.config.get(server, 'log_file'))
         else:
             self.log_file = os.path.expanduser('~/.gertty.log')
+
+    def print_sample(self):
+        print """Please create a configuration file ~/.gerttyrc
+
+Example:
+
+-----8<-------8<-----8<-----8<---
+[gerrit]
+url=https://review.example.org/
+username=<gerrit username>
+password=<gerrit password>
+git_root=~/git/
+-----8<-------8<-----8<-----8<---
+
+Then invoke:
+  gertty gerrit
+        """
