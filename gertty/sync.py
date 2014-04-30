@@ -190,7 +190,7 @@ class SyncChangeTask(Task):
                     else:
                         ref = remote_revision['fetch']['http']['ref']
                         url = list(urlparse.urlsplit(url))
-                        url[1] = '%s:%s@%s' % (sync.app.config.username,
+                        url[1] = '--digest --user %s:%s %s' % (sync.app.config.username,
                                                sync.app.config.password, url[1])
                         url = urlparse.urlunsplit(url)
                     fetches.append((url, ref))
