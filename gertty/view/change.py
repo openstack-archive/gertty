@@ -150,6 +150,7 @@ class RevisionRow(urwid.WidgetWrap):
     revision_focus_map = {
                           'revision-name': 'reversed-revision-name',
                           'revision-commit': 'reversed-revision-commit',
+                          'revision-comments': 'reversed-revision-comments',
                           'revision-drafts': 'reversed-revision-drafts',
                           }
 
@@ -164,6 +165,8 @@ class RevisionRow(urwid.WidgetWrap):
                 ('revision-commit', revision.commit)]
         if len(revision.pending_comments):
             line.append(('revision-drafts', ' (%s drafts)' % len(revision.pending_comments)))
+        if len(revision.comments):
+            line.append(('revision-comments', ' (%s inline comments)' % len(revision.comments)))
         self.title = mywid.TextButton(line, on_press = self.expandContract)
         stats = repo.diffstat(revision.parent, revision.commit)
         rows = []
