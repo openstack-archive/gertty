@@ -13,6 +13,7 @@
 # under the License.
 
 import datetime
+import logging
 
 import urwid
 
@@ -103,6 +104,7 @@ class DiffView(urwid.WidgetWrap):
 
     def __init__(self, app, new_revision_key):
         super(DiffView, self).__init__(urwid.Pile([]))
+        self.log = logging.getLogger('gertty.view.diff')
         self.app = app
         self.new_revision_key = new_revision_key
         with self.app.db.getSession() as session:
