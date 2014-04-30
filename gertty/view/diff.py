@@ -59,12 +59,16 @@ class DiffComment(urwid.Columns):
     def __init__(self, context, old, new):
         super(DiffComment, self).__init__([])
         self.context = context
-        self.old = urwid.AttrMap(urwid.Text(old), 'comment')
-        self.new = urwid.AttrMap(urwid.Text(new), 'comment')
+        oldt = urwid.Text(old)
+        newt = urwid.Text(new)
+        if old:
+            oldt = urwid.AttrMap(oldt, 'comment')
+        if new:
+            newt = urwid.AttrMap(newt, 'comment')
         self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((self.old, ('weight', 1, False)))
+        self.contents.append((oldt, ('weight', 1, False)))
         self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((self.new, ('weight', 1, False)))
+        self.contents.append((newt, ('weight', 1, False)))
 
 class DiffLine(urwid.Button):
     def selectable(self):
@@ -129,7 +133,9 @@ class DiffView(urwid.WidgetWrap):
                 key += '-' + str(comment.line)
                 key += '-' + str(comment.file)
                 comment_list = comment_lists.get(key, [])
-                comment_list.append((comment.key, comment.message))
+                message = [('comment-name', comment.name),
+                           ('comment', u': '+comment.message)]
+                comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
         repo = self.app.getRepo(self.project_name)
         self._w.contents.append((app.header, ('pack', 1)))
@@ -154,7 +160,7 @@ class DiffView(urwid.WidgetWrap):
                 # see if there are any comments for this line
                 key = 'old-%s-%s' % (old[0], diff.oldname)
                 old_list = comment_lists.get(key, [])
-                key = 'new-%s-%s' % (old[0], diff.oldname)
+                key = 'new-%s-%s' % (new[0], diff.newname)
                 new_list = comment_lists.get(key, [])
                 while old_list or new_list:
                     old_comment_key = new_comment_key = None
