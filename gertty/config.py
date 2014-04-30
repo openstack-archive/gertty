@@ -37,8 +37,8 @@ class Config(object):
         self.url = self.config.get(server, 'url')
         self.username = self.config.get(server, 'username')
         if not self.config.has_option(server, 'password'):
-            password = getpass.getpass("Password for %s (%s): "
-                                       % (self.url, self.username))
+            self.password = getpass.getpass("Password for %s (%s): "
+                                            % (self.url, self.username))
         else:
             self.password = self.config.get(server, 'password')
         if self.config.has_option(server, 'verify_ssl'):
