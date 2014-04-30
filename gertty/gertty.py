@@ -99,7 +99,7 @@ class StatusHeader(urwid.WidgetWrap):
         self.sync.set_text(u' Sync: %i' % self.app.sync.queue.qsize())
 
 class App(object):
-    def __init__(self, server=None, debug=False):
+    def __init__(self, server=None, debug=False, disable_sync=False):
         self.server = server
         self.config = config.Config(server)
         if debug:
@@ -123,8 +123,11 @@ class App(object):
                                    unhandled_input=self.unhandledInput)
         sync_pipe = self.loop.watch_pipe(self.refresh)
         #self.loop.screen.set_terminal_properties(colors=88)
-        self.sync_thread = threading.Thread(target=self.sync.run, args=(sync_pipe,))
-        self.sync_thread.start()
+        if not disable_sync:
+            self.sync_thread = threading.Thread(target=self.sync.run, args=(sync_pipe,))
+            self.sync_thread.start()
+        else:
+            self.sync_thread = None
         self.loop.run()
 
     def changeScreen(self, widget):
@@ -183,7 +186,9 @@ if __name__ == '__main__':
         description='Console client for Gerrit Code Review.')
     parser.add_argument('-d', dest='debug', action='store_true',
                         help='enable debug logging')
+    parser.add_argument('--no-sync', dest='no_sync', action='store_true',
+                        help='disable remote syncing')
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
-    g = App(args.server, args.debug)
+    g = App(args.server, args.debug, args.no_sync)
