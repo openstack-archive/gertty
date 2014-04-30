@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import getpass
 import os
 import ConfigParser
 
@@ -29,7 +30,11 @@ class Config(object):
         self.server = server
         self.url = self.config.get(server, 'url')
         self.username = self.config.get(server, 'username')
-        self.password = self.config.get(server, 'password')
+        if not self.config.has_option(server, 'password'):
+            password = getpass.getpass("Password for %s (%s): "
+                                       % (self.url, self.username))
+        else:
+            self.password = self.config.get(server, 'password')
         if self.config.has_option(server, 'verify_ssl'):
             self.verify_ssl = self.config.getboolean(server, 'verify_ssl')
         else:
