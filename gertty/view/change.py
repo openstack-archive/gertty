@@ -173,8 +173,16 @@ class RevisionRow(urwid.WidgetWrap):
         total_added = 0
         total_removed = 0
         for added, removed, filename in stats:
-            total_added += int(added)
-            total_removed += int(removed)
+            try:
+                added = int(added)
+            except ValueError:
+                added = 0
+            try:
+                removed = int(removed)
+            except ValueError:
+                removed = 0
+            total_added += added
+            total_removed += removed
             rows.append(urwid.Columns([urwid.Text(filename),
                                        (10, urwid.Text('+%s, -%s' % (added, removed))),
                                        ]))
