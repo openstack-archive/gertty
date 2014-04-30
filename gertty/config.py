@@ -22,7 +22,8 @@ class Config(object):
     def __init__(self, server=None, path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
         self.config = ConfigParser.RawConfigParser()
-        self.config.read(self.path)
+        with open(self.path, 'r') as f:
+            self.config.readfp(f, filename=f.name)
         if server is None:
             server = self.config.sections()[0]
         self.server = server
