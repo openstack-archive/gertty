@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import difflib
 import os
 import re
@@ -32,6 +33,7 @@ class GitCheckoutError(Exception):
 
 class Repo(object):
     def __init__(self, url, path):
+        self.log = logging.getLogger('gertty.gitrepo')
         self.url = url
         self.path = path
         self.differ = difflib.Differ()
@@ -135,7 +137,7 @@ class Repo(object):
         oldc = repo.commit(old)
         newc = repo.commit(new)
         files = []
-        for context in oldc.diff(newc, create_patch=True, U=context):
+        for diff_context in oldc.diff(newc, create_patch=True, U=context):
             f = DiffFile()
             files.append(f)
             old_lineno = 0
@@ -143,12 +145,18 @@ class Repo(object):
             offset = 0
             oldchunk = []
             newchunk = []
-            for line in context.diff.split('\n'):
+            diff_lines = diff_context.diff.split('\n')
+            for i, line in enumerate(diff_lines):
+                last_line = (i == len(diff_lines)-1)
                 if line.startswith('---'):
                     f.oldname = line[6:]
+                    if line[4:] == '/dev/null':
+                        f.oldname = 'Empty file'
                     continue
                 if line.startswith('+++'):
                     f.newname = line[6:]
+                    if line[4:] == '/dev/null':
+                        f.newname = 'Empty file'
                     continue
                 if line.startswith('@@'):
                     #socket.sendall(line)
@@ -163,10 +171,12 @@ class Repo(object):
                 rest = line[1:]
                 if key == '-':
                     oldchunk.append(rest)
-                    continue
+                    if not last_line:
+                        continue
                 if key == '+':
                     newchunk.append(rest)
-                    continue
+                    if not last_line:
+                        continue
                 # end of chunk
                 if oldchunk or newchunk:
                     oldchunk, newchunk = self.intraline_diff(oldchunk, newchunk)
@@ -192,5 +202,6 @@ class Repo(object):
                     old_lineno += 1
                     new_lineno += 1
                     continue
-                raise Exception("Unhandled line: %s" % line)
+                if not last_line:
+                    raise Exception("Unhandled line: %s" % line)
         return files
