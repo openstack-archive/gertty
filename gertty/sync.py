@@ -24,7 +24,10 @@ import Queue
 import datetime
 
 import dateutil.parser
-import ordereddict
+try:
+    import ordereddict
+except:
+    pass
 import requests
 
 HIGH_PRIORITY=0
