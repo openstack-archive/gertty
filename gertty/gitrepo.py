@@ -140,6 +140,10 @@ class Repo(object):
         for diff_context in oldc.diff(newc, create_patch=True, U=context):
             f = DiffFile()
             files.append(f)
+            if diff_context.rename_from:
+                f.oldname = diff_context.rename_from
+            if diff_context.rename_to:
+                f.newname = diff_context.rename_to
             old_lineno = 0
             new_lineno = 0
             offset = 0
