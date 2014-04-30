@@ -133,8 +133,11 @@ class DiffView(urwid.WidgetWrap):
                 key += '-' + str(comment.line)
                 key += '-' + str(comment.file)
                 comment_list = comment_lists.get(key, [])
-                message = [('comment-name', comment.name),
-                           ('comment', u': '+comment.message)]
+                if comment.pending:
+                    message = comment.message
+                else:
+                    message = [('comment-name', comment.name),
+                               ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
         repo = self.app.getRepo(self.project_name)
