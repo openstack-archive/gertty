@@ -145,6 +145,7 @@ class Repo(object):
             offset = 0
             oldchunk = []
             newchunk = []
+            prev_key = ''
             diff_lines = diff_context.diff.split('\n')
             for i, line in enumerate(diff_lines):
                 last_line = (i == len(diff_lines)-1)
@@ -166,17 +167,37 @@ class Repo(object):
                     new_lineno = int(m.group(3))
                     continue
                 if not line:
-                    line = ' '
+                    if prev_key != '\\':
+                        # Strangely, we get an extra newline in the
+                        # diff in the case that the last line is "\ No
+                        # newline at end of file".  This is a
+                        # workaround for that.
+                        prev_key = ''
+                        line = 'X '
+                    else:
+                        line = ' '
                 key = line[0]
                 rest = line[1:]
+                if key == '\\':
+                    # This is for "\ No newline at end of file" which
+                    # follows either a - or + line to indicate which
+                    # file it's talking about.  For now, treat it like
+                    # normal text and let the user infer from context
+                    # that it's not actually in the file.  Potential
+                    # TODO: highlight it to make that more clear.
+                    key = prev_key
+                    prev_key = '\\'
                 if key == '-':
+                    prev_key = '-'
                     oldchunk.append(rest)
                     if not last_line:
                         continue
                 if key == '+':
+                    prev_key = '+'
                     newchunk.append(rest)
                     if not last_line:
                         continue
+                prev_key = ''
                 # end of chunk
                 if oldchunk or newchunk:
                     oldchunk, newchunk = self.intraline_diff(oldchunk, newchunk)
