@@ -34,7 +34,10 @@ class Config(object):
         if server is None:
             server = self.config.sections()[0]
         self.server = server
-        self.url = self.config.get(server, 'url')
+        url = self.config.get(server, 'url')
+        if not url.endswith('/'):
+            url += '/'
+        self.url = url
         self.username = self.config.get(server, 'username')
         if not self.config.has_option(server, 'password'):
             self.password = getpass.getpass("Password for %s (%s): "
