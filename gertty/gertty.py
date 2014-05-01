@@ -13,6 +13,7 @@
 # under the License.
 
 import argparse
+import contextlib
 import logging
 import os
 import sys
@@ -121,14 +122,20 @@ class App(object):
         self.status.update(title=screen.title)
         self.loop = urwid.MainLoop(screen, palette=palette,
                                    unhandled_input=self.unhandledInput)
-        sync_pipe = self.loop.watch_pipe(self.refresh)
+        self.sync_pipe = self.loop.watch_pipe(self.refresh)
         #self.loop.screen.set_terminal_properties(colors=88)
         if not disable_sync:
-            self.sync_thread = threading.Thread(target=self.sync.run, args=(sync_pipe,))
+            self.sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
+            self.sync_thread.daemon = True
             self.sync_thread.start()
         else:
             self.sync_thread = None
+
+    def run(self):
         self.loop.run()
+
+    def close(self):
+        os.close(self.sync_pipe)
 
     def changeScreen(self, widget):
         self.status.update(title=widget.title)
@@ -173,6 +180,8 @@ class App(object):
             self.backScreen()
         elif key == 'f1':
             self.help()
+        elif key in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
 
     def getRepo(self, project_name):
         local_path = os.path.join(self.config.git_root, project_name)
@@ -192,3 +201,5 @@ if __name__ == '__main__':
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.debug, args.no_sync)
+    with contextlib.closing(g):
+        g.run()

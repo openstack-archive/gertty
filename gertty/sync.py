@@ -377,6 +377,7 @@ class Sync(object):
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
+        self.periodic_thread.daemon = True
         self.periodic_thread.start()
 
     def periodicSync(self):
