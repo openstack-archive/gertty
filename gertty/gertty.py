@@ -72,6 +72,19 @@ palette=[('reversed', 'default,standout', ''),
          ('reversed-reviewed-change', 'dark gray,standout', ''),
          ]
 
+WELCOME_TEXT = """\
+Welcome to Gertty!
+
+To get started, you should subscribe to some projects.  Press the "l"
+key to list all the projects, navigate to the ones you are interested
+in, and then press "s" to subscribe to them.  Gertty will
+automatically sync changes in your subscribed projects.
+
+Press the F1 key anywhere to get help.  Your terminal emulator may
+require you to press function-F1 or alt-F1 instead.
+
+"""
+
 class StatusHeader(urwid.WidgetWrap):
     def __init__(self, app):
         super(StatusHeader, self).__init__(urwid.Columns([]))
@@ -121,6 +134,8 @@ class App(object):
         self.status.update(title=screen.title)
         self.loop = urwid.MainLoop(screen, palette=palette,
                                    unhandled_input=self.unhandledInput)
+        if screen.isEmpty():
+            self.welcome()
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
@@ -179,6 +194,14 @@ class App(object):
             return
         dialog = mywid.MessageDialog('Help', self.loop.widget.help)
         lines = self.loop.widget.help.split('\n')
+        urwid.connect_signal(dialog, 'close',
+            lambda button: self.backScreen())
+        self.popup(dialog, min_width=76, min_height=len(lines)+4)
+
+    def welcome(self):
+        text = WELCOME_TEXT + self.loop.widget.help
+        dialog = mywid.MessageDialog('Welcome', text)
+        lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
         self.popup(dialog, min_width=76, min_height=len(lines)+4)

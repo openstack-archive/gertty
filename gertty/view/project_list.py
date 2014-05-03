@@ -76,6 +76,11 @@ This Screen
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(2)
 
+    def isEmpty(self):
+        if self.project_rows:
+            return False
+        return True
+
     def refresh(self):
         if self.subscribed:
             self.title = u'Subscribed Projects'
