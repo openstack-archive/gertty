@@ -272,18 +272,21 @@ This Screen
             change_info.append(row)
         change_info = urwid.Pile(change_info)
         self.commit_message = urwid.Text(u'')
-        top = urwid.Columns([change_info, ('weight', 1, self.commit_message)])
         votes = mywid.Table([])
+        self.left_column = urwid.Pile([('pack', change_info),
+                                       ('pack', urwid.Divider()),
+                                       ('pack', votes)])
+        top = urwid.Columns([self.left_column, ('weight', 1, self.commit_message)])
 
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
-        self._w.contents.append((top, ('pack', None)))
-        self._w.contents.append((urwid.Divider(), ('pack', 1)))
-        self._w.contents.append((votes, ('pack', None)))
-        self._w.contents.append((urwid.Divider(), ('pack', 1)))
         self._w.contents.append((self.listbox, ('weight', 1)))
-        self._w.set_focus(6)
+        self._w.set_focus(2)
+
+        self.listbox.body.append(top)
+        self.listbox.body.append(urwid.Divider())
+        self.listbox_patchset_start = len(self.listbox.body)
 
         self.refresh()
 
@@ -337,13 +340,13 @@ This Screen
             # TODO: update the existing table rather than replacing it
             # wholesale.  It will become more important if the table
             # gets selectable items (like clickable names).
-            self._w.contents[4] = (votes, ('pack', None))
+            self.left_column.contents[2] = (votes, ('pack', None))
 
             repo = self.app.getRepo(change.project.name)
             # The listbox has both revisions and messages in it (and
             # may later contain the vote table and change header), so
             # keep track of the index separate from the loop.
-            listbox_index = 0
+            listbox_index = self.listbox_patchset_start
             for revno, revision in enumerate(change.revisions):
                 row = self.revision_rows.get(revision.key)
                 if not row:
