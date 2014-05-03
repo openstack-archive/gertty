@@ -19,12 +19,74 @@ import re
 
 import git
 
+class DiffContextChunk(object):
+    context = True
+    def __init__(self):
+        self.oldlines = []
+        self.newlines = []
+
+class DiffChangedChunk(object):
+    context = False
+    def __init__(self):
+        self.oldlines = []
+        self.newlines = []
+
 class DiffFile(object):
     def __init__(self):
         self.newname = None
         self.oldname = None
-        self.oldlines = []
-        self.newlines = []
+        self.chunks = []
+        self.current_chunk = None
+        self.old_lineno = 0
+        self.new_lineno = 0
+        self.offset = 0
+
+    def finalize(self):
+        if not self.current_chunk:
+            return
+        self.current_chunk.lines = zip(self.current_chunk.oldlines,
+                                       self.current_chunk.newlines)
+        self.chunks.append(self.current_chunk)
+        self.current_chunk = None
+
+    def addDiffLines(self, old, new):
+        if (self.current_chunk and
+            not isinstance(self.current_chunk, DiffChangedChunk)):
+            self.finalize()
+        if not self.current_chunk:
+            self.current_chunk = DiffChangedChunk()
+        for l in old:
+            self.current_chunk.oldlines.append((self.old_lineno, '-', l))
+            self.old_lineno += 1
+            self.offset -= 1
+        for l in new:
+            self.current_chunk.newlines.append((self.new_lineno, '+', l))
+            self.new_lineno += 1
+            self.offset += 1
+        while self.offset > 0:
+            self.current_chunk.oldlines.append((None, '', ''))
+            self.offset -= 1
+        while self.offset < 0:
+            self.current_chunk.newlines.append((None, '', ''))
+            self.offset += 1
+
+    def addNewLine(self, line):
+        if (self.current_chunk and
+            not isinstance(self.current_chunk, DiffChangedChunk)):
+            self.finalize()
+        if not self.current_chunk:
+            self.current_chunk = DiffChangedChunk()
+
+    def addContextLine(self, line):
+        if (self.current_chunk and
+            not isinstance(self.current_chunk, DiffContextChunk)):
+            self.finalize()
+        if not self.current_chunk:
+            self.current_chunk = DiffContextChunk()
+        self.current_chunk.oldlines.append((self.old_lineno, ' ', line))
+        self.current_chunk.newlines.append((self.new_lineno, ' ', line))
+        self.old_lineno += 1
+        self.new_lineno += 1
 
 class GitCheckoutError(Exception):
     def __init__(self, msg):
@@ -63,7 +125,8 @@ class Repo(object):
             ret.append(x.split('\t'))
         return ret
 
-    def intraline_diff(self, old, new):
+    def intralineDiff(self, old, new):
+        # takes a list of old lines and a list of new lines
         prevline = None
         prevstyle = None
         output_old = []
@@ -138,15 +201,13 @@ class Repo(object):
         newc = repo.commit(new)
         files = []
         for diff_context in oldc.diff(newc, create_patch=True, U=context):
+            # Each iteration of this is a file
             f = DiffFile()
             files.append(f)
             if diff_context.rename_from:
                 f.oldname = diff_context.rename_from
             if diff_context.rename_to:
                 f.newname = diff_context.rename_to
-            old_lineno = 0
-            new_lineno = 0
-            offset = 0
             oldchunk = []
             newchunk = []
             prev_key = ''
@@ -167,8 +228,8 @@ class Repo(object):
                     #socket.sendall(line)
                     m = self.header_re.match(line)
                     #socket.sendall(str(m.groups()))
-                    old_lineno = int(m.group(1))
-                    new_lineno = int(m.group(3))
+                    f.old_lineno = int(m.group(1))
+                    f.new_lineno = int(m.group(3))
                     continue
                 if not line:
                     if prev_key != '\\':
@@ -204,29 +265,14 @@ class Repo(object):
                 prev_key = ''
                 # end of chunk
                 if oldchunk or newchunk:
-                    oldchunk, newchunk = self.intraline_diff(oldchunk, newchunk)
-                for l in oldchunk:
-                    f.oldlines.append((old_lineno, '-', l))
-                    old_lineno += 1
-                    offset -= 1
-                for l in newchunk:
-                    f.newlines.append((new_lineno, '+', l))
-                    new_lineno += 1
-                    offset += 1
+                    oldchunk, newchunk = self.intralineDiff(oldchunk, newchunk)
+                    f.addDiffLines(oldchunk, newchunk)
                 oldchunk = []
                 newchunk = []
-                while offset > 0:
-                    f.oldlines.append((None, '', ''))
-                    offset -= 1
-                while offset < 0:
-                    f.newlines.append((None, '', ''))
-                    offset += 1
                 if key == ' ':
-                    f.oldlines.append((old_lineno, ' ', rest))
-                    f.newlines.append((new_lineno, ' ', rest))
-                    old_lineno += 1
-                    new_lineno += 1
+                    f.addContextLine(rest)
                     continue
                 if not last_line:
                     raise Exception("Unhandled line: %s" % line)
+            f.finalize()
         return files

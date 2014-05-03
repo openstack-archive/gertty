@@ -154,44 +154,44 @@ This Screen
             lines.append(urwid.Columns([
                         urwid.Text(diff.oldname),
                         urwid.Text(diff.newname)]))
-            for i, old in enumerate(diff.oldlines):
-                new = diff.newlines[i]
-                context = LineContext(
-                    None, self.new_revision_key,
-                    None, self.new_revision_num,
-                    diff.oldname, diff.newname,
-                    old[0], new[0])
-                lines.append(DiffLine(self.app, context, old, new,
-                                      callback=self.onSelect))
-                # see if there are any comments for this line
-                key = 'old-%s-%s' % (old[0], diff.oldname)
-                old_list = comment_lists.get(key, [])
-                key = 'new-%s-%s' % (new[0], diff.newname)
-                new_list = comment_lists.get(key, [])
-                while old_list or new_list:
-                    old_comment_key = new_comment_key = None
-                    old_comment = new_comment = u''
-                    if old_list:
-                        (old_comment_key, old_comment) = old_list.pop(0)
-                    if new_list:
-                        (new_comment_key, new_comment) = new_list.pop(0)
-                    lines.append(DiffComment(context, old_comment, new_comment))
-                # see if there are any draft comments for this line
-                key = 'olddraft-%s-%s' % (old[0], diff.oldname)
-                old_list = comment_lists.get(key, [])
-                key = 'newdraft-%s-%s' % (old[0], diff.oldname)
-                new_list = comment_lists.get(key, [])
-                while old_list or new_list:
-                    old_comment_key = new_comment_key = None
-                    old_comment = new_comment = u''
-                    if old_list:
-                        (old_comment_key, old_comment) = old_list.pop(0)
-                    if new_list:
-                        (new_comment_key, new_comment) = new_list.pop(0)
-                    lines.append(DiffCommentEdit(context,
-                                                 old_comment_key,
-                                                 new_comment_key,
-                                                 old_comment, new_comment))
+            for chunk in diff.chunks:
+                for old, new in chunk.lines:
+                    context = LineContext(
+                        None, self.new_revision_key,
+                        None, self.new_revision_num,
+                        diff.oldname, diff.newname,
+                        old[0], new[0])
+                    lines.append(DiffLine(self.app, context, old, new,
+                                          callback=self.onSelect))
+                    # see if there are any comments for this line
+                    key = 'old-%s-%s' % (old[0], diff.oldname)
+                    old_list = comment_lists.get(key, [])
+                    key = 'new-%s-%s' % (new[0], diff.newname)
+                    new_list = comment_lists.get(key, [])
+                    while old_list or new_list:
+                        old_comment_key = new_comment_key = None
+                        old_comment = new_comment = u''
+                        if old_list:
+                            (old_comment_key, old_comment) = old_list.pop(0)
+                        if new_list:
+                            (new_comment_key, new_comment) = new_list.pop(0)
+                        lines.append(DiffComment(context, old_comment, new_comment))
+                    # see if there are any draft comments for this line
+                    key = 'olddraft-%s-%s' % (old[0], diff.oldname)
+                    old_list = comment_lists.get(key, [])
+                    key = 'newdraft-%s-%s' % (old[0], diff.oldname)
+                    new_list = comment_lists.get(key, [])
+                    while old_list or new_list:
+                        old_comment_key = new_comment_key = None
+                        old_comment = new_comment = u''
+                        if old_list:
+                            (old_comment_key, old_comment) = old_list.pop(0)
+                        if new_list:
+                            (new_comment_key, new_comment) = new_list.pop(0)
+                        lines.append(DiffCommentEdit(context,
+                                                     old_comment_key,
+                                                     new_comment_key,
+                                                     old_comment, new_comment))
         listwalker = urwid.SimpleFocusListWalker(lines)
         self.listbox = urwid.ListBox(listwalker)
         self._w.contents.append((self.listbox, ('weight', 1)))
