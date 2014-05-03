@@ -17,7 +17,7 @@ import logging
 
 import urwid
 
-import mywid
+from gertty import mywid
 
 class LineContext(object):
     def __init__(self, old_revision_key, new_revision_key,

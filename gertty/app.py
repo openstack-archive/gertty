@@ -20,12 +20,12 @@ import threading
 
 import urwid
 
-import db
-import config
-import gitrepo
-import mywid
-import sync
-import view.project_list
+from gertty import db
+from gertty import config
+from gertty import gitrepo
+from gertty import mywid
+from gertty import sync
+from gertty.view import project_list
 
 palette=[('reversed', 'default,standout', ''),
          ('header', 'white,bold', 'dark blue'),
@@ -130,7 +130,7 @@ class App(object):
         self.screens = []
         self.status = StatusHeader(self)
         self.header = urwid.AttrMap(self.status, 'header')
-        screen = view.project_list.ProjectListView(self)
+        screen = project_list.ProjectListView(self)
         self.status.update(title=screen.title)
         self.loop = urwid.MainLoop(screen, palette=palette,
                                    unhandled_input=self.unhandledInput)
@@ -221,7 +221,8 @@ class App(object):
         return gitrepo.Repo(self.config.url+'p/'+project_name,
                             local_path)
 
-if __name__ == '__main__':
+
+def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
     parser.add_argument('-d', dest='debug', action='store_true',
@@ -233,3 +234,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     g = App(args.server, args.debug, args.no_sync)
     g.run()
+
+
+if __name__ == '__main__':
+    main()
