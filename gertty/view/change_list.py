@@ -14,6 +14,7 @@
 
 import urwid
 
+import mywid
 import view.change
 
 class ChangeRow(urwid.Button):
@@ -64,10 +65,11 @@ class ChangeListHeader(urwid.WidgetWrap):
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 3)))
 
 class ChangeListView(urwid.WidgetWrap):
-    help = """
+    help = mywid.GLOBAL_HELP + """
+This Screen
+===========
 <l>   Toggle whether only unreviewed or all changes are displayed.
 <r>   Toggle the reviewed flag for the currently selected change.
-<ESC> Go back to the previous screen.
 """
 
     def __init__(self, app, project_key):

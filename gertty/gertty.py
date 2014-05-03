@@ -13,7 +13,6 @@
 # under the License.
 
 import argparse
-import contextlib
 import logging
 import os
 import sys
@@ -123,6 +122,7 @@ class App(object):
         self.loop = urwid.MainLoop(screen, palette=palette,
                                    unhandled_input=self.unhandledInput)
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
+        self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
         if not disable_sync:
             self.sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
@@ -134,15 +134,23 @@ class App(object):
     def run(self):
         self.loop.run()
 
-    def close(self):
-        os.close(self.sync_pipe)
+    def _quit(self, widget=None):
+        raise urwid.ExitMainLoop()
+
+    def quit(self):
+        dialog = mywid.YesNoDialog(u'Quit',
+                                   u'Are you sure you want to quit?')
+        urwid.connect_signal(dialog, 'no', self.backScreen)
+        urwid.connect_signal(dialog, 'yes', self._quit)
+
+        self.popup(dialog)
 
     def changeScreen(self, widget):
         self.status.update(title=widget.title)
         self.screens.append(self.loop.widget)
         self.loop.widget = widget
 
-    def backScreen(self):
+    def backScreen(self, widget=None):
         if not self.screens:
             return
         widget = self.screens.pop()
@@ -173,15 +181,15 @@ class App(object):
         lines = self.loop.widget.help.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
-        self.popup(dialog, min_width=76, min_height=len(lines)+2)
+        self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
     def unhandledInput(self, key):
         if key == 'esc':
             self.backScreen()
         elif key == 'f1':
             self.help()
-        elif key in ('q', 'Q'):
-            raise urwid.ExitMainLoop()
+        elif key == 'ctrl q':
+            self.quit()
 
     def getRepo(self, project_name):
         local_path = os.path.join(self.config.git_root, project_name)
@@ -201,5 +209,4 @@ if __name__ == '__main__':
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.debug, args.no_sync)
-    with contextlib.closing(g):
-        g.run()
+    g.run()

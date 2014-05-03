@@ -14,6 +14,7 @@
 
 import urwid
 
+import mywid
 import sync
 import view.change_list
 
@@ -56,7 +57,9 @@ class ProjectRow(urwid.Button):
         self.reviewed_changes.set_text(str(len(project.reviewed_changes)))
 
 class ProjectListView(urwid.WidgetWrap):
-    help = """
+    help = mywid.GLOBAL_HELP + """
+This Screen
+===========
 <l>   Toggle whether only subscribed projects or all projects are listed.
 <s>   Toggle the subscription flag for the currently selected project.
 """

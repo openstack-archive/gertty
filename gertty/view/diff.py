@@ -17,6 +17,8 @@ import logging
 
 import urwid
 
+import mywid
+
 class LineContext(object):
     def __init__(self, old_revision_key, new_revision_key,
                  old_revision_num, new_revision_num,
@@ -101,9 +103,10 @@ class DiffLine(urwid.Button):
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
 class DiffView(urwid.WidgetWrap):
-    help = """
+    help = mywid.GLOBAL_HELP + """
+This Screen
+===========
 <Enter> Add an inline comment.
-<ESC>   Go back to the previous screen.
 """
 
     def __init__(self, app, new_revision_key):

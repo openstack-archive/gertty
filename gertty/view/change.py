@@ -238,9 +238,10 @@ class ChangeMessageBox(urwid.Text):
         self.set_text(text)
 
 class ChangeView(urwid.WidgetWrap):
-    help = """
+    help = mywid.GLOBAL_HELP + """
+This Screen
+===========
 <r>   Toggle the reviewed flag for the current change.
-<ESC> Go back to the previous screen.
 """
 
     def __init__(self, app, change_key):

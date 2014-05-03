@@ -14,6 +14,14 @@
 
 import urwid
 
+GLOBAL_HELP = """\
+Global Keys
+===========
+<F1>     Help
+<ESC>    Back to previous screen
+<CTRL-Q> Quit Gertty
+"""
+
 class TextButton(urwid.Button):
     def selectable(self):
         return True
@@ -44,18 +52,36 @@ class Table(urwid.WidgetWrap):
         for i, widget in enumerate(cells):
             self._w.contents[i][0].contents.append((widget, ('pack', None)))
 
-class MessageDialog(urwid.WidgetWrap):
-    signals = ['close']
-    def __init__(self, title, message):
-        ok_button = FixedButton(u'OK')
-        urwid.connect_signal(ok_button, 'click',
-            lambda button:self._emit('close'))
-        buttons = urwid.Columns([('pack', ok_button)],
-                                dividechars=2)
+class ButtonDialog(urwid.WidgetWrap):
+    def __init__(self, title, message, buttons=[]):
+        button_widgets = []
+        for button in buttons:
+            button_widgets.append(('pack', button))
+        button_columns = urwid.Columns(button_widgets, dividechars=2)
         rows = []
         rows.append(urwid.Text(message))
         rows.append(urwid.Divider())
-        rows.append(buttons)
+        rows.append(button_columns)
         pile = urwid.Pile(rows)
         fill = urwid.Filler(pile, valign='top')
-        super(MessageDialog, self).__init__(urwid.LineBox(fill, title))
+        super(ButtonDialog, self).__init__(urwid.LineBox(fill, title))
+
+class MessageDialog(ButtonDialog):
+    signals = ['close']
+    def __init__(self, title, message):
+        ok_button = FixedButton('OK')
+        urwid.connect_signal(ok_button, 'click',
+                             lambda button:self._emit('close'))
+        super(MessageDialog, self).__init__(title, message, buttons=[ok_button])
+
+class YesNoDialog(ButtonDialog):
+    signals = ['yes', 'no']
+    def __init__(self, title, message):
+        yes_button = FixedButton('Yes')
+        no_button = FixedButton('No')
+        urwid.connect_signal(yes_button, 'click',
+                             lambda button:self._emit('yes'))
+        urwid.connect_signal(no_button, 'click',
+                             lambda button:self._emit('no'))
+        super(YesNoDialog, self).__init__(title, message, buttons=[yes_button,
+                                                                   no_button])
