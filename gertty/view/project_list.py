@@ -14,9 +14,9 @@
 
 import urwid
 
-import mywid
-import sync
-import view.change_list
+from gertty import mywid
+from gertty import sync
+from gertty.view import change_list as view_change_list
 
 class ProjectRow(urwid.Button):
     project_focus_map = {None: 'reversed',
@@ -113,7 +113,7 @@ This Screen
         return ret
 
     def onSelect(self, button, project_key):
-        self.app.changeScreen(view.change_list.ChangeListView(self.app, project_key))
+        self.app.changeScreen(view_change_list.ChangeListView(self.app, project_key))
 
     def keypress(self, size, key):
         if key=='l':
