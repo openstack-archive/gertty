@@ -14,8 +14,8 @@
 
 import urwid
 
-import mywid
-import view.change
+from gertty import mywid
+from gertty.view import change
 
 class ChangeRow(urwid.Button):
     change_focus_map = {None: 'reversed',
@@ -139,4 +139,4 @@ This Screen
         return super(ChangeListView, self).keypress(size, key)
 
     def onSelect(self, button, change_key):
-        self.app.changeScreen(view.change.ChangeView(self.app, change_key))
+        self.app.changeScreen(change.ChangeView(self.app, change_key))

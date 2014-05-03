@@ -16,10 +16,10 @@ import datetime
 
 import urwid
 
-import gitrepo
-import mywid
-import sync
-import view.diff
+from gertty import gitrepo
+from gertty import mywid
+from gertty import sync
+from gertty.view import diff
 
 class ReviewDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
@@ -384,4 +384,4 @@ This Screen
         return r
 
     def diff(self, revision_key):
-        self.app.changeScreen(view.diff.DiffView(self.app, revision_key))
+        self.app.changeScreen(diff.DiffView(self.app, revision_key))
