@@ -19,17 +19,18 @@ import re
 
 import git
 
-class DiffContextChunk(object):
-    context = True
+class DiffChunk(object):
     def __init__(self):
         self.oldlines = []
         self.newlines = []
+        self.first = False
+        self.last = False
 
-class DiffChangedChunk(object):
+class DiffContextChunk(DiffChunk):
+    context = True
+
+class DiffChangedChunk(DiffChunk):
     context = False
-    def __init__(self):
-        self.oldlines = []
-        self.newlines = []
 
 class DiffFile(object):
     def __init__(self):
@@ -46,6 +47,11 @@ class DiffFile(object):
             return
         self.current_chunk.lines = zip(self.current_chunk.oldlines,
                                        self.current_chunk.newlines)
+        if not self.chunks:
+            self.current_chunk.first = True
+        else:
+            self.chunks[-1].last = False
+        self.current_chunk.last = True
         self.chunks.append(self.current_chunk)
         self.current_chunk = None
 
@@ -194,7 +200,7 @@ class Repo(object):
         return output_old, output_new
 
     header_re = re.compile('@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@')
-    def diff(self, old, new, context=20):
+    def diff(self, old, new, context=10000):
         repo = git.Repo(self.path)
         #'-y', '-x', 'diff -C10', old, new, path).split('\n'):
         oldc = repo.commit(old)
