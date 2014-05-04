@@ -18,6 +18,7 @@ import logging
 import urwid
 
 from gertty import mywid
+from gertty import gitrepo
 
 class LineContext(object):
     def __init__(self, old_revision_key, new_revision_key,
@@ -102,6 +103,14 @@ class DiffLine(urwid.Button):
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+class DiffContextButton(urwid.Button):
+    def selectable(self):
+        return False #TODO: change
+
+    def __init__(self, chunk):
+        super(DiffContextButton, self).__init__('...')
+        self.chunk = chunk
+
 class DiffView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
@@ -146,11 +155,14 @@ This Screen
         repo = self.app.getRepo(self.project_name)
         self._w.contents.append((app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
-        lines = []
+        lines = []  # The initial set of lines to display
+        self.file_diffs = [{}, {}]  # Mapping of fn -> DiffFile object (old, new)
         # this is a list of files:
         for i, diff in enumerate(repo.diff(self.parent, self.commit)):
             if i > 0:
                 lines.append(urwid.Text(''))
+            self.file_diffs[gitrepo.OLD][diff.oldname] = diff
+            self.file_diffs[gitrepo.NEW][diff.newname] = diff
             lines.append(urwid.Columns([
                         urwid.Text(diff.oldname),
                         urwid.Text(diff.newname)]))
@@ -158,19 +170,78 @@ This Screen
                 if chunk.context:
                     if not chunk.first:
                         lines += self.makeLines(diff, chunk.lines[:10], comment_lists)
-                    lines.append(urwid.Text('...'))
+                        del chunk.lines[:10]
+                    button = DiffContextButton(chunk)
+                    chunk.button = button
+                    lines.append(button)
                     if not chunk.last:
                         lines += self.makeLines(diff, chunk.lines[-10:], comment_lists)
+                        del chunk.lines[-10:]
+                    chunk.calcRange()
+                    if not chunk.lines:
+                        lines.remove(button)
                 else:
                     lines += self.makeLines(diff, chunk.lines, comment_lists)
-        if comment_lists:
-            self.log.debug("Undisplayed comments: %s" % comment_lists)
         listwalker = urwid.SimpleFocusListWalker(lines)
         self.listbox = urwid.ListBox(listwalker)
         self._w.contents.append((self.listbox, ('weight', 1)))
         self.old_focus = 2
         self.draft_comments = []
         self._w.set_focus(self.old_focus)
+        self.handleUndisplayedComments(comment_lists)
+
+    def handleUndisplayedComments(self, comment_lists):
+        # Handle comments that landed outside our default diff context
+        import time
+        lastlen = 0
+        while comment_lists:
+            if len(comment_lists.keys()) == lastlen:
+                self.log.error("Unable to display all comments: %s" % comment_lists)
+                return
+            lastlen = len(comment_lists.keys())
+            key = comment_lists.keys()[0]
+            kind, lineno, path = key.split('-', 2)
+            lineno = int(lineno)
+            if kind.startswith('old'):
+                oldnew = gitrepo.OLD
+            else:
+                oldnew = gitrepo.NEW
+            diff = self.file_diffs[oldnew][path]
+            for chunk in diff.chunks:
+                if (chunk.range[oldnew][gitrepo.START] <= lineno and
+                    chunk.range[oldnew][gitrepo.END]   >= lineno):
+                    i = chunk.indexOfLine(oldnew, lineno)
+                    if i < (len(chunk.lines) / 2):
+                        from_start = True
+                    else:
+                        from_start = False
+                    if chunk.first and from_start:
+                        from_start = False
+                    if chunk.last and (not from_start):
+                        from_start = True
+                    if from_start:
+                        self.expandChunk(diff, chunk, comment_lists, from_start=i+10)
+                    else:
+                        self.expandChunk(diff, chunk, comment_lists, from_end=i-10)
+                    break
+
+    def expandChunk(self, diff, chunk, comment_lists, from_start=None, from_end=None):
+        self.log.debug("Expand chunk %s %s %s" % (chunk, from_start, from_end))
+        add_lines = []
+        if from_start is not None:
+            index = self.listbox.body.index(chunk.button)
+            add_lines = chunk.lines[:from_start]
+            del chunk.lines[:from_start]
+        if from_end is not None:
+            index = self.listbox.body.index(chunk.button)+1
+            add_lines = chunk.lines[from_end:]
+            del chunk.lines[from_end:]
+        if add_lines:
+            lines = self.makeLines(diff, add_lines, comment_lists)
+            self.listbox.body[index:index] = lines
+        chunk.calcRange()
+        if not chunk.lines:
+            self.listbox.body.remove(chunk.button)
 
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []
@@ -198,7 +269,7 @@ This Screen
             # see if there are any draft comments for this line
             key = 'olddraft-%s-%s' % (old[0], diff.oldname)
             old_list = comment_lists.pop(key, [])
-            key = 'newdraft-%s-%s' % (old[0], diff.oldname)
+            key = 'newdraft-%s-%s' % (new[0], diff.newname)
             new_list = comment_lists.pop(key, [])
             while old_list or new_list:
                 old_comment_key = new_comment_key = None

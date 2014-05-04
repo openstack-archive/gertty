@@ -19,12 +19,53 @@ import re
 
 import git
 
+OLD = 0
+NEW = 1
+START = 0
+END = 1
+LINENO = 0
+LINE = 1
+
 class DiffChunk(object):
     def __init__(self):
         self.oldlines = []
         self.newlines = []
         self.first = False
         self.last = False
+        self.lines = []
+        self.calcRange()
+
+    def __repr__(self):
+        return '<%s old lines %s-%s / new lines %s-%s>' % (
+            self.__class__.__name__,
+            self.range[OLD][START], self.range[OLD][END],
+            self.range[NEW][START], self.range[NEW][END])
+
+    def calcRange(self):
+        self.range = [[0, 0],
+                      [0, 0]]
+        for l in self.lines:
+            if self.range[OLD][START] == 0 and l[OLD][LINENO] is not None:
+                self.range[OLD][START] = l[OLD][LINENO]
+            if self.range[NEW][START] == 0 and l[NEW][LINENO] is not None:
+                self.range[NEW][START] = l[NEW][LINENO]
+            if (self.range[OLD][START] != 0 and
+                self.range[NEW][START] != 0):
+                break
+
+        for l in self.lines[::-1]:
+            if self.range[OLD][END] == 0 and l[OLD][LINENO] is not None:
+                self.range[OLD][END] = l[OLD][LINENO]
+            if self.range[NEW][END] == 0 and l[NEW][LINENO] is not None:
+                self.range[NEW][END] = l[NEW][LINENO]
+            if (self.range[OLD][END] != 0 and
+                self.range[NEW][END] != 0):
+                break
+
+    def indexOfLine(self, oldnew, lineno):
+        for i, l in enumerate(self.lines):
+            if l[oldnew][LINENO] == lineno:
+                return i
 
 class DiffContextChunk(DiffChunk):
     context = True
@@ -52,6 +93,7 @@ class DiffFile(object):
         else:
             self.chunks[-1].last = False
         self.current_chunk.last = True
+        self.current_chunk.calcRange()
         self.chunks.append(self.current_chunk)
         self.current_chunk = None
 
