@@ -19,10 +19,10 @@ from gertty import sync
 from gertty.view import change_list as view_change_list
 
 class ProjectRow(urwid.Button):
-    project_focus_map = {None: 'reversed',
-                         'unreviewed-project': 'reversed-unreviewed-project',
-                         'subscribed-project': 'reversed-subscribed-project',
-                         'unsubscribed-project': 'reversed-unsubscribed-project',
+    project_focus_map = {None: 'focused',
+                         'unreviewed-project': 'focused-unreviewed-project',
+                         'subscribed-project': 'focused-subscribed-project',
+                         'unsubscribed-project': 'focused-unsubscribed-project',
                          }
 
     def selectable(self):

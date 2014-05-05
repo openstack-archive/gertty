@@ -94,12 +94,12 @@ class DiffLine(urwid.Button):
                 line_col = urwid.AttrMap(line_col, 'nonexistent')
             columns += [(4, ln_col), line_col]
         col = urwid.Columns(columns)
-        map = {None: 'reversed',
-               'added-line': 'reversed-added-line',
-               'added-word': 'reversed-added-word',
-               'removed-line': 'reversed-removed-line',
-               'removed-word': 'reversed-removed-word',
-               'nonexistent': 'reversed-nonexistent',
+        map = {None: 'focused',
+               'added-line': 'focused-added-line',
+               'added-word': 'focused-added-word',
+               'removed-line': 'focused-removed-line',
+               'removed-word': 'focused-removed-word',
+               'nonexistent': 'focused-nonexistent',
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
@@ -108,7 +108,7 @@ class DiffContextButton(urwid.WidgetWrap):
         return True
 
     def __init__(self, view, diff, chunk):
-        focus_map={'context-button':'selected-context-button'}
+        focus_map={'context-button':'focused-context-button'}
         buttons = [mywid.FixedButton(('context-button', "Expand previous 10"),
                                      on_press=self.prev),
                    mywid.FixedButton(('context-button',

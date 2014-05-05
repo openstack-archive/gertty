@@ -18,9 +18,9 @@ from gertty import mywid
 from gertty.view import change as view_change
 
 class ChangeRow(urwid.Button):
-    change_focus_map = {None: 'reversed',
-                        'unreviewed-change': 'reversed-unreviewed-change',
-                        'reviewed-change': 'reversed-reviewed-change',
+    change_focus_map = {None: 'focused',
+                        'unreviewed-change': 'focused-unreviewed-change',
+                        'reviewed-change': 'focused-reviewed-change',
                         }
 
     def selectable(self):

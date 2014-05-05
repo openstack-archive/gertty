@@ -148,10 +148,10 @@ class ReviewButton(mywid.FixedButton):
 
 class RevisionRow(urwid.WidgetWrap):
     revision_focus_map = {
-                          'revision-name': 'reversed-revision-name',
-                          'revision-commit': 'reversed-revision-commit',
-                          'revision-comments': 'reversed-revision-comments',
-                          'revision-drafts': 'reversed-revision-drafts',
+                          'revision-name': 'focused-revision-name',
+                          'revision-commit': 'focused-revision-commit',
+                          'revision-comments': 'focused-revision-comments',
+                          'revision-drafts': 'focused-revision-drafts',
                           }
 
     def __init__(self, app, change_view, repo, revision, expanded=False):
@@ -192,7 +192,7 @@ class RevisionRow(urwid.WidgetWrap):
         table = urwid.Pile(rows)
 
 
-        focus_map={'revision-button':'selected-revision-button'}
+        focus_map={'revision-button': 'focused-revision-button'}
         self.review_button = ReviewButton(self)
         buttons = [self.review_button,
                    mywid.FixedButton(('revision-button', "Diff"),
