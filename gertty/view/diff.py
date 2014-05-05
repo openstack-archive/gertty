@@ -108,14 +108,18 @@ class DiffContextButton(urwid.WidgetWrap):
         return True
 
     def __init__(self, view, diff, chunk):
-        buttons = urwid.Columns([
-                urwid.Text(''),
-                ('pack', mywid.FixedButton("Expand previous 10", on_press=self.prev)),
-                ('pack', mywid.FixedButton("Expand %s lines of context" % len(chunk.lines),
-                                           on_press=self.all)),
-                ('pack', mywid.FixedButton("Expand next 10", on_press=self.next)),
-                urwid.Text(''),
-                ], dividechars=4)
+        focus_map={'context-button':'selected-context-button'}
+        buttons = [mywid.FixedButton(('context-button', "Expand previous 10"),
+                                     on_press=self.prev),
+                   mywid.FixedButton(('context-button',
+                                      "Expand %s lines of context" % len(chunk.lines)),
+                                     on_press=self.all),
+                   mywid.FixedButton(('context-button', "Expand next 10"),
+                                     on_press=self.next)]
+        buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
+        buttons = urwid.Columns([urwid.Text('')] + buttons + [urwid.Text('')],
+                                dividechars=4)
+        buttons = urwid.AttrMap(buttons, 'context-button')
         super(DiffContextButton, self).__init__(buttons)
         self.view = view
         self.diff = diff
@@ -183,8 +187,8 @@ This Screen
             self.file_diffs[gitrepo.OLD][diff.oldname] = diff
             self.file_diffs[gitrepo.NEW][diff.newname] = diff
             lines.append(urwid.Columns([
-                        urwid.Text(diff.oldname),
-                        urwid.Text(diff.newname)]))
+                        urwid.Text(('filename', diff.oldname)),
+                        urwid.Text(('filename', diff.newname))]))
             for chunk in diff.chunks:
                 if chunk.context:
                     if not chunk.first:

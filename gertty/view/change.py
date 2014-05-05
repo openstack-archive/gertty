@@ -122,7 +122,7 @@ class ReviewDialog(urwid.WidgetWrap):
 
 class ReviewButton(mywid.FixedButton):
     def __init__(self, revision_row):
-        super(ReviewButton, self).__init__(u'Review')
+        super(ReviewButton, self).__init__(('revision-button', u'Review'))
         self.revision_row = revision_row
         self.change_view = revision_row.change_view
         urwid.connect_signal(self, 'click',
@@ -190,11 +190,17 @@ class RevisionRow(urwid.WidgetWrap):
                                    (10, urwid.Text('+%s, -%s' % (total_added, total_removed))),
                                    ]))
         table = urwid.Pile(rows)
-        buttons = urwid.Columns([('pack', ReviewButton(self)),
-                                 ('pack', mywid.FixedButton("Diff", on_press=self.diff)),
-                                 ('pack', mywid.FixedButton("Checkout", on_press=self.checkout)),
-                                 urwid.Text(''),
-                                 ], dividechars=2)
+
+
+        focus_map={'revision-button':'selected-revision-button'}
+        buttons = [ReviewButton(self),
+                   mywid.FixedButton(('revision-button', "Diff"),
+                                     on_press=self.diff),
+                   mywid.FixedButton(('revision-button', "Checkout"),
+                                     on_press=self.checkout)]
+        buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
+        buttons = urwid.Columns(buttons + [urwid.Text('')], dividechars=2)
+        buttons = urwid.AttrMap(buttons, 'revision-button')
         self.more = urwid.Pile([table, buttons])
         self.pile = urwid.Pile([self.title])
         self._w = urwid.AttrMap(self.pile, None, focus_map=self.revision_focus_map)
