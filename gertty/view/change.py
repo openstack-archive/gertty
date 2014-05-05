@@ -193,7 +193,8 @@ class RevisionRow(urwid.WidgetWrap):
 
 
         focus_map={'revision-button':'selected-revision-button'}
-        buttons = [ReviewButton(self),
+        self.review_button = ReviewButton(self)
+        buttons = [self.review_button,
                    mywid.FixedButton(('revision-button', "Diff"),
                                      on_press=self.diff),
                    mywid.FixedButton(('revision-button', "Checkout"),
@@ -247,7 +248,10 @@ class ChangeView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
-<r>   Toggle the reviewed flag for the current change.
+<R>   Toggle the reviewed flag for the current change.
+<c>   Checkout the most recent revision.
+<d>   Show the diff of the mont recent revision.
+<r>   Leave a review for the most recent revision.
 """
 
     def __init__(self, app, change_key):
@@ -256,6 +260,7 @@ This Screen
         self.change_key = change_key
         self.revision_rows = {}
         self.message_rows = {}
+        self.last_revision_key = None
         self.change_id_label = urwid.Text(u'', wrap='clip')
         self.owner_label = urwid.Text(u'', wrap='clip')
         self.project_label = urwid.Text(u'', wrap='clip')
@@ -354,6 +359,7 @@ This Screen
             # keep track of the index separate from the loop.
             listbox_index = self.listbox_patchset_start
             for revno, revision in enumerate(change.revisions):
+                self.last_revision_key = revision.key
                 row = self.revision_rows.get(revision.key)
                 if not row:
                     row = RevisionRow(self.app, self, repo, revision,
@@ -383,10 +389,21 @@ This Screen
 
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
-        if r=='r':
+        if r == 'R':
             self.toggleReviewed()
             self.refresh()
             return None
+        if r == 'r':
+            row = self.revision_rows[self.last_revision_key]
+            row.review_button.openReview()
+            return None
+        if r == 'd':
+            row = self.revision_rows[self.last_revision_key]
+            row.diff(None)
+            return None
+        if r == 'c':
+            row = self.revision_rows[self.last_revision_key]
+            row.checkout(None)
         return r
 
     def diff(self, revision_key):
