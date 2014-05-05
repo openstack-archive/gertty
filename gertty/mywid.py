@@ -44,9 +44,13 @@ class TableColumn(urwid.Pile):
         return (mx+2, len(self.contents))
 
 class Table(urwid.WidgetWrap):
-    def __init__(self, headers=[]):
+    def __init__(self, headers=[], columns=None):
+        if columns is None:
+            cols = [('pack', TableColumn([('pack', w)])) for w in headers]
+        else:
+            cols = [('pack', TableColumn([])) for x in range(columns)]
         super(Table, self).__init__(
-            urwid.Columns([('pack', TableColumn([('pack', w)])) for w in headers]))
+            urwid.Columns(cols))
 
     def addRow(self, cells=[]):
         for i, widget in enumerate(cells):

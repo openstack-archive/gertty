@@ -31,8 +31,8 @@ palette=[('focused', 'default,standout', ''),
          ('header', 'white,bold', 'dark blue'),
          ('error', 'light red', 'dark blue'),
          ('table-header', 'white,bold', ''),
-         # Diff
          ('filename', 'light cyan', ''),
+         # Diff
          ('context-button', 'dark magenta', ''),
          ('focused-context-button', 'light magenta', ''),
          ('removed-line', 'dark red', ''),
@@ -63,6 +63,8 @@ palette=[('focused', 'default,standout', ''),
          ('change-message-header', 'dark blue', ''),
          ('revision-button', 'dark magenta', ''),
          ('focused-revision-button', 'light magenta', ''),
+         ('lines-added', 'light green', ''),
+         ('lines-removed', 'light red', ''),
          # project list
          ('unreviewed-project', 'white', ''),
          ('subscribed-project', 'default', ''),

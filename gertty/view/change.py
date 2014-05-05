@@ -163,7 +163,7 @@ class RevisionRow(urwid.WidgetWrap):
         self.commit_sha = revision.commit
         self.title = mywid.TextButton(u'', on_press = self.expandContract)
         stats = repo.diffstat(revision.parent, revision.commit)
-        rows = []
+        table = mywid.Table(columns=3)
         total_added = 0
         total_removed = 0
         for added, removed, filename in stats:
@@ -177,13 +177,15 @@ class RevisionRow(urwid.WidgetWrap):
                 removed = 0
             total_added += added
             total_removed += removed
-            rows.append(urwid.Columns([urwid.Text(filename),
-                                       (10, urwid.Text('+%s, -%s' % (added, removed))),
-                                       ]))
-        rows.append(urwid.Columns([urwid.Text(''),
-                                   (10, urwid.Text('+%s, -%s' % (total_added, total_removed))),
-                                   ]))
-        table = urwid.Pile(rows)
+            table.addRow([urwid.Text(('filename', filename)),
+                          urwid.Text([('lines-added', '+%i' % (added,)), ', '],
+                                     align=urwid.RIGHT),
+                          urwid.Text(('lines-removed', '-%i' % (removed,)))])
+        table.addRow([urwid.Text(''),
+                      urwid.Text([('lines-added', '+%i' % (total_added,)), ', '],
+                                 align=urwid.RIGHT),
+                      urwid.Text(('lines-removed', '-%i' % (total_removed,)))])
+        table = urwid.Padding(table, width='pack')
 
         focus_map={'revision-button': 'focused-revision-button'}
         self.review_button = ReviewButton(self)
