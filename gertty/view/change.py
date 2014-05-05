@@ -333,8 +333,14 @@ This Screen
             self.commit_message.set_text(change.revisions[-1].message)
 
             categories = []
+            max_values = {}
+            min_values = {}
             approval_headers = [urwid.Text(('table-header', 'Name'))]
             for label in change.labels:
+                if label.value > max_values.get(label.category, 0):
+                    max_values[label.category] = label.value
+                if label.value < min_values.get(label.category, 0):
+                    min_values[label.category] = label.value
                 if label.category in categories:
                     continue
                 approval_headers.append(urwid.Text(('table-header', label.category)))
@@ -346,15 +352,27 @@ This Screen
                 if not approvals:
                     approvals = {}
                     row = []
-                    row.append(urwid.Text(approval.name))
+                    row.append(urwid.Text(('reviewer-name', approval.name)))
                     for i, category in enumerate(categories):
-                        w = urwid.Text(u'')
+                        w = urwid.Text(u'', align=urwid.CENTER)
                         approvals[category] = w
                         row.append(w)
                     approvals_for_name[approval.name] = approvals
                     votes.addRow(row)
                 if str(approval.value) != '0':
-                    approvals[approval.category].set_text(str(approval.value))
+                    if approval.value > 0:
+                        val = '+%i' % approval.value
+                        if approval.value == max_values.get(approval.category):
+                            val = ('max-label', val)
+                        else:
+                            val = ('positive-label', val)
+                    else:
+                        val = '%i' % approval.value
+                        if approval.value == min_values.get(approval.category):
+                            val = ('min-label', val)
+                        else:
+                            val = ('negative-label', val)
+                    approvals[approval.category].set_text(val)
             votes = urwid.Padding(votes, width='pack')
 
             # TODO: update the existing table rather than replacing it
