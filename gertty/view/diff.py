@@ -320,7 +320,8 @@ This Screen
         old_focus = self.listbox.focus
         r = super(DiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
-        if old_focus != new_focus and isinstance(old_focus, DiffCommentEdit):
+        if (isinstance(old_focus, DiffCommentEdit) and
+            (old_focus != new_focus or key == 'esc')):
             self.cleanupEdit(old_focus)
         return r
 

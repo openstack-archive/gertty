@@ -161,13 +161,7 @@ class RevisionRow(urwid.WidgetWrap):
         self.revision_key = revision.key
         self.project_name = revision.change.project.name
         self.commit_sha = revision.commit
-        line = [('revision-name', 'Patch Set %s ' % revision.number),
-                ('revision-commit', revision.commit)]
-        if len(revision.pending_comments):
-            line.append(('revision-drafts', ' (%s drafts)' % len(revision.pending_comments)))
-        if len(revision.comments):
-            line.append(('revision-comments', ' (%s inline comments)' % len(revision.comments)))
-        self.title = mywid.TextButton(line, on_press = self.expandContract)
+        self.title = mywid.TextButton(u'', on_press = self.expandContract)
         stats = repo.diffstat(revision.parent, revision.commit)
         rows = []
         total_added = 0
@@ -191,7 +185,6 @@ class RevisionRow(urwid.WidgetWrap):
                                    ]))
         table = urwid.Pile(rows)
 
-
         focus_map={'revision-button': 'focused-revision-button'}
         self.review_button = ReviewButton(self)
         buttons = [self.review_button,
@@ -206,8 +199,22 @@ class RevisionRow(urwid.WidgetWrap):
         self.pile = urwid.Pile([self.title])
         self._w = urwid.AttrMap(self.pile, None, focus_map=self.revision_focus_map)
         self.expanded = False
+        self.update(revision)
         if expanded:
             self.expandContract(None)
+
+    def update(self, revision):
+        line = [('revision-name', 'Patch Set %s ' % revision.number),
+                ('revision-commit', revision.commit)]
+        num_drafts = len(revision.pending_comments)
+        if num_drafts:
+            line.append(('revision-drafts', ' (%s draft%s)' % (
+                        num_drafts, num_drafts>1 and 's' or '')))
+        num_comments = len(revision.comments) - num_drafts
+        if num_comments:
+            line.append(('revision-comments', ' (%s inline comment%s)' % (
+                        num_comments, num_comments>1 and 's' or '')))
+        self.title.text.set_text(line)
 
     def expandContract(self, button):
         if self.expanded:
@@ -366,6 +373,7 @@ This Screen
                                       expanded=(revno==len(change.revisions)-1))
                     self.listbox.body.insert(listbox_index, row)
                     self.revision_rows[revision.key] = row
+                row.update(revision)
                 # Revisions are extremely unlikely to be deleted, skip
                 # that case.
                 listbox_index += 1

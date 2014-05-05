@@ -28,8 +28,8 @@ class TextButton(urwid.Button):
 
     def __init__(self, text, on_press=None, user_data=None):
         super(TextButton, self).__init__('', on_press=on_press, user_data=user_data)
-        text = urwid.Text(text)
-        self._w = urwid.AttrMap(text, None, focus_map='focused')
+        self.text = urwid.Text(text)
+        self._w = urwid.AttrMap(self.text, None, focus_map='focused')
 
 class FixedButton(urwid.Button):
     def sizing(self):
