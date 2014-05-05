@@ -52,6 +52,8 @@ palette=[('focused', 'default,standout', ''),
          ('draft-comment', 'default', 'dark gray'),
          ('comment', 'light gray', 'dark gray'),
          ('comment-name', 'white', 'dark gray'),
+         ('line-number', 'dark gray', ''),
+         ('focused-line-number', 'dark gray,standout', ''),
          # Change view
          ('change-data', 'light cyan', ''),
          ('change-header', 'light blue', ''),

@@ -86,7 +86,7 @@ class DiffLine(urwid.Button):
                 ln = ''
             else:
                 ln = str(ln)
-            ln_col = urwid.Text(ln)
+            ln_col = urwid.Text(('line-number', ln))
             ln_col.set_wrap_mode('clip')
             line_col = urwid.Text(line)
             line_col.set_wrap_mode('clip')
@@ -100,6 +100,7 @@ class DiffLine(urwid.Button):
                'removed-line': 'focused-removed-line',
                'removed-word': 'focused-removed-word',
                'nonexistent': 'focused-nonexistent',
+               'line-number': 'focused-line-number',
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
