@@ -198,7 +198,8 @@ class RevisionRow(urwid.WidgetWrap):
         buttons = urwid.Columns(buttons + [urwid.Text('')], dividechars=2)
         buttons = urwid.AttrMap(buttons, 'revision-button')
         self.more = urwid.Pile([table, buttons])
-        self.pile = urwid.Pile([self.title])
+        padded_title = urwid.Padding(self.title, width='pack')
+        self.pile = urwid.Pile([padded_title])
         self._w = urwid.AttrMap(self.pile, None, focus_map=self.revision_focus_map)
         self.expanded = False
         self.update(revision)
