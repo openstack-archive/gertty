@@ -89,3 +89,12 @@ class YesNoDialog(ButtonDialog):
                              lambda button:self._emit('no'))
         super(YesNoDialog, self).__init__(title, message, buttons=[yes_button,
                                                                    no_button])
+    def keypress(self, size, key):
+        r = super(YesNoDialog, self).keypress(size, key)
+        if r in ('Y', 'y'):
+            self._emit('yes')
+            return None
+        if r in ('N', 'n'):
+            self._emit('no')
+            return None
+        return r
