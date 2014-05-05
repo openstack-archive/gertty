@@ -222,7 +222,7 @@ class SyncChangeTask(Task):
                     created = dateutil.parser.parse(remote_message['date'])
                     if 'author' in remote_message:
                         author_name = remote_message['author']['name']
-                        if remote_message['author']['username'] != app.config.username:
+                        if remote_message['author'].get('username') != app.config.username:
                             new_message = True
                     else:
                         author_name = 'Gerrit Code Review'
