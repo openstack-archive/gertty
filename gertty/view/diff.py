@@ -103,13 +103,32 @@ class DiffLine(urwid.Button):
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
-class DiffContextButton(urwid.Button):
+class DiffContextButton(urwid.WidgetWrap):
     def selectable(self):
-        return False #TODO: change
+        return True
 
-    def __init__(self, chunk):
-        super(DiffContextButton, self).__init__('...')
+    def __init__(self, view, diff, chunk):
+        buttons = urwid.Columns([
+                urwid.Text(''),
+                ('pack', mywid.FixedButton("Expand previous 10", on_press=self.prev)),
+                ('pack', mywid.FixedButton("Expand %s lines of context" % len(chunk.lines),
+                                           on_press=self.all)),
+                ('pack', mywid.FixedButton("Expand next 10", on_press=self.next)),
+                urwid.Text(''),
+                ], dividechars=4)
+        super(DiffContextButton, self).__init__(buttons)
+        self.view = view
+        self.diff = diff
         self.chunk = chunk
+
+    def prev(self, button):
+        self.view.expandChunk(self.diff, self.chunk, from_start=10)
+
+    def all(self, button):
+        self.view.expandChunk(self.diff, self.chunk, expand_all=True)
+
+    def next(self, button):
+        self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
 class DiffView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
@@ -171,7 +190,7 @@ This Screen
                     if not chunk.first:
                         lines += self.makeLines(diff, chunk.lines[:10], comment_lists)
                         del chunk.lines[:10]
-                    button = DiffContextButton(chunk)
+                    button = DiffContextButton(self, diff, chunk)
                     chunk.button = button
                     lines.append(button)
                     if not chunk.last:
@@ -225,7 +244,8 @@ This Screen
                         self.expandChunk(diff, chunk, comment_lists, from_end=i-10)
                     break
 
-    def expandChunk(self, diff, chunk, comment_lists, from_start=None, from_end=None):
+    def expandChunk(self, diff, chunk, comment_lists={}, from_start=None, from_end=None,
+                    expand_all=None):
         self.log.debug("Expand chunk %s %s %s" % (chunk, from_start, from_end))
         add_lines = []
         if from_start is not None:
@@ -236,6 +256,10 @@ This Screen
             index = self.listbox.body.index(chunk.button)+1
             add_lines = chunk.lines[from_end:]
             del chunk.lines[from_end:]
+        if expand_all:
+            index = self.listbox.body.index(chunk.button)
+            add_lines = chunk.lines[:]
+            del chunk.lines[:]
         if add_lines:
             lines = self.makeLines(diff, add_lines, comment_lists)
             self.listbox.body[index:index] = lines
