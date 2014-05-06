@@ -248,7 +248,9 @@ class ChangeMessageBox(urwid.Text):
         super(ChangeMessageBox, self).__init__(u'')
         lines = message.message.split('\n')
         text = [('change-message-name', message.name),
-                ('change-message-header', ': '+lines.pop(0))]
+                ('change-message-header', ': '+lines.pop(0)),
+                ('change-message-header',
+                 message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
         if lines and lines[-1]:
             lines.append('')
         text += '\n'.join(lines)
