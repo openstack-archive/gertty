@@ -19,6 +19,9 @@ from sqlalchemy.orm import mapper, sessionmaker, relationship, column_property, 
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.expression import and_
 
+closed_statuses = ['MERGED', 'ABANDONED']
+
+
 metadata = MetaData()
 project_table = Table(
     'project', metadata,
@@ -279,6 +282,7 @@ mapper(Project, project_table, properties=dict(
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key==change_table.c.project_key,
                                                          change_table.c.hidden==False,
+                                                         change_table.c.status not in closed_statuses,
                                                          change_table.c.reviewed==False),
                                         order_by=change_table.c.number,
                                         ),
