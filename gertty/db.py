@@ -17,7 +17,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import mapper, sessionmaker, relationship, column_property, scoped_session
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql.expression import and_
+from sqlalchemy.sql.expression import and_, or_
 
 metadata = MetaData()
 project_table = Table(
@@ -279,6 +279,7 @@ mapper(Project, project_table, properties=dict(
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key==change_table.c.project_key,
                                                          change_table.c.hidden==False,
+                                                         change_table.c.status!='MERGED',
                                                          change_table.c.reviewed==False),
                                         order_by=change_table.c.number,
                                         ),
