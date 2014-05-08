@@ -30,6 +30,8 @@ except:
     pass
 import requests
 
+from gertty.db import closed_statuses
+
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
 LOW_PRIORITY=2
@@ -119,8 +121,6 @@ class SyncSubscribedProjectsTask(Task):
                 sync.submitTask(SyncProjectTask(p.key, self.priority))
 
 class SyncProjectTask(Task):
-    _closed_statuses = ['MERGED', 'ABANDONED']
-
     def __init__(self, project_key, priority=NORMAL_PRIORITY):
         super(SyncProjectTask, self).__init__(priority)
         self.project_key = project_key
@@ -146,7 +146,8 @@ class SyncProjectTask(Task):
                 # For now, just sync open changes or changes already
                 # in the db optionally we could sync all changes ever
                 change = session.getChangeByID(c['id'])
-                if change or (c['status'] not in self._closed_statuses):
+                if ((change and (change.status not in self.closed_statuses)) or
+                    (c['status'] not in self.closed_statuses)):
                     sync.submitTask(SyncChangeTask(c['id'], self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
 
