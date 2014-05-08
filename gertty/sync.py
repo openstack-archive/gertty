@@ -150,6 +150,8 @@ class SyncProjectTask(Task):
                     (c['status'] not in self._closed_statuses)):
                     sync.submitTask(SyncChangeTask(c['id'], self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
+                elif change and (change.status in self._closed_statuses):)
+                    session.delete(change)
 
 class SyncChangeTask(Task):
     def __init__(self, change_id, priority=NORMAL_PRIORITY):
