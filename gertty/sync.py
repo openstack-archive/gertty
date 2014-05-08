@@ -146,7 +146,8 @@ class SyncProjectTask(Task):
                 # For now, just sync open changes or changes already
                 # in the db optionally we could sync all changes ever
                 change = session.getChangeByID(c['id'])
-                if change or (c['status'] not in self._closed_statuses):
+                if ((change and (change.status not in self._closed_statuses)) or
+                    (c['status'] not in self._closed_statuses)):
                     sync.submitTask(SyncChangeTask(c['id'], self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
 
