@@ -44,8 +44,7 @@ change_table = Table(
     Column('subject', Text, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
     Column('updated', DateTime, index=True, nullable=False),
-    Column('status', String(8), index=True, nullable=False),
-    Column('hidden', Boolean, index=True, nullable=False),
+    Column('status', String(16), index=True, nullable=False),
     Column('reviewed', Boolean, index=True, nullable=False),
     )
 revision_table = Table(
@@ -125,7 +124,7 @@ class Project(object):
 class Change(object):
     def __init__(self, project, id, number, branch, change_id,
                  owner, subject, created, updated, status,
-                 topic=False, hidden=False, reviewed=False):
+                 topic=False, reviewed=False):
         self.project_key = project.key
         self.id = id
         self.number = number
@@ -137,7 +136,6 @@ class Change(object):
         self.created = created
         self.updated = updated
         self.status = status
-        self.hidden = hidden
         self.reviewed = reviewed
 
     def getCategories(self):
@@ -282,13 +280,11 @@ mapper(Project, project_table, properties=dict(
                              order_by=change_table.c.number),
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                         change_table.c.hidden==False,
                                                          change_table.c.reviewed==False),
                                         order_by=change_table.c.number,
                                         ),
         reviewed_changes=relationship(Change,
                                       primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                       change_table.c.hidden==False,
                                                        change_table.c.reviewed==True),
                                         order_by=change_table.c.number,
                                       ),
