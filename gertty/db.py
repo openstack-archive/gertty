@@ -44,7 +44,7 @@ change_table = Table(
     Column('subject', Text, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
     Column('updated', DateTime, index=True, nullable=False),
-    Column('status', String(8), index=True, nullable=False),
+    Column('status', String(16), index=True, nullable=False),
     Column('hidden', Boolean, index=True, nullable=False),
     Column('reviewed', Boolean, index=True, nullable=False),
     )
