@@ -150,6 +150,24 @@ class SyncProjectTask(Task):
                     sync.submitTask(SyncChangeTask(c['id'], self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
 
+class SyncChangeByCommitTask(Task):
+    def __init__(self, commit, priority=NORMAL_PRIORITY):
+        super(SyncChangeByCommitTask, self).__init__(priority)
+        self.commit = commit
+
+    def __repr__(self):
+        return '<SyncChangeByCommitTask %s>' % (self.commit,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            query = 'commit:%s' % self.commit
+            changes = sync.get('changes/?q=%s' % query)
+            self.log.debug('Query: %s ' % (query,))
+            for c in changes:
+                sync.submitTask(SyncChangeTask(c['id'], self.priority))
+                self.log.debug("Sync change %s for its commit %s" % (c['id'], self.commit))
+
 class SyncChangeTask(Task):
     def __init__(self, change_id, priority=NORMAL_PRIORITY):
         super(SyncChangeTask, self).__init__(priority)
@@ -198,6 +216,13 @@ class SyncChangeTask(Task):
                                                      remote_revision['commit']['message'], remote_commit,
                                                      remote_revision['commit']['parents'][0]['commit'])
                     new_revision = True
+                # TODO: handle multiple parents
+                parent_revision = session.getRevisionByCommit(revision.parent)
+                # TODO: use a singleton list of closed states
+                if not parent_revision and change.status not in ['MERGED', 'ABANDONED']:
+                    sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
+                    self.log.debug("Change %s revision %s needs parent commit %s synced" %
+                                   (change.id, remote_revision['_number'], revision.parent))
                 remote_comments = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, revision.commit))
                 for remote_file, remote_comments in remote_comments.items():
                     for remote_comment in remote_comments:
