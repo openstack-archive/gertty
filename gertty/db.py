@@ -279,6 +279,8 @@ mapper(Project, project_table, properties=dict(
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key==change_table.c.project_key,
                                                          change_table.c.hidden==False,
+                                                         change_table.c.status!='MERGED',
+                                                         change_table.c.status!='ABANDONED',
                                                          change_table.c.reviewed==False),
                                         order_by=change_table.c.number,
                                         ),
