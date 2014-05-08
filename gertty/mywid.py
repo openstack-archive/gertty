@@ -17,9 +17,9 @@ import urwid
 GLOBAL_HELP = """\
 Global Keys
 ===========
-<F1>     Help
-<ESC>    Back to previous screen
-<CTRL-Q> Quit Gertty
+<F1> or <?> Help
+<ESC>       Back to previous screen
+<CTRL-Q>    Quit Gertty
 """
 
 class TextButton(urwid.Button):

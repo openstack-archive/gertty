@@ -223,7 +223,7 @@ class App(object):
     def unhandledInput(self, key):
         if key == 'esc':
             self.backScreen()
-        elif key == 'f1':
+        elif key == 'f1' or key == '?':
             self.help()
         elif key == 'ctrl q':
             self.quit()
