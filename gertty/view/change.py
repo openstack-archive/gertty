@@ -193,7 +193,9 @@ class RevisionRow(urwid.WidgetWrap):
                    mywid.FixedButton(('revision-button', "Diff"),
                                      on_press=self.diff),
                    mywid.FixedButton(('revision-button', "Checkout"),
-                                     on_press=self.checkout)]
+                                     on_press=self.checkout),
+                   mywid.FixedButton(('revision-button', "gitweb"),
+                                     on_press=self.gitweb)]
         buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
         buttons = urwid.Columns(buttons + [urwid.Text('')], dividechars=2)
         buttons = urwid.AttrMap(buttons, 'revision-button')
@@ -229,6 +231,16 @@ class RevisionRow(urwid.WidgetWrap):
 
     def diff(self, button):
         self.change_view.diff(self.revision_key)
+
+    def gitweb(self, button):
+        with self.app.db.getSession() as session:
+            revision = session.getRevision(self.revision_key)
+            title = (u'%sgitweb?p=%s.git;a=commitdiff;h=%s' %
+                     (self.app.config.url, revision.change.project.name, revision.commit))
+        dialog = mywid.MessageDialog('gitweb', title)
+        urwid.connect_signal(dialog, 'close',
+                             lambda button: self.app.backScreen())
+        self.app.popup(dialog, min_height=8)
 
     def checkout(self, button):
         repo = self.app.getRepo(self.project_name)
