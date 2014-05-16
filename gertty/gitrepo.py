@@ -293,12 +293,16 @@ class Repo(object):
                 rest = line[1:]
                 if key == '\\':
                     # This is for "\ No newline at end of file" which
-                    # follows either a - or + line to indicate which
-                    # file it's talking about.  For now, treat it like
-                    # normal text and let the user infer from context
-                    # that it's not actually in the file.  Potential
-                    # TODO: highlight it to make that more clear.
-                    key = prev_key
+                    # follows either a -, + or ' ' line to indicate
+                    # which file it's talking about (or both).  For
+                    # now, treat it like normal text and let the user
+                    # infer from context that it's not actually in the
+                    # file.  Potential TODO: highlight it to make that
+                    # more clear.
+                    if prev_key:
+                        key = prev_key
+                    else:
+                        key = ' '
                     prev_key = '\\'
                 if key == '-':
                     prev_key = '-'
