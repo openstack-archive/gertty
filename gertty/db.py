@@ -288,12 +288,12 @@ mapper(Project, project_table, properties=dict(
                                                          change_table.c.reviewed==False),
                                         order_by=change_table.c.number,
                                         ),
-        reviewed_changes=relationship(Change,
-                                      primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                       change_table.c.hidden==False,
-                                                       change_table.c.reviewed==True),
-                                        order_by=change_table.c.number,
-                                      ),
+        open_changes=relationship(Change,
+                                  primaryjoin=and_(project_table.c.key==change_table.c.project_key,
+                                                   change_table.c.status!='MERGED',
+                                                   change_table.c.status!='ABANDONED'),
+                                  order_by=change_table.c.number,
+                                  ),
         updated = column_property(
             select([func.max(change_table.c.updated)]).where(
                 change_table.c.project_key==project_table.c.key)
