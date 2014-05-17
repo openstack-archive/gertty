@@ -262,6 +262,7 @@ This Screen
 ===========
 <c>   Checkout the most recent revision.
 <d>   Show the diff of the mont recent revision.
+<k>   Toggle the hidden flag for the current change.
 <r>   Leave a review for the most recent revision.
 <v>   Toggle the reviewed flag for the current change.
 """
@@ -321,7 +322,11 @@ This Screen
                 reviewed = ' (reviewed)'
             else:
                 reviewed = ''
-            self.title = 'Change %s%s' % (change.number, reviewed)
+            if change.hidden:
+                hidden = ' (hidden)'
+            else:
+                hidden = ''
+            self.title = 'Change %s%s%s' % (change.number, reviewed, hidden)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
 
@@ -418,10 +423,19 @@ This Screen
             change = session.getChange(self.change_key)
             change.reviewed = not change.reviewed
 
+    def toggleHidden(self):
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.hidden = not change.hidden
+
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
         if r == 'v':
             self.toggleReviewed()
+            self.refresh()
+            return None
+        if r == 'k':
+            self.toggleHidden()
             self.refresh()
             return None
         if r == 'r':

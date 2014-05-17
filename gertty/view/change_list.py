@@ -38,7 +38,7 @@ class ChangeRow(urwid.Button):
         self.update(change)
 
     def update(self, change):
-        if change.reviewed:
+        if change.reviewed or change.hidden:
             style = 'reviewed-change'
         else:
             style = 'unreviewed-change'
@@ -68,6 +68,7 @@ class ChangeListView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
+<k>   Toggle the hidden flag for the currently selected change.
 <l>   Toggle whether only unreviewed or all changes are displayed.
 <v>   Toggle the reviewed flag for the currently selected change.
 """
@@ -124,6 +125,13 @@ This Screen
             ret = change.reviewed
         return ret
 
+    def toggleHidden(self, change_key):
+        with self.app.db.getSession() as session:
+            change = session.getChange(change_key)
+            change.hidden = not change.hidden
+            ret = change.hidden
+        return ret
+
     def keypress(self, size, key):
         if key=='l':
             self.unreviewed = not self.unreviewed
@@ -134,6 +142,13 @@ This Screen
                 return None
             pos = self.listbox.focus_position
             reviewed = self.toggleReviewed(self.listbox.body[pos].change_key)
+            self.refresh()
+            return None
+        if key=='k':
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            hidden = self.toggleHidden(self.listbox.body[pos].change_key)
             self.refresh()
             return None
         return super(ChangeListView, self).keypress(size, key)
