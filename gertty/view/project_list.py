@@ -34,11 +34,11 @@ class ProjectRow(urwid.Button):
         name = urwid.Text(u' '+project.name)
         name.set_wrap_mode('clip')
         self.unreviewed_changes = urwid.Text(u'')
-        self.reviewed_changes = urwid.Text(u'')
+        self.open_changes = urwid.Text(u'')
         col = urwid.Columns([
                 name,
                 ('fixed', 4, self.unreviewed_changes),
-                ('fixed', 4, self.reviewed_changes),
+                ('fixed', 4, self.open_changes),
                 ])
         self.row_style = urwid.AttrMap(col, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.project_focus_map)
@@ -54,7 +54,7 @@ class ProjectRow(urwid.Button):
             style = 'unsubscribed-project'
         self.row_style.set_attr_map({None: style})
         self.unreviewed_changes.set_text(str(len(project.unreviewed_changes)))
-        self.reviewed_changes.set_text(str(len(project.reviewed_changes)))
+        self.open_changes.set_text(str(len(project.open_changes)))
 
 class ProjectListView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
