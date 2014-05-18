@@ -259,7 +259,7 @@ class RevisionRow(urwid.WidgetWrap):
         self.app.popup(dialog, min_height=min_height)
 
 class ChangeMessageBox(urwid.Text):
-    def __init__(self, message):
+    def __init__(self, message, commentlinks):
         super(ChangeMessageBox, self).__init__(u'')
         lines = message.message.split('\n')
         text = [('change-message-name', message.name),
@@ -268,8 +268,10 @@ class ChangeMessageBox(urwid.Text):
                  message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
         if lines and lines[-1]:
             lines.append('')
-        text += '\n'.join(lines)
-        self.set_text(text)
+        comment_text = ['\n'.join(lines)]
+        for commentlink in commentlinks:
+            comment_text = commentlink.run(comment_text)
+        self.set_text(text+comment_text)
 
 class ChangeView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
@@ -427,7 +429,7 @@ This Screen
             for message in change.messages:
                 row = self.message_rows.get(message.key)
                 if not row:
-                    row = ChangeMessageBox(message)
+                    row = ChangeMessageBox(message, self.app.config.commentlinks)
                     self.listbox.body.insert(listbox_index, row)
                     self.message_rows[message.key] = row
                 # Messages are extremely unlikely to be deleted, skip
