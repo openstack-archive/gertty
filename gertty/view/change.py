@@ -192,8 +192,10 @@ class RevisionRow(urwid.WidgetWrap):
         buttons = [self.review_button,
                    mywid.FixedButton(('revision-button', "Diff"),
                                      on_press=self.diff),
-                   mywid.FixedButton(('revision-button', "Checkout"),
-                                     on_press=self.checkout)]
+                   mywid.FixedButton(('revision-button', "Local Checkout"),
+                                     on_press=self.checkout),
+                   mywid.FixedButton(('revision-button', "Local Cherry-Pick"),
+                                     on_press=self.cherryPick)]
         buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
         buttons = urwid.Columns(buttons + [urwid.Text('')], dividechars=2)
         buttons = urwid.AttrMap(buttons, 'revision-button')
@@ -243,6 +245,19 @@ class RevisionRow(urwid.WidgetWrap):
             lambda button: self.app.backScreen())
         self.app.popup(dialog, min_height=min_height)
 
+    def cherryPick(self, button):
+        repo = self.app.getRepo(self.project_name)
+        try:
+            repo.cherryPick(self.commit_sha)
+            dialog = mywid.MessageDialog('Cherry-Pick', 'Change cherry-picked in %s' % repo.path)
+            min_height=8
+        except gitrepo.GitCheckoutError as e:
+            dialog = mywid.MessageDialog('Error', e.msg)
+            min_height=12
+        urwid.connect_signal(dialog, 'close',
+            lambda button: self.app.backScreen())
+        self.app.popup(dialog, min_height=min_height)
+
 class ChangeMessageBox(urwid.Text):
     def __init__(self, message):
         super(ChangeMessageBox, self).__init__(u'')
@@ -260,11 +275,12 @@ class ChangeView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
-<c>   Checkout the most recent revision.
+<c>   Checkout the most recent revision into the local repo.
 <d>   Show the diff of the mont recent revision.
 <k>   Toggle the hidden flag for the current change.
 <r>   Leave a review for the most recent revision.
 <v>   Toggle the reviewed flag for the current change.
+<x>   Cherry-pick the most recent revision onto the local repo.
 """
 
     def __init__(self, app, change_key):
@@ -449,6 +465,11 @@ This Screen
         if r == 'c':
             row = self.revision_rows[self.last_revision_key]
             row.checkout(None)
+            return None
+        if r == 'x':
+            row = self.revision_rows[self.last_revision_key]
+            row.cherryPick(None)
+            return None
         return r
 
     def diff(self, revision_key):
