@@ -26,6 +26,7 @@ from gertty import gitrepo
 from gertty import mywid
 from gertty import sync
 from gertty.view import project_list as view_project_list
+from gertty.view import change as view_change
 
 palette=[('focused', 'default,standout', ''),
          ('header', 'white,bold', 'dark blue'),
@@ -125,6 +126,28 @@ class StatusHeader(urwid.WidgetWrap):
                 self.error.set_text(u'')
         self.sync.set_text(u' Sync: %i' % self.app.sync.queue.qsize())
 
+class OpenChangeDialog(mywid.ButtonDialog):
+    signals = ['open', 'cancel']
+    def __init__(self):
+        open_button = mywid.FixedButton('Open')
+        cancel_button = mywid.FixedButton('Cancel')
+        urwid.connect_signal(open_button, 'click',
+                             lambda button:self._emit('open'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        super(OpenChangeDialog, self).__init__("Open Change",
+                                               "Enter a change number to open that change.",
+                                               entry_prompt="Number: ",
+                                               buttons=[open_button,
+                                                        cancel_button])
+
+    def keypress(self, size, key):
+        r = super(OpenChangeDialog, self).keypress(size, key)
+        if r == 'enter':
+            self._emit('open')
+            return None
+        return r
+
 class App(object):
     def __init__(self, server=None, debug=False, disable_sync=False):
         self.server = server
@@ -159,6 +182,8 @@ class App(object):
             self.sync_thread.start()
         else:
             self.sync_thread = None
+            self.sync.offline = True
+            self.status.update(offline=True)
 
     def run(self):
         self.loop.run()
@@ -220,6 +245,50 @@ class App(object):
             lambda button: self.backScreen())
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
+    def openChange(self):
+        dialog = OpenChangeDialog()
+        urwid.connect_signal(dialog, 'cancel',
+            lambda button: self.backScreen())
+        urwid.connect_signal(dialog, 'open',
+            lambda button: self._openChange(dialog))
+        self.popup(dialog, min_width=76, min_height=8)
+
+    def _openChange(self, open_change_dialog):
+        self.backScreen()
+        number = open_change_dialog.entry.edit_text
+        try:
+            number = int(number)
+        except Exception:
+            return self.error('Change number must be an integer.')
+        with self.db.getSession() as session:
+            change = session.getChangeByNumber(number)
+            change_key = change and change.key or None
+        if change_key is None:
+            if self.sync.offline:
+                return self.error('Can not sync change while offline.')
+            task = sync.SyncChangeByNumberTask(number, sync.HIGH_PRIORITY)
+            self.sync.submitTask(task)
+            succeeded = task.wait(300)
+            if not succeeded:
+                return self.error('Unable to find change.')
+            for subtask in task.tasks:
+                succeeded = task.wait(300)
+                if not succeeded:
+                    return self.error('Unable to sync change.')
+            with self.db.getSession() as session:
+                change = session.getChangeByNumber(number)
+                change_key = change and change.key or None
+        if change_key is None:
+            return self.error('Change is not in local database.')
+        self.changeScreen(view_change.ChangeView(self, change_key))
+
+    def error(self, message):
+        dialog = mywid.MessageDialog('Error', message)
+        urwid.connect_signal(dialog, 'close',
+                             lambda button: self.backScreen())
+        self.popup(dialog, min_height=4)
+        return None
+
     def unhandledInput(self, key):
         if key == 'esc':
             self.backScreen()
@@ -227,6 +296,8 @@ class App(object):
             self.help()
         elif key == 'ctrl q':
             self.quit()
+        elif key == 'ctrl o':
+            self.openChange()
 
     def getRepo(self, project_name):
         local_path = os.path.join(self.config.git_root, project_name)
