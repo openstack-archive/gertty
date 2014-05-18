@@ -31,14 +31,14 @@ class ProjectRow(urwid.Button):
     def __init__(self, project, callback=None):
         super(ProjectRow, self).__init__('', on_press=callback, user_data=project.key)
         self.project_key = project.key
-        name = urwid.Text(u' '+project.name)
+        name = urwid.Text(project.name)
         name.set_wrap_mode('clip')
-        self.unreviewed_changes = urwid.Text(u'')
-        self.open_changes = urwid.Text(u'')
+        self.unreviewed_changes = urwid.Text(u'', align=urwid.RIGHT)
+        self.open_changes = urwid.Text(u'', align=urwid.RIGHT)
         col = urwid.Columns([
                 name,
-                ('fixed', 4, self.unreviewed_changes),
-                ('fixed', 4, self.open_changes),
+                ('fixed', 11, self.unreviewed_changes),
+                ('fixed', 5, self.open_changes),
                 ])
         self.row_style = urwid.AttrMap(col, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.project_focus_map)
@@ -53,8 +53,15 @@ class ProjectRow(urwid.Button):
         else:
             style = 'unsubscribed-project'
         self.row_style.set_attr_map({None: style})
-        self.unreviewed_changes.set_text(str(len(project.unreviewed_changes)))
-        self.open_changes.set_text(str(len(project.open_changes)))
+        self.unreviewed_changes.set_text('%i ' % len(project.unreviewed_changes))
+        self.open_changes.set_text('%i ' % len(project.open_changes))
+
+class ProjectListHeader(urwid.WidgetWrap):
+    def __init__(self):
+        cols = [urwid.Text(u'Project'),
+                (11, urwid.Text(u'Unreviewed')),
+                (5, urwid.Text(u'Open'))]
+        super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
 class ProjectListView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
@@ -70,11 +77,13 @@ This Screen
         self.subscribed = True
         self.project_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        self.header = ProjectListHeader()
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(),('pack', 1)))
+        self._w.contents.append((urwid.AttrWrap(self.header, 'table-header'), ('pack', 1)))
         self._w.contents.append((self.listbox, ('weight', 1)))
-        self._w.set_focus(2)
+        self._w.set_focus(3)
 
     def isEmpty(self):
         if self.project_rows:
