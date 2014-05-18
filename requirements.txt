@@ -5,3 +5,5 @@ python-dateutil
 requests
 ordereddict
 pbr>=0.6,!=0.7,<1.0
+PyYAML>=3.1.0
+voluptuous>=0.7

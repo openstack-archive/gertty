@@ -25,13 +25,14 @@ As compared to the web interface, the main advantages are:
 Usage
 -----
 
-Create a file at ``~/.gerttyrc`` with the following contents::
+Create a file at ``~/.gertty.yaml`` with the following contents::
 
-  [gerrit]
-  url=https://review.example.org/
-  username=<gerrit username>
-  password=<gerrit password>
-  git_root=~/git/
+  servers:
+    - name: gerrit
+      url: https://review.example.org/
+      username: <gerrit username>
+      password: <gerrit password>
+      git_root: ~/git/
 
 You can generate or retrieve your Gerrit password by navigating to
 Settings, then HTTP Password.  Set ``git_root`` to a directory where
@@ -39,7 +40,7 @@ Gertty should find or clone git repositories for your projects.
 
 If your Gerrit uses a self-signed certificate, you can add::
 
-  verify_ssl=False
+  verify_ssl: False
 
 To the section.
 
