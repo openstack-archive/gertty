@@ -18,6 +18,9 @@ import yaml
 
 import voluptuous as v
 
+import gertty.commentlink
+import gertty.palette
+
 DEFAULT_CONFIG_PATH='~/.gertty.yaml'
 
 class ConfigSchema(object):
@@ -33,12 +36,32 @@ class ConfigSchema(object):
 
     servers = [server]
 
+    text_replacement = {'text': v.Any(str,
+                                      {'color': str,
+                                       v.Required('text'): str})}
+
+    replacement = v.Any(text_replacement)
+
+    palette = {v.Required('name'): str,
+               v.Match('(?!name)'): [str]}
+
+    palettes = [palette]
+
+    commentlink = {v.Required('match'): str,
+                   v.Required('replacements'): [replacement]}
+
+    commentlinks = [commentlink]
+
     def getSchema(self, data):
-        schema = v.Schema({v.Required('servers'): self.servers})
+        schema = v.Schema({v.Required('servers'): self.servers,
+                           'palettes': self.palettes,
+                           'commentlinks': self.commentlinks,
+                           })
         return schema
 
 class Config(object):
-    def __init__(self, server=None, path=DEFAULT_CONFIG_PATH):
+    def __init__(self, server=None, palette='default',
+                 path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
 
         if not os.path.exists(self.path):
@@ -67,6 +90,16 @@ class Config(object):
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
         log_file = server.get('log_file', '~/.gertty.log')
         self.log_file = os.path.expanduser(log_file)
+
+        self.palettes = {}
+        for p in self.config.get('palettes', []):
+            self.palettes[p['name']] = gertty.palette.Palette(p)
+        if not self.palettes:
+            self.palettes['default'] = gertty.palette.Palette({})
+        self.palette = self.palettes[palette]
+
+        self.commentlinks = [gertty.commentlink.CommentLink(c)
+                             for c in self.config.get('commentlinks', [])]
 
     def getServer(self, name=None):
         for server in self.config['servers']:
