@@ -28,65 +28,6 @@ from gertty import sync
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
 
-palette=[('focused', 'default,standout', ''),
-         ('header', 'white,bold', 'dark blue'),
-         ('error', 'light red', 'dark blue'),
-         ('table-header', 'white,bold', ''),
-         ('filename', 'light cyan', ''),
-         ('positive-label', 'dark green', ''),
-         ('negative-label', 'dark red', ''),
-         ('max-label', 'light green', ''),
-         ('min-label', 'light red', ''),
-         # Diff
-         ('context-button', 'dark magenta', ''),
-         ('focused-context-button', 'light magenta', ''),
-         ('removed-line', 'dark red', ''),
-         ('removed-word', 'light red', ''),
-         ('added-line', 'dark green', ''),
-         ('added-word', 'light green', ''),
-         ('nonexistent', 'default', ''),
-         ('focused-removed-line', 'dark red,standout', ''),
-         ('focused-removed-word', 'light red,standout', ''),
-         ('focused-added-line', 'dark green,standout', ''),
-         ('focused-added-word', 'light green,standout', ''),
-         ('focused-nonexistent', 'default,standout', ''),
-         ('draft-comment', 'default', 'dark gray'),
-         ('comment', 'light gray', 'dark gray'),
-         ('comment-name', 'white', 'dark gray'),
-         ('line-number', 'dark gray', ''),
-         ('focused-line-number', 'dark gray,standout', ''),
-         # Change view
-         ('change-data', 'light cyan', ''),
-         ('change-header', 'light blue', ''),
-         ('revision-name', 'light blue', ''),
-         ('revision-commit', 'dark blue', ''),
-         ('revision-comments', 'default', ''),
-         ('revision-drafts', 'dark red', ''),
-         ('focused-revision-name', 'light blue,standout', ''),
-         ('focused-revision-commit', 'dark blue,standout', ''),
-         ('focused-revision-comments', 'default,standout', ''),
-         ('focused-revision-drafts', 'dark red,standout', ''),
-         ('change-message-name', 'yellow', ''),
-         ('change-message-header', 'brown', ''),
-         ('revision-button', 'dark magenta', ''),
-         ('focused-revision-button', 'light magenta', ''),
-         ('lines-added', 'light green', ''),
-         ('lines-removed', 'light red', ''),
-         ('reviewer-name', 'yellow', ''),
-         # project list
-         ('unreviewed-project', 'white', ''),
-         ('subscribed-project', 'default', ''),
-         ('unsubscribed-project', 'dark gray', ''),
-         ('focused-unreviewed-project', 'white,standout', ''),
-         ('focused-subscribed-project', 'default,standout', ''),
-         ('focused-unsubscribed-project', 'dark gray,standout', ''),
-         # change list
-         ('unreviewed-change', 'default', ''),
-         ('reviewed-change', 'dark gray', ''),
-         ('focused-unreviewed-change', 'default,standout', ''),
-         ('focused-reviewed-change', 'dark gray,standout', ''),
-         ]
-
 WELCOME_TEXT = """\
 Welcome to Gertty!
 
@@ -149,9 +90,9 @@ class OpenChangeDialog(mywid.ButtonDialog):
         return r
 
 class App(object):
-    def __init__(self, server=None, debug=False, disable_sync=False):
+    def __init__(self, server=None, palette='default', debug=False, disable_sync=False):
         self.server = server
-        self.config = config.Config(server)
+        self.config = config.Config(server, palette)
         if debug:
             level = logging.DEBUG
         else:
@@ -169,7 +110,7 @@ class App(object):
         self.header = urwid.AttrMap(self.status, 'header')
         screen = view_project_list.ProjectListView(self)
         self.status.update(title=screen.title)
-        self.loop = urwid.MainLoop(screen, palette=palette,
+        self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
                                    unhandled_input=self.unhandledInput)
         if screen.isEmpty():
             self.welcome()
@@ -318,10 +259,12 @@ def main():
                         help='enable debug logging')
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
                         help='disable remote syncing')
+    parser.add_argument('-p', dest='palette', default='default',
+                        help='Color palette to use')
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
-    g = App(args.server, args.debug, args.no_sync)
+    g = App(args.server, args.palette, args.debug, args.no_sync)
     g.run()
 
 
