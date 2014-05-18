@@ -83,8 +83,9 @@ class Task(object):
         self.succeeded = success
         self.event.set()
 
-    def wait(self):
-        self.event.wait()
+    def wait(self, timeout=None):
+        self.event.wait(timeout)
+        return self.succeeded
 
 class SyncProjectListTask(Task):
     def __repr__(self):
@@ -167,6 +168,27 @@ class SyncChangeByCommitTask(Task):
             for c in changes:
                 sync.submitTask(SyncChangeTask(c['id'], self.priority))
                 self.log.debug("Sync change %s for its commit %s" % (c['id'], self.commit))
+
+class SyncChangeByNumberTask(Task):
+    def __init__(self, number, priority=NORMAL_PRIORITY):
+        super(SyncChangeByNumberTask, self).__init__(priority)
+        self.number = number
+        self.tasks = []
+
+    def __repr__(self):
+        return '<SyncChangeByNumberTask %s>' % (self.number,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            query = '%s' % self.number
+            changes = sync.get('changes/?q=%s' % query)
+            self.log.debug('Query: %s ' % (query,))
+            for c in changes:
+                task = SyncChangeTask(c['id'], self.priority)
+                self.tasks.append(task)
+                sync.submitTask(task)
+                self.log.debug("Sync change %s because it is number %s" % (c['id'], self.number))
 
 class SyncChangeTask(Task):
     def __init__(self, change_id, priority=NORMAL_PRIORITY):
