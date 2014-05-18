@@ -200,6 +200,7 @@ class App(object):
         self.popup(dialog)
 
     def changeScreen(self, widget):
+        self.log.debug("Changing screen to %s" % (widget,))
         self.status.update(title=widget.title)
         self.screens.append(self.loop.widget)
         self.loop.widget = widget
@@ -208,7 +209,9 @@ class App(object):
         if not self.screens:
             return
         widget = self.screens.pop()
-        self.status.update(title=widget.title)
+        self.log.debug("Popping screen to %s" % (widget,))
+        if hasattr(widget, 'title'):
+            self.status.update(title=widget.title)
         self.loop.widget = widget
         self.refresh()
 
@@ -225,6 +228,7 @@ class App(object):
                                 'center', ('relative', relative_width),
                                 'middle', ('relative', relative_height),
                                 min_width=min_width, min_height=min_height)
+        self.log.debug("Overlaying %s on screen %s" % (widget, self.loop.widget))
         self.screens.append(self.loop.widget)
         self.loop.widget = overlay
 
