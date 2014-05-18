@@ -164,6 +164,13 @@ class Repo(object):
         except git.exc.GitCommandError as e:
             raise GitCheckoutError(e.stderr.replace('\t', '    '))
 
+    def cherryPick(self, ref):
+        repo = git.Repo(self.path)
+        try:
+            repo.git.cherry_pick(ref)
+        except git.exc.GitCommandError as e:
+            raise GitCheckoutError(e.stderr.replace('\t', '    '))
+
     def diffstat(self, old, new):
         repo = git.Repo(self.path)
         diff = repo.git.diff('-M', '--numstat', old, new)
