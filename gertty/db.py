@@ -419,6 +419,12 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
+    def getChangeByNumber(self, number):
+        try:
+            return self.session().query(Change).filter_by(number=number).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
     def getRevision(self, key):
         try:
             return self.session().query(Revision).filter_by(key=key).one()
