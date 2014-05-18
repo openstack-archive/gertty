@@ -14,63 +14,78 @@
 
 import getpass
 import os
-import ConfigParser
+import yaml
 
+import voluptuous as v
 
-DEFAULT_CONFIG_PATH='~/.gerttyrc'
+DEFAULT_CONFIG_PATH='~/.gertty.yaml'
+
+class ConfigSchema(object):
+    server = {v.Required('name'): str,
+              v.Required('url'): str,
+              v.Required('username'): str,
+              'password': str,
+              'verify_ssl': bool,
+              'dburi': str,
+              v.Required('git_root'): str,
+              'log_file': str,
+              }
+
+    servers = [server]
+
+    def getSchema(self, data):
+        schema = v.Schema({v.Required('servers'): self.servers})
+        return schema
 
 class Config(object):
     def __init__(self, server=None, path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
-        self.config = ConfigParser.RawConfigParser()
 
-        try:
-            with open(self.path, 'r') as f:
-                self.config.readfp(f, filename=f.name)
-        except IOError:
-            self.print_sample()
+        if not os.path.exists(self.path):
+            self.printSample()
             exit(1)
 
-        if server is None:
-            server = self.config.sections()[0]
+        self.config = yaml.load(open(self.path))
+        schema = ConfigSchema().getSchema(self.config)
+        schema(self.config)
+        server = self.getServer(server)
         self.server = server
-        url = self.config.get(server, 'url')
+        url = server['url']
         if not url.endswith('/'):
             url += '/'
         self.url = url
-        self.username = self.config.get(server, 'username')
-        if not self.config.has_option(server, 'password'):
+        self.username = server['username']
+        self.password = server.get('password')
+        if self.password is None:
             self.password = getpass.getpass("Password for %s (%s): "
                                             % (self.url, self.username))
-        else:
-            self.password = self.config.get(server, 'password')
-        if self.config.has_option(server, 'verify_ssl'):
-            self.verify_ssl = self.config.getboolean(server, 'verify_ssl')
-        else:
-            self.verify_ssl = True
+        self.verify_ssl = server.get('verify_ssl', True)
         if not self.verify_ssl:
             os.environ['GIT_SSL_NO_VERIFY']='true'
-        self.git_root = os.path.expanduser(self.config.get(server, 'git_root'))
-        if self.config.has_option(server, 'dburi'):
-            self.dburi = self.config.get(server, 'dburi')
-        else:
-            self.dburi = 'sqlite:///' + os.path.expanduser('~/.gertty.db')
-        if self.config.has_option(server, 'log_file'):
-            self.log_file = os.path.expanduser(self.config.get(server, 'log_file'))
-        else:
-            self.log_file = os.path.expanduser('~/.gertty.log')
+        self.git_root = os.path.expanduser(server['git_root'])
+        self.dburi = server.get('dburi',
+                                'sqlite:///' + os.path.expanduser('~/.gertty.db'))
+        log_file = server.get('log_file', '~/.gertty.log')
+        self.log_file = os.path.expanduser(log_file)
 
-    def print_sample(self):
-        print """Please create a configuration file ~/.gerttyrc
+    def getServer(self, name=None):
+        for server in self.config['servers']:
+            if name is None or name == server['name']:
+                return server
+        return None
+
+    def printSample(self):
+        print """Please create a configuration file ~/.gertty.yaml
 
 Example:
 
 -----8<-------8<-----8<-----8<---
-[gerrit]
-url=https://review.example.org/
-username=<gerrit username>
-password=<gerrit password>
-git_root=~/git/
+servers:
+  - name: gerrit
+    url: https://review.example.org/
+    username: <gerrit username>
+    password: <gerrit password>
+    git_root: ~/git/
 -----8<-------8<-----8<-----8<---
 
 Then invoke:
