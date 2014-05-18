@@ -93,10 +93,9 @@ class SyncProjectListTask(Task):
 
     def run(self, sync):
         app = sync.app
+        remote = sync.get('projects/?d')
+        remote_keys = set(remote.keys())
         with app.db.getSession() as session:
-            remote = sync.get('projects/?d')
-            remote_keys = set(remote.keys())
-
             local = {}
             for p in session.getProjects():
                 local[p.name] = p
@@ -136,8 +135,9 @@ class SyncProjectTask(Task):
             query = 'project:%s' % project.name
             if project.updated:
                 query += ' -age:%ss' % (int(math.ceil((datetime.datetime.utcnow()-project.updated).total_seconds())) + 0,)
-            changes = sync.get('changes/?q=%s' % query)
-            self.log.debug('Query: %s ' % (query,))
+        changes = sync.get('changes/?q=%s' % query)
+        self.log.debug('Query: %s ' % (query,))
+        with app.db.getSession() as session:
             for c in reversed(changes):
                 # The list we get is newest to oldest; if we are
                 # interrupted, we will have already synced the newest
@@ -163,8 +163,9 @@ class SyncChangeByCommitTask(Task):
         app = sync.app
         with app.db.getSession() as session:
             query = 'commit:%s' % self.commit
-            changes = sync.get('changes/?q=%s' % query)
-            self.log.debug('Query: %s ' % (query,))
+        changes = sync.get('changes/?q=%s' % query)
+        self.log.debug('Query: %s ' % (query,))
+        with app.db.getSession() as session:
             for c in changes:
                 sync.submitTask(SyncChangeTask(c['id'], self.priority))
                 self.log.debug("Sync change %s for its commit %s" % (c['id'], self.commit))
@@ -182,8 +183,9 @@ class SyncChangeByNumberTask(Task):
         app = sync.app
         with app.db.getSession() as session:
             query = '%s' % self.number
-            changes = sync.get('changes/?q=%s' % query)
-            self.log.debug('Query: %s ' % (query,))
+        changes = sync.get('changes/?q=%s' % query)
+        self.log.debug('Query: %s ' % (query,))
+        with app.db.getSession() as session:
             for c in changes:
                 task = SyncChangeTask(c['id'], self.priority)
                 self.tasks.append(task)
@@ -201,6 +203,10 @@ class SyncChangeTask(Task):
     def run(self, sync):
         app = sync.app
         remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS' % self.change_id)
+        # Perform subqueries this task will need outside of the db session
+        for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
+            remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
+            remote_revision['_gertty_remote_comments_data'] = remote_comments_data
         fetches = []
         with app.db.getSession() as session:
             change = session.getChangeByID(self.change_id)
@@ -245,8 +251,8 @@ class SyncChangeTask(Task):
                     sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
                     self.log.debug("Change %s revision %s needs parent commit %s synced" %
                                    (change.id, remote_revision['_number'], revision.parent))
-                remote_comments = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, revision.commit))
-                for remote_file, remote_comments in remote_comments.items():
+                remote_comments_data = remote_revision['_gertty_remote_comments_data']
+                for remote_file, remote_comments in remote_comments_data.items():
                     for remote_comment in remote_comments:
                         comment = session.getCommentByID(remote_comment['id'])
                         if not comment:
@@ -410,6 +416,7 @@ class UploadReviewTask(Task):
                     comment_list.append(d)
                     session.delete(comment)
             session.delete(message)
+            # Inside db session for rollback
             sync.post('changes/%s/revisions/%s/review' % (change.id, revision.commit),
                       data)
             sync.submitTask(SyncChangeTask(change.id, self.priority))
