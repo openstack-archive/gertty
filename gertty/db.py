@@ -12,7 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import time
 import logging
+import threading
 
 import alembic
 import alembic.config
@@ -344,9 +346,10 @@ class Database(object):
         self.migrate()
         self.session_factory = sessionmaker(bind=self.engine)
         self.session = scoped_session(self.session_factory)
+        self.lock = threading.Lock()
 
     def getSession(self):
-        return DatabaseSession(self.session)
+        return DatabaseSession(self)
 
     def migrate(self):
         conn = self.engine.connect()
@@ -366,10 +369,13 @@ class Database(object):
         alembic.command.upgrade(config, 'head')
 
 class DatabaseSession(object):
-    def __init__(self, session):
-        self.session = session
+    def __init__(self, database):
+        self.database = database
+        self.session = database.session
 
     def __enter__(self):
+        self.database.lock.acquire()
+        self.start = time.time()
         return self
 
     def __exit__(self, etype, value, tb):
@@ -379,6 +385,9 @@ class DatabaseSession(object):
             self.session().commit()
         self.session().close()
         self.session = None
+        end = time.time()
+        self.database.log.debug("Database lock held %s seconds" % (end-self.start,))
+        self.database.lock.release()
 
     def abort(self):
         self.session().rollback()
