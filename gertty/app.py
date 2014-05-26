@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 import threading
+import webbrowser
 
 import urwid
 
@@ -251,6 +252,9 @@ class App(object):
         return gitrepo.Repo(self.config.url+'p/'+project_name,
                             local_path)
 
+    def openURL(self, url):
+        self.log.debug("Open URL %s" % url)
+        webbrowser.open_new_tab(url)
 
 def main():
     parser = argparse.ArgumentParser(

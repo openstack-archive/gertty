@@ -40,7 +40,10 @@ class ConfigSchema(object):
                                       {'color': str,
                                        v.Required('text'): str})}
 
-    replacement = v.Any(text_replacement)
+    link_replacement = {'link': {v.Required('url'): str,
+                                 v.Required('text'): str}}
+
+    replacement = v.Any(text_replacement, link_replacement)
 
     palette = {v.Required('name'): str,
                v.Match('(?!name)'): [str]}
@@ -100,6 +103,13 @@ class Config(object):
 
         self.commentlinks = [gertty.commentlink.CommentLink(c)
                              for c in self.config.get('commentlinks', [])]
+        self.commentlinks.append(
+            gertty.commentlink.CommentLink(dict(
+                    match="(?P<url>https?://\\S*)",
+                    replacements=[
+                        dict(link=dict(
+                                text="{url}",
+                                url="{url}"))])))
 
     def getServer(self, name=None):
         for server in self.config['servers']:

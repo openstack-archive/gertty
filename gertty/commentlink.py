@@ -14,6 +14,10 @@
 
 import re
 
+import urwid
+
+import mywid
+
 class TextReplacement(object):
     def __init__(self, config):
         if isinstance(config, basestring):
@@ -23,10 +27,22 @@ class TextReplacement(object):
             self.color = config.get('color')
             self.text = config['text']
 
-    def replace(self, data):
+    def replace(self, app, data):
         if self.color:
             return (self.color.format(**data), self.text.format(**data))
         return (None, self.text.format(**data))
+
+class LinkReplacement(object):
+    def __init__(self, config):
+        self.url = config['url']
+        self.text = config['text']
+
+    def replace(self, app, data):
+        link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
+        urwid.connect_signal(link, 'selected',
+            lambda link:app.openURL(self.url.format(**data)))
+        app.log.debug("link %s" % link)
+        return link
 
 class CommentLink(object):
     def __init__(self, config):
@@ -35,8 +51,10 @@ class CommentLink(object):
         for r in config['replacements']:
             if 'text' in r:
                 self.replacements.append(TextReplacement(r['text']))
+            if 'link' in r:
+                self.replacements.append(LinkReplacement(r['link']))
 
-    def run(self, chunks):
+    def run(self, app, chunks):
         ret = []
         for chunk in chunks:
             if not isinstance(chunk, basestring):
@@ -56,7 +74,7 @@ class CommentLink(object):
                 after = chunk[m.end():]
                 if before:
                     ret.append(before)
-                ret += [r.replace(m.groupdict()) for r in self.replacements]
+                ret += [r.replace(app, m.groupdict()) for r in self.replacements]
                 chunk = after
         return ret
 
