@@ -40,8 +40,9 @@ class FixedButton(urwid.Button):
 
 class TableColumn(urwid.Pile):
     def pack(self, size, focus=False):
+        maxcol = size[0]
         mx = max([len(i[0].text) for i in self.contents])
-        return (mx+2, len(self.contents))
+        return (min(mx+2, maxcol), len(self.contents))
 
 class Table(urwid.WidgetWrap):
     def __init__(self, headers=[], columns=None):
