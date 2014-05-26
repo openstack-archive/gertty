@@ -177,7 +177,7 @@ class RevisionRow(urwid.WidgetWrap):
                 removed = 0
             total_added += added
             total_removed += removed
-            table.addRow([urwid.Text(('filename', filename)),
+            table.addRow([urwid.Text(('filename', filename), wrap='clip'),
                           urwid.Text([('lines-added', '+%i' % (added,)), ', '],
                                      align=urwid.RIGHT),
                           urwid.Text(('lines-removed', '-%i' % (removed,)))])
@@ -258,8 +258,8 @@ class RevisionRow(urwid.WidgetWrap):
             lambda button: self.app.backScreen())
         self.app.popup(dialog, min_height=min_height)
 
-class ChangeMessageBox(urwid.Text):
-    def __init__(self, message, commentlinks):
+class ChangeMessageBox(mywid.HyperText):
+    def __init__(self, app, message):
         super(ChangeMessageBox, self).__init__(u'')
         lines = message.message.split('\n')
         text = [('change-message-name', message.name),
@@ -269,8 +269,8 @@ class ChangeMessageBox(urwid.Text):
         if lines and lines[-1]:
             lines.append('')
         comment_text = ['\n'.join(lines)]
-        for commentlink in commentlinks:
-            comment_text = commentlink.run(comment_text)
+        for commentlink in app.config.commentlinks:
+            comment_text = commentlink.run(app, comment_text)
         self.set_text(text+comment_text)
 
 class ChangeView(urwid.WidgetWrap):
@@ -429,7 +429,7 @@ This Screen
             for message in change.messages:
                 row = self.message_rows.get(message.key)
                 if not row:
-                    row = ChangeMessageBox(message, self.app.config.commentlinks)
+                    row = ChangeMessageBox(self.app, message)
                     self.listbox.body.insert(listbox_index, row)
                     self.message_rows[message.key] = row
                 # Messages are extremely unlikely to be deleted, skip

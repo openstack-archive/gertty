@@ -22,6 +22,8 @@ DEFAULT_PALETTE={
     'negative-label': ['dark red', ''],
     'max-label': ['light green', ''],
     'min-label': ['light red', ''],
+    'link': ['dark blue', ''],
+    'focused-link': ['light blue', ''],
     # Diff
     'context-button': ['dark magenta', ''],
     'focused-context-button': ['light magenta', ''],
