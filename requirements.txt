@@ -1,7 +1,9 @@
+pbr>=0.6,!=0.7,<1.0
+
 urwid
 sqlalchemy
 GitPython>=0.3.2.RC1
 python-dateutil
 requests
 ordereddict
-pbr>=0.6,!=0.7,<1.0
+alembic>=0.4.1
