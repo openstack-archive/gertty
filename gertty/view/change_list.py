@@ -69,7 +69,7 @@ class ChangeListView(urwid.WidgetWrap):
 This Screen
 ===========
 <l>   Toggle whether only unreviewed or all changes are displayed.
-<r>   Toggle the reviewed flag for the currently selected change.
+<v>   Toggle the reviewed flag for the currently selected change.
 """
 
     def __init__(self, app, project_key):
@@ -129,7 +129,7 @@ This Screen
             self.unreviewed = not self.unreviewed
             self.refresh()
             return None
-        if key=='r':
+        if key=='v':
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position

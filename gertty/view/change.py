@@ -260,10 +260,10 @@ class ChangeView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
-<R>   Toggle the reviewed flag for the current change.
 <c>   Checkout the most recent revision.
 <d>   Show the diff of the mont recent revision.
 <r>   Leave a review for the most recent revision.
+<v>   Toggle the reviewed flag for the current change.
 """
 
     def __init__(self, app, change_key):
@@ -420,7 +420,7 @@ This Screen
 
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
-        if r == 'R':
+        if r == 'v':
             self.toggleReviewed()
             self.refresh()
             return None
