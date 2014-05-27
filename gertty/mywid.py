@@ -38,10 +38,17 @@ class FixedButton(urwid.Button):
     def pack(self, size, focus=False):
         return (len(self.get_label())+4, 1)
 
+class FixedRadioButton(urwid.RadioButton):
+    def sizing(self):
+        return frozenset([urwid.FIXED])
+
+    def pack(self, size, focus=False):
+        return (len(self.get_label())+4, 1)
+
 class TableColumn(urwid.Pile):
     def pack(self, size, focus=False):
         maxcol = size[0]
-        mx = max([len(i[0].text) for i in self.contents])
+        mx = max([i[0].pack((maxcol,), focus)[0] for i in self.contents])
         return (min(mx+2, maxcol), len(self.contents))
 
 class Table(urwid.WidgetWrap):
