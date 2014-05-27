@@ -97,7 +97,7 @@ This Screen
                 lst = project.unreviewed_changes
             else:
                 self.title = u'Open changes in %s' % project.name
-                lst = project.changes
+                lst = project.open_changes
             self.app.status.update(title=self.title)
             i = 0
             for change in lst:
