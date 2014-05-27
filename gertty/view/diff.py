@@ -20,6 +20,66 @@ import urwid
 from gertty import mywid
 from gertty import gitrepo
 
+class PatchsetDialog(urwid.WidgetWrap):
+    signals = ['ok', 'cancel']
+
+    def __init__(self, patchsets, old, new):
+        button_widgets = []
+        ok_button = mywid.FixedButton('OK')
+        cancel_button = mywid.FixedButton('Cancel')
+        urwid.connect_signal(ok_button, 'click',
+                             lambda button:self._emit('ok'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        button_widgets.append(('pack', ok_button))
+        button_widgets.append(('pack', cancel_button))
+        button_columns = urwid.Columns(button_widgets, dividechars=2)
+
+        left = []
+        right = []
+        left.append(urwid.Text('Old'))
+        right.append(urwid.Text('New'))
+        self.old_buttons = []
+        self.new_buttons = []
+        self.patchset_keys = {}
+        oldb = mywid.FixedRadioButton(self.old_buttons, 'Base',
+                                      state=(old==None))
+        left.append(oldb)
+        right.append(urwid.Text(''))
+        self.patchset_keys[oldb] = None
+        for key, num in patchsets:
+            oldb = mywid.FixedRadioButton(self.old_buttons, 'Patchset %d' % num,
+                                          state=(old==key))
+            newb = mywid.FixedRadioButton(self.new_buttons, 'Patchset %d' % num,
+                                          state=(new==key))
+            left.append(oldb)
+            right.append(newb)
+            self.patchset_keys[oldb] = key
+            self.patchset_keys[newb] = key
+        left = urwid.Pile(left)
+        right = urwid.Pile(right)
+        table  = urwid.Columns([left, right])
+        rows = []
+        rows.append(table)
+        rows.append(urwid.Divider())
+        rows.append(button_columns)
+        pile = urwid.Pile(rows)
+        fill = urwid.Filler(pile, valign='top')
+        title = 'Patchsets'
+        super(PatchsetDialog, self).__init__(urwid.LineBox(fill, title))
+
+    def getSelected(self):
+        old = new = None
+        for b in self.old_buttons:
+            if b.state:
+                old = self.patchset_keys[b]
+                break
+        for b in self.new_buttons:
+            if b.state:
+                new = self.patchset_keys[b]
+                break
+        return old, new
+
 class LineContext(object):
     def __init__(self, old_revision_key, new_revision_key,
                  old_revision_num, new_revision_num,
@@ -139,28 +199,47 @@ class DiffView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
-<Enter> Add an inline comment.
+<Enter> Add an inline comment
+<p>     Select old/new patchsets to diff
 """
 
     def __init__(self, app, new_revision_key):
         super(DiffView, self).__init__(urwid.Pile([]))
         self.log = logging.getLogger('gertty.view.diff')
         self.app = app
+        self.old_revision_key = None  # Base
         self.new_revision_key = new_revision_key
+        self._init()
+
+    def _init(self):
+        del self._w.contents[:]
         with self.app.db.getSession() as session:
-            revision = session.getRevision(new_revision_key)
-            self.title = u'Diff of %s change %s patchset %s' % (
-                revision.change.project.name,
-                revision.change.number,
-                revision.number)
-            self.new_revision_num = revision.number
-            self.change_key = revision.change.key
-            self.project_name = revision.change.project.name
-            self.parent = revision.parent
-            self.commit = revision.commit
+            new_revision = session.getRevision(self.new_revision_key)
+            if self.old_revision_key is not None:
+                old_revision = session.getRevision(self.old_revision_key)
+                self.old_revision_num = old_revision.number
+                old_str = 'patchset %s' % self.old_revision_num
+                self.base_commit = old_revision.commit
+                old_comments = old_revision.comments
+            else:
+                old_revision = None
+                self.old_revision_num = None
+                old_str = 'base'
+                self.base_commit = new_revision.parent
+                old_comments = []
+            self.title = u'Diff of %s change %s from %s to patchset %s' % (
+                new_revision.change.project.name,
+                new_revision.change.number,
+                old_str, new_revision.number)
+            self.new_revision_num = new_revision.number
+            self.change_key = new_revision.change.key
+            self.project_name = new_revision.change.project.name
+            self.commit = new_revision.commit
             comment_lists = {}
-            for comment in revision.comments:
+            for comment in new_revision.comments:
                 if comment.parent:
+                    if old_revision:  # we're not looking at the base
+                        continue
                     key = 'old'
                 else:
                     key = 'new'
@@ -176,13 +255,29 @@ This Screen
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
+            for comment in old_comments:
+                if comment.parent:
+                    continue
+                key = 'old'
+                if comment.pending:
+                    key += 'draft'
+                key += '-' + str(comment.line)
+                key += '-' + str(comment.file)
+                comment_list = comment_lists.get(key, [])
+                if comment.pending:
+                    message = comment.message
+                else:
+                    message = [('comment-name', comment.name),
+                               ('comment', u': '+comment.message)]
+                comment_list.append((comment.key, message))
+                comment_lists[key] = comment_list
         repo = self.app.getRepo(self.project_name)
-        self._w.contents.append((app.header, ('pack', 1)))
+        self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
         lines = []  # The initial set of lines to display
         self.file_diffs = [{}, {}]  # Mapping of fn -> DiffFile object (old, new)
         # this is a list of files:
-        for i, diff in enumerate(repo.diff(self.parent, self.commit)):
+        for i, diff in enumerate(repo.diff(self.base_commit, self.commit)):
             if i > 0:
                 lines.append(urwid.Text(''))
             self.file_diffs[gitrepo.OLD][diff.oldname] = diff
@@ -213,10 +308,10 @@ This Screen
         self.draft_comments = []
         self._w.set_focus(self.old_focus)
         self.handleUndisplayedComments(comment_lists)
+        self.app.status.update(title=self.title)
 
     def handleUndisplayedComments(self, comment_lists):
         # Handle comments that landed outside our default diff context
-        import time
         lastlen = 0
         while comment_lists:
             if len(comment_lists.keys()) == lastlen:
@@ -276,8 +371,8 @@ This Screen
         lines = []
         for old, new in lines_to_add:
             context = LineContext(
-                None, self.new_revision_key,
-                None, self.new_revision_num,
+                self.old_revision_key, self.new_revision_key,
+                self.old_revision_num, self.new_revision_num,
                 diff.oldname, diff.newname,
                 old[0], new[0])
             lines.append(DiffLine(self.app, context, old, new,
@@ -324,6 +419,9 @@ This Screen
         if (isinstance(old_focus, DiffCommentEdit) and
             (old_focus != new_focus or key == 'esc')):
             self.cleanupEdit(old_focus)
+        if r == 'p':
+            self.openPatchsetDialog()
+            return None
         return r
 
     def mouse_event(self, size, event, button, x, y, focus):
@@ -388,3 +486,23 @@ This Screen
                                              line_num, text, pending=True)
             key = comment.key
         return key
+
+    def openPatchsetDialog(self):
+        revisions = []
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            for r in change.revisions:
+                revisions.append((r.key, r.number))
+        dialog = PatchsetDialog(revisions,
+                                self.old_revision_key,
+                                self.new_revision_key)
+        urwid.connect_signal(dialog, 'cancel',
+            lambda button: self.app.backScreen())
+        urwid.connect_signal(dialog, 'ok',
+            lambda button: self._openPatchsetDialog(dialog))
+        self.app.popup(dialog, min_width=30, min_height=8)
+
+    def _openPatchsetDialog(self, dialog):
+        self.app.backScreen()
+        self.old_revision_key, self.new_revision_key = dialog.getSelected()
+        self._init()
