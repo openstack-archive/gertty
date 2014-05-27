@@ -331,6 +331,12 @@ class Repo(object):
                 if key == ' ':
                     f.addContextLine(rest)
                     continue
+                if line.startswith("similarity index"):
+                    continue
+                if line.startswith("rename"):
+                    continue
+                if line.startswith("index"):
+                    continue
                 if not last_line:
                     raise Exception("Unhandled line: %s" % line)
             f.finalize()
