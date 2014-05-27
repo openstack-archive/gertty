@@ -12,6 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+
+import alembic
+import alembic.config
 import sqlalchemy
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, select, func
 from sqlalchemy.schema import ForeignKey
@@ -331,14 +335,33 @@ mapper(Approval, approval_table)
 
 class Database(object):
     def __init__(self, app):
+        self.log = logging.getLogger('gertty.db')
         self.app = app
         self.engine = create_engine(self.app.config.dburi)
-        metadata.create_all(self.engine)
+        #metadata.create_all(self.engine)
+        self.migrate()
         self.session_factory = sessionmaker(bind=self.engine)
         self.session = scoped_session(self.session_factory)
 
     def getSession(self):
         return DatabaseSession(self.session)
+
+    def migrate(self):
+        conn = self.engine.connect()
+        context = alembic.migration.MigrationContext.configure(conn)
+        current_rev = context.get_current_revision()
+        self.log.debug('Current migration revision: %s' % current_rev)
+
+        has_table = self.engine.dialect.has_table(conn, "project")
+
+        config = alembic.config.Config()
+        config.set_main_option("script_location", "gertty:alembic")
+        config.set_main_option("sqlalchemy.url", self.app.config.dburi)
+
+        if current_rev is None and has_table:
+            self.log.debug('Stamping database as initial revision')
+            alembic.command.stamp(config, "44402069e137")
+        alembic.command.upgrade(config, 'head')
 
 class DatabaseSession(object):
     def __init__(self, session):
