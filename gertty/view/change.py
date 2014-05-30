@@ -20,6 +20,7 @@ from gertty import gitrepo
 from gertty import mywid
 from gertty import sync
 from gertty.view import diff as view_diff
+import gertty.view
 
 class ReviewDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
@@ -330,7 +331,31 @@ This Screen
         self.listbox.body.append(urwid.Divider())
         self.listbox_patchset_start = len(self.listbox.body)
 
+        self.checkGitRepo()
         self.refresh()
+
+    def checkGitRepo(self):
+        missing_revisions = False
+        change_number = None
+        change_id = None
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change_number = change.number
+            change_id = change.id
+            repo = self.app.getRepo(change.project.name)
+            for revision in change.revisions:
+                if not (repo.hasCommit(revision.parent) and
+                        repo.hasCommit(revision.commit)):
+                    missing_revisions = True
+                    break
+        if missing_revisions:
+            self.app.log.warning("Missing some commits for change %s" % change_number)
+            task = sync.SyncChangeTask(change_id, force_fetch=True,
+                                       priority=sync.HIGH_PRIORITY)
+            self.app.sync.submitTask(task)
+            succeeded = task.wait(300)
+            if not succeeded:
+                raise gertty.view.DisplayError("Git commits not present in local repository")
 
     def refresh(self):
         change_info = []

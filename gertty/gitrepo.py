@@ -18,6 +18,7 @@ import os
 import re
 
 import git
+import gitdb
 
 OLD = 0
 NEW = 1
@@ -149,6 +150,14 @@ class Repo(object):
         self.differ = difflib.Differ()
         if not os.path.exists(path):
             git.Repo.clone_from(self.url, self.path)
+
+    def hasCommit(self, sha):
+        repo = git.Repo(self.path)
+        try:
+            repo.commit(sha)
+        except gitdb.exc.BadObject:
+            return False
+        return True
 
     def fetch(self, url, refspec):
         repo = git.Repo(self.path)

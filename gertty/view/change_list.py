@@ -16,6 +16,7 @@ import urwid
 
 from gertty import mywid
 from gertty.view import change as view_change
+import gertty.view
 
 class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
@@ -154,4 +155,8 @@ This Screen
         return super(ChangeListView, self).keypress(size, key)
 
     def onSelect(self, button, change_key):
-        self.app.changeScreen(view_change.ChangeView(self.app, change_key))
+        try:
+            view = view_change.ChangeView(self.app, change_key)
+            self.app.changeScreen(view)
+        except gertty.view.DisplayError as e:
+            self.app.error(e.message)
