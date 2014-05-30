@@ -6,5 +6,6 @@ GitPython>=0.3.2.RC1
 python-dateutil
 requests
 ordereddict
+alembic>=0.4.1
 PyYAML>=3.1.0
 voluptuous>=0.7
