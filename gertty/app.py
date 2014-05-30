@@ -28,6 +28,7 @@ from gertty import mywid
 from gertty import sync
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
+import gertty.view
 
 WELCOME_TEXT = """\
 Welcome to Gertty!
@@ -226,7 +227,11 @@ class App(object):
                 change_key = change and change.key or None
         if change_key is None:
             return self.error('Change is not in local database.')
-        self.changeScreen(view_change.ChangeView(self, change_key))
+        try:
+            view = view_change.ChangeView(self, change_key)
+            self.changeScreen(view)
+        except gertty.view.DisplayError as e:
+            self.app.error(e.message)
 
     def error(self, message):
         dialog = mywid.MessageDialog('Error', message)

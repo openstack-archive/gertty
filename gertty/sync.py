@@ -148,7 +148,7 @@ class SyncProjectTask(Task):
                 # in the db optionally we could sync all changes ever
                 change = session.getChangeByID(c['id'])
                 if change or (c['status'] not in self._closed_statuses):
-                    sync.submitTask(SyncChangeTask(c['id'], self.priority))
+                    sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
 
 class SyncChangeByCommitTask(Task):
@@ -167,7 +167,7 @@ class SyncChangeByCommitTask(Task):
         self.log.debug('Query: %s ' % (query,))
         with app.db.getSession() as session:
             for c in changes:
-                sync.submitTask(SyncChangeTask(c['id'], self.priority))
+                sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
                 self.log.debug("Sync change %s for its commit %s" % (c['id'], self.commit))
 
 class SyncChangeByNumberTask(Task):
@@ -187,15 +187,16 @@ class SyncChangeByNumberTask(Task):
         self.log.debug('Query: %s ' % (query,))
         with app.db.getSession() as session:
             for c in changes:
-                task = SyncChangeTask(c['id'], self.priority)
+                task = SyncChangeTask(c['id'], priority=self.priority)
                 self.tasks.append(task)
                 sync.submitTask(task)
                 self.log.debug("Sync change %s because it is number %s" % (c['id'], self.number))
 
 class SyncChangeTask(Task):
-    def __init__(self, change_id, priority=NORMAL_PRIORITY):
+    def __init__(self, change_id, force_fetch=False, priority=NORMAL_PRIORITY):
         super(SyncChangeTask, self).__init__(priority)
         self.change_id = change_id
+        self.force_fetch = force_fetch
 
     def __repr__(self):
         return '<SyncChangeTask %s>' % (self.change_id,)
@@ -228,18 +229,19 @@ class SyncChangeTask(Task):
             new_revision = False
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
                 revision = session.getRevisionByCommit(remote_commit)
-                if not revision:
-                    # TODO: handle multiple parents
-                    url = sync.app.config.url + change.project.name
-                    if 'anonymous http' in remote_revision['fetch']:
-                        ref = remote_revision['fetch']['anonymous http']['ref']
-                    else:
-                        ref = remote_revision['fetch']['http']['ref']
-                        url = list(urlparse.urlsplit(url))
-                        url[1] = '%s:%s@%s' % (sync.app.config.username,
-                                               sync.app.config.password, url[1])
-                        url = urlparse.urlunsplit(url)
+                # TODO: handle multiple parents
+                url = sync.app.config.url + change.project.name
+                if 'anonymous http' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['anonymous http']['ref']
+                else:
+                    ref = remote_revision['fetch']['http']['ref']
+                    url = list(urlparse.urlsplit(url))
+                    url[1] = '%s:%s@%s' % (sync.app.config.username,
+                                           sync.app.config.password, url[1])
+                    url = urlparse.urlunsplit(url)
+                if (not revision) or self.force_fetch:
                     fetches.append((url, ref))
+                if not revision:
                     revision = change.createRevision(remote_revision['_number'],
                                                      remote_revision['commit']['message'], remote_commit,
                                                      remote_revision['commit']['parents'][0]['commit'])
@@ -419,7 +421,7 @@ class UploadReviewTask(Task):
             # Inside db session for rollback
             sync.post('changes/%s/revisions/%s/review' % (change.id, revision.commit),
                       data)
-            sync.submitTask(SyncChangeTask(change.id, self.priority))
+            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class Sync(object):
     def __init__(self, app):
