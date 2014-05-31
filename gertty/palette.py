@@ -18,6 +18,7 @@ DEFAULT_PALETTE={
     'error': ['light red', 'dark blue'],
     'table-header': ['white,bold', ''],
     'filename': ['light cyan', ''],
+    'focused-filename': ['light cyan,standout', ''],
     'positive-label': ['dark green', ''],
     'negative-label': ['dark red', ''],
     'max-label': ['light green', ''],

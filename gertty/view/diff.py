@@ -164,6 +164,20 @@ class DiffLine(urwid.Button):
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+class FileHeader(urwid.Button):
+    def selectable(self):
+        return True
+
+    def __init__(self, app, context, old, new, callback=None):
+        super(FileHeader, self).__init__('', on_press=callback)
+        self.context = context
+        col = urwid.Columns([
+                urwid.Text(('filename', old)),
+                urwid.Text(('filename', new))])
+        map = {None: 'focused-filename',
+               'filename': 'focused-filename'}
+        self._w = urwid.AttrMap(col, None, focus_map=map)
+
 class DiffContextButton(urwid.WidgetWrap):
     def selectable(self):
         return True
@@ -282,9 +296,7 @@ This Screen
                 lines.append(urwid.Text(''))
             self.file_diffs[gitrepo.OLD][diff.oldname] = diff
             self.file_diffs[gitrepo.NEW][diff.newname] = diff
-            lines.append(urwid.Columns([
-                        urwid.Text(('filename', diff.oldname)),
-                        urwid.Text(('filename', diff.newname))]))
+            lines.extend(self.makeFileHeader(diff, comment_lists))
             for chunk in diff.chunks:
                 if chunk.context:
                     if not chunk.first:
@@ -406,6 +418,47 @@ This Screen
                                              old_comment_key,
                                              new_comment_key,
                                              old_comment, new_comment))
+        return lines
+
+    def makeFileHeader(self, diff, comment_lists):
+        context = LineContext(
+            self.old_revision_key, self.new_revision_key,
+            self.old_revision_num, self.new_revision_num,
+            diff.oldname, diff.newname,
+            None, None)
+        lines = []
+        lines.append(FileHeader(self.app, context, diff.oldname, diff.newname,
+                                callback=self.onSelect))
+
+        # see if there are any comments for this file
+        key = 'old-None-%s' % (diff.oldname,)
+        old_list = comment_lists.pop(key, [])
+        key = 'new-None-%s' % (diff.newname,)
+        new_list = comment_lists.pop(key, [])
+        while old_list or new_list:
+            old_comment_key = new_comment_key = None
+            old_comment = new_comment = u''
+            if old_list:
+                (old_comment_key, old_comment) = old_list.pop(0)
+            if new_list:
+                (new_comment_key, new_comment) = new_list.pop(0)
+            lines.append(DiffComment(context, old_comment, new_comment))
+        # see if there are any draft comments for this file
+        key = 'olddraft-None-%s' % (diff.oldname,)
+        old_list = comment_lists.pop(key, [])
+        key = 'newdraft-None-%s' % (diff.newname,)
+        new_list = comment_lists.pop(key, [])
+        while old_list or new_list:
+            old_comment_key = new_comment_key = None
+            old_comment = new_comment = u''
+            if old_list:
+                (old_comment_key, old_comment) = old_list.pop(0)
+            if new_list:
+                (new_comment_key, new_comment) = new_list.pop(0)
+            lines.append(DiffCommentEdit(context,
+                                         old_comment_key,
+                                         new_comment_key,
+                                         old_comment, new_comment))
         return lines
 
     def refresh(self):
