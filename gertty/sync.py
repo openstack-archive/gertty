@@ -246,7 +246,9 @@ class SyncChangeTask(Task):
                 url = sync.app.config.url + change.project.name
                 if 'anonymous http' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['anonymous http']['ref']
+                    auth = False
                 else:
+                    auth = True
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(url))
                     url[1] = '%s:%s@%s' % (sync.app.config.username,
@@ -257,7 +259,8 @@ class SyncChangeTask(Task):
                 if not revision:
                     revision = change.createRevision(remote_revision['_number'],
                                                      remote_revision['commit']['message'], remote_commit,
-                                                     remote_revision['commit']['parents'][0]['commit'])
+                                                     remote_revision['commit']['parents'][0]['commit'],
+                                                     auth, ref)
                     new_revision = True
                 # TODO: handle multiple parents
                 parent_revision = session.getRevisionByCommit(revision.parent)
@@ -382,6 +385,48 @@ class SyncChangeTask(Task):
             self.log.debug("git fetch %s %s" % (url, ref))
             repo.fetch(url, ref)
 
+class CheckRevisionsTask(Task):
+    def __repr__(self):
+        return '<CheckRevisionsTask>'
+
+    def run(self, sync):
+        app = sync.app
+        to_fetch = []
+        with app.db.getSession() as session:
+            for project in session.getProjects():
+                if not project.open_changes:
+                    continue
+                repo = app.getRepo(project.name)
+                for change in project.open_changes:
+                    for revision in change.revisions:
+                        if not (repo.hasCommit(revision.parent) and
+                                repo.hasCommit(revision.commit)):
+                            if revision.fetch_ref:
+                                to_fetch.append((project.name, revision.fetch_ref, revision.fetch_auth))
+        for name, ref, auth in to_fetch:
+            sync.submitTask(FetchRefTask(name, ref, auth, priority=self.priority))
+
+class FetchRefTask(Task):
+    def __init__(self, project_name, ref, auth, priority=NORMAL_PRIORITY):
+        super(FetchRefTask, self).__init__(priority)
+        self.project_name = project_name
+        self.ref = ref
+        self.auth = auth
+
+    def __repr__(self):
+        return '<FetchRefTask %s %s>' % (self.project_name, self.ref)
+
+    def run(self, sync):
+        # TODO: handle multiple parents
+        url = sync.app.config.url + self.project_name
+        if self.auth:
+            url = list(urlparse.urlsplit(url))
+            url[1] = '%s:%s@%s' % (sync.app.config.username,
+                                   sync.app.config.password, url[1])
+            url = urlparse.urlunsplit(url)
+        self.log.debug("git fetch %s %s" % (url, self.ref))
+        repo = sync.app.getRepo(self.project_name)
+        repo.fetch(url, self.ref)
 
 class UploadReviewsTask(Task):
     def __repr__(self):
@@ -442,9 +487,10 @@ class Sync(object):
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
+        self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
-        self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+        self.submitTask(CheckRevisionsTask(LOW_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
         self.periodic_thread.daemon = True
         self.periodic_thread.start()

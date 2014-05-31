@@ -59,6 +59,8 @@ revision_table = Table(
     Column('message', Text, nullable=False),
     Column('commit', String(255), nullable=False),
     Column('parent', String(255), nullable=False),
+    Column('fetch_auth', Boolean, nullable=False),
+    Column('fetch_ref', String(255), nullable=False),
     )
 message_table = Table(
     'message', metadata,
@@ -212,12 +214,14 @@ class Change(object):
         return l
 
 class Revision(object):
-    def __init__(self, change, number, message, commit, parent):
+    def __init__(self, change, number, message, commit, parent, fetch_auth, fetch_ref):
         self.change_key = change.key
         self.number = number
         self.message = message
         self.commit = commit
         self.parent = parent
+        self.fetch_auth = fetch_auth
+        self.fetch_ref = fetch_ref
 
     def createMessage(self, *args, **kw):
         session = Session.object_session(self)
