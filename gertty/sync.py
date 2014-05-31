@@ -130,26 +130,39 @@ class SyncProjectTask(Task):
 
     def run(self, sync):
         app = sync.app
+        now = datetime.datetime.utcnow()
         with app.db.getSession() as session:
             project = session.getProject(self.project_key)
             query = 'project:%s' % project.name
             if project.updated:
-                query += ' -age:%ss' % (int(math.ceil((datetime.datetime.utcnow()-project.updated).total_seconds())) + 0,)
+                # Allow 4 seconds for request time, etc.
+                query += ' -age:%ss' % (int(math.ceil((now-project.updated).total_seconds())) + 4,)
         changes = sync.get('changes/?q=%s' % query)
         self.log.debug('Query: %s ' % (query,))
         with app.db.getSession() as session:
-            for c in reversed(changes):
-                # The list we get is newest to oldest; if we are
-                # interrupted, we will have already synced the newest
-                # change and a subsequent sync will not catch up the
-                # old ones.  So reverse the list before we process it
-                # so that the updated time is accurate.
+            for c in changes:
                 # For now, just sync open changes or changes already
                 # in the db optionally we could sync all changes ever
                 change = session.getChangeByID(c['id'])
                 if change or (c['status'] not in self._closed_statuses):
                     sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
                     self.log.debug("Change %s update %s" % (c['id'], c['updated']))
+        sync.submitTask(SetProjectUpdatedTask(self.project_key, now, priority=self.priority))
+
+class SetProjectUpdatedTask(Task):
+    def __init__(self, project_key, updated, priority=NORMAL_PRIORITY):
+        super(SetProjectUpdatedTask, self).__init__(priority)
+        self.project_key = project_key
+        self.updated = updated
+
+    def __repr__(self):
+        return '<SetProjectUpdatedTask %s %s>' % (self.project_key, self.updated)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            project = session.getProject(self.project_key)
+            project.updated = self.updated
 
 class SyncChangeByCommitTask(Task):
     def __init__(self, commit, priority=NORMAL_PRIORITY):

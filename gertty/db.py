@@ -32,6 +32,7 @@ project_table = Table(
     Column('name', String(255), index=True, unique=True, nullable=False),
     Column('subscribed', Boolean, index=True, default=False),
     Column('description', Text, nullable=False, default=''),
+    Column('updated', DateTime, index=True),
     )
 change_table = Table(
     'change', metadata,
@@ -296,10 +297,6 @@ mapper(Project, project_table, properties=dict(
                                                    change_table.c.status!='ABANDONED'),
                                   order_by=change_table.c.number,
                                   ),
-        updated = column_property(
-            select([func.max(change_table.c.updated)]).where(
-                change_table.c.project_key==project_table.c.key)
-            ),
         ))
 mapper(Change, change_table, properties=dict(
         revisions=relationship(Revision, backref='change',
