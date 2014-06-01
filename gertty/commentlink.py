@@ -41,7 +41,6 @@ class LinkReplacement(object):
         link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
         urwid.connect_signal(link, 'selected',
             lambda link:app.openURL(self.url.format(**data)))
-        app.log.debug("link %s" % link)
         return link
 
 class CommentLink(object):
