@@ -447,6 +447,12 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
+    def getRevisionsByParent(self, parent):
+        try:
+            return self.session().query(Revision).filter_by(parent=parent).all()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return []
+
     def getRevisionByNumber(self, change, number):
         try:
             return self.session().query(Revision).filter_by(change_key=change.key, number=number).one()

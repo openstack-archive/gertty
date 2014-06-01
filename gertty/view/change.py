@@ -259,6 +259,24 @@ class RevisionRow(urwid.WidgetWrap):
             lambda button: self.app.backScreen())
         self.app.popup(dialog, min_height=min_height)
 
+class ChangeButton(mywid.FixedButton):
+    button_left = urwid.Text(u' ')
+    button_right = urwid.Text(u' ')
+
+    def __init__(self, change_view, change_key, text):
+        super(ChangeButton, self).__init__('')
+        self.set_label(text)
+        self.change_view = change_view
+        self.change_key = change_key
+        urwid.connect_signal(self, 'click',
+            lambda button: self.openChange())
+
+    def set_label(self, text):
+        super(ChangeButton, self).set_label(text)
+
+    def openChange(self):
+        self.change_view.app.changeScreen(ChangeView(self.change_view.app, self.change_key))
+
 class ChangeMessageBox(mywid.HyperText):
     def __init__(self, app, message):
         super(ChangeMessageBox, self).__init__(u'')
@@ -316,11 +334,17 @@ This Screen
         change_info = urwid.Pile(change_info)
         self.commit_message = urwid.Text(u'')
         votes = mywid.Table([])
+        self.depends_on = urwid.Pile([])
+        self.depends_on_rows = {}
+        self.needed_by = urwid.Pile([])
+        self.needed_by_rows = {}
         self.left_column = urwid.Pile([('pack', change_info),
                                        ('pack', urwid.Divider()),
-                                       ('pack', votes)])
+                                       ('pack', votes),
+                                       ('pack', urwid.Divider()),
+                                       ('pack', self.depends_on),
+                                       ('pack', self.needed_by)])
         top = urwid.Columns([self.left_column, ('weight', 1, self.commit_message)])
-
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
@@ -431,6 +455,8 @@ This Screen
             # gets selectable items (like clickable names).
             self.left_column.contents[2] = (votes, ('pack', None))
 
+            self.refreshDependencies(session, change)
+
             repo = self.app.getRepo(change.project.name)
             # The listbox has both revisions and messages in it (and
             # may later contain the vote table and change header), so
@@ -460,6 +486,70 @@ This Screen
                 # Messages are extremely unlikely to be deleted, skip
                 # that case.
                 listbox_index += 1
+
+    def refreshDependencies(self, session, change):
+        # Handle depends-on
+        revision = change.revisions[-1]
+        parent = session.getRevisionByCommit(revision.parent)
+        if parent and parent.change.status != 'MERGED':
+            if len(self.depends_on.contents) == 0:
+                self.depends_on.contents.append((urwid.Text(('table-header', 'Depends on:')),
+                                                 self.depends_on.options()))
+            unseen_keys = set(self.depends_on_rows.keys())
+            i = 1
+            for c in [parent.change]:
+                row = self.depends_on_rows.get(c.key)
+                if not row:
+                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, c.key, c.subject), width='pack'),
+                                        'link', focus_map={None: 'focused-link'})
+                    self.depends_on.contents.insert(i, (row, self.depends_on.options('pack')))
+                    if not self.depends_on.focus.selectable():
+                        self.depends_on.set_focus(i)
+                    if not self.left_column.focus.selectable():
+                        self.left_column.set_focus(self.depends_on)
+                    self.depends_on_rows[c.key] = row
+                else:
+                    row.original_widget.original_widget.set_label(c.subject)
+                    unseen_keys.remove(c.key)
+                i += 1
+            for key in unseen_keys:
+                row = self.depends_on_rows[key]
+                self.depends_on.contents.remove(row)
+                del self.depends_on_rows[key]
+        else:
+            if len(self.depends_on.contents) > 0:
+                self.depends_on.contents[:] = []
+
+        # Handle needed-by
+        children = [r.change for r in session.getRevisionsByParent(revision.commit) if r.change.status != 'MERGED']
+        if children:
+            if len(self.needed_by.contents) == 0:
+                self.needed_by.contents.append((urwid.Text(('table-header', 'Needed by:')),
+                                                self.needed_by.options('pack')))
+            unseen_keys = set(self.needed_by_rows.keys())
+            i = 1
+            for c in children:
+                row = self.needed_by_rows.get(c.key)
+                if not row:
+                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, c.key, c.subject), width='pack'),
+                                        'link', focus_map={None: 'focused-link'})
+                    self.needed_by.contents.insert(i, (row, self.depends_on.options()))
+                    if not self.needed_by.focus.selectable():
+                        self.needed_by.set_focus(i)
+                    if not self.left_column.focus.selectable():
+                        self.left_column.set_focus(self.needed_by)
+                    self.needed_by_rows[c.key] = row
+                else:
+                    row.original_widget.original_widget.set_label(c.subject)
+                    unseen_keys.remove(c.key)
+                i += 1
+            for key in unseen_keys:
+                row = self.needed_by_rows[key]
+                self.needed_by.contents.remove(row)
+                del self.needed_by_rows[key]
+        else:
+            if len(self.needed_by.contents) > 0:
+                self.needed_by.contents[:] = []
 
     def toggleReviewed(self):
         with self.app.db.getSession() as session:
