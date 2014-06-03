@@ -2,6 +2,7 @@ pbr>=0.6,!=0.7,<1.0
 
 urwid
 sqlalchemy
+alembic>=0.4.1
 GitPython>=0.3.2.RC1
 python-dateutil
 requests
