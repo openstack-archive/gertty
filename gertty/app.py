@@ -97,7 +97,7 @@ class App(object):
             level = logging.DEBUG
         else:
             level = logging.WARNING
-        logging.basicConfig(filename=self.config.log_file, filemode='w',
+        logging.basicConfig(filename=self.config.log_file,
                             format='%(asctime)s %(message)s',
                             level=level)
         self.log = logging.getLogger('gertty.App')
