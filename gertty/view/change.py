@@ -521,27 +521,29 @@ This Screen
                 self.depends_on.contents[:] = []
 
         # Handle needed-by
-        children = [r.change for r in session.getRevisionsByParent(revision.commit) if r.change.status != 'MERGED']
+        children = dict((r.change.key, r.change.subject)
+                        for r in session.getRevisionsByParent(revision.commit)
+                        if r.change.status != 'MERGED')
         if children:
             if len(self.needed_by.contents) == 0:
                 self.needed_by.contents.append((urwid.Text(('table-header', 'Needed by:')),
                                                 self.needed_by.options('pack')))
             unseen_keys = set(self.needed_by_rows.keys())
             i = 1
-            for c in children:
-                row = self.needed_by_rows.get(c.key)
+            for key, subject in children.items():
+                row = self.needed_by_rows.get(key)
                 if not row:
-                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, c.key, c.subject), width='pack'),
+                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, key, subject), width='pack'),
                                         'link', focus_map={None: 'focused-link'})
                     self.needed_by.contents.insert(i, (row, self.depends_on.options()))
                     if not self.needed_by.focus.selectable():
                         self.needed_by.set_focus(i)
                     if not self.left_column.focus.selectable():
                         self.left_column.set_focus(self.needed_by)
-                    self.needed_by_rows[c.key] = row
+                    self.needed_by_rows[key] = row
                 else:
-                    row.original_widget.original_widget.set_label(c.subject)
-                    unseen_keys.remove(c.key)
+                    row.original_widget.original_widget.set_label(subject)
+                    unseen_keys.remove(key)
                 i += 1
             for key in unseen_keys:
                 row = self.needed_by_rows[key]
