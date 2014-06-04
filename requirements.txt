@@ -8,3 +8,4 @@ requests
 ordereddict
 PyYAML>=3.1.0
 voluptuous>=0.7
+alembic
