@@ -487,71 +487,58 @@ This Screen
                 # that case.
                 listbox_index += 1
 
+    def _updateDependenciesWidget(self, changes, widget, widget_rows, header):
+        if not changes:
+            if len(widget.contents) > 0:
+                widget.contents[:] = []
+            return
+
+        if len(widget.contents) == 0:
+            widget.contents.append((urwid.Text(('table-header', header)),
+                                    widget.options()))
+
+        unseen_keys = set(widget_rows.keys())
+        i = 1
+        for key, subject in changes.items():
+            row = widget_rows.get(key)
+            if not row:
+                row = urwid.AttrMap(urwid.Padding(ChangeButton(self, key, subject), width='pack'),
+                                    'link', focus_map={None: 'focused-link'})
+                widget.contents.insert(i, (row, widget.options('pack')))
+                if not widget.focus.selectable():
+                    widget.set_focus(i)
+                if not self.left_column.focus.selectable():
+                    self.left_column.set_focus(widget)
+                widget_rows[key] = row
+            else:
+                row.original_widget.original_widget.set_label(subject)
+                unseen_keys.remove(key)
+            i += 1
+        for key in unseen_keys:
+            row = widget_rows[key]
+            widget.contents.remove(row)
+            del widget_rows[key]
+
     def refreshDependencies(self, session, change):
-        # Handle depends-on
         revision = change.revisions[-1]
+
+        # Handle depends-on
+        parents = {}
         parent = session.getRevisionByCommit(revision.parent)
         if parent and parent.change.status != 'MERGED':
-            if len(self.depends_on.contents) == 0:
-                self.depends_on.contents.append((urwid.Text(('table-header', 'Depends on:')),
-                                                 self.depends_on.options()))
-            unseen_keys = set(self.depends_on_rows.keys())
-            i = 1
-            for c in [parent.change]:
-                row = self.depends_on_rows.get(c.key)
-                if not row:
-                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, c.key, c.subject), width='pack'),
-                                        'link', focus_map={None: 'focused-link'})
-                    self.depends_on.contents.insert(i, (row, self.depends_on.options('pack')))
-                    if not self.depends_on.focus.selectable():
-                        self.depends_on.set_focus(i)
-                    if not self.left_column.focus.selectable():
-                        self.left_column.set_focus(self.depends_on)
-                    self.depends_on_rows[c.key] = row
-                else:
-                    row.original_widget.original_widget.set_label(c.subject)
-                    unseen_keys.remove(c.key)
-                i += 1
-            for key in unseen_keys:
-                row = self.depends_on_rows[key]
-                self.depends_on.contents.remove(row)
-                del self.depends_on_rows[key]
-        else:
-            if len(self.depends_on.contents) > 0:
-                self.depends_on.contents[:] = []
+            parents[parent.change.key] = parent.change.subject
+        self._updateDependenciesWidget(parents,
+                                       self.depends_on, self.depends_on_rows,
+                                       header='Depends on:')
 
         # Handle needed-by
         children = dict((r.change.key, r.change.subject)
                         for r in session.getRevisionsByParent(revision.commit)
                         if r.change.status != 'MERGED')
-        if children:
-            if len(self.needed_by.contents) == 0:
-                self.needed_by.contents.append((urwid.Text(('table-header', 'Needed by:')),
-                                                self.needed_by.options('pack')))
-            unseen_keys = set(self.needed_by_rows.keys())
-            i = 1
-            for key, subject in children.items():
-                row = self.needed_by_rows.get(key)
-                if not row:
-                    row = urwid.AttrMap(urwid.Padding(ChangeButton(self, key, subject), width='pack'),
-                                        'link', focus_map={None: 'focused-link'})
-                    self.needed_by.contents.insert(i, (row, self.depends_on.options()))
-                    if not self.needed_by.focus.selectable():
-                        self.needed_by.set_focus(i)
-                    if not self.left_column.focus.selectable():
-                        self.left_column.set_focus(self.needed_by)
-                    self.needed_by_rows[key] = row
-                else:
-                    row.original_widget.original_widget.set_label(subject)
-                    unseen_keys.remove(key)
-                i += 1
-            for key in unseen_keys:
-                row = self.needed_by_rows[key]
-                self.needed_by.contents.remove(row)
-                del self.needed_by_rows[key]
-        else:
-            if len(self.needed_by.contents) > 0:
-                self.needed_by.contents[:] = []
+        self._updateDependenciesWidget(children,
+                                       self.needed_by, self.needed_by_rows,
+                                       header='Needed by:')
+
 
     def toggleReviewed(self):
         with self.app.db.getSession() as session:
