@@ -235,12 +235,14 @@ This Screen
                 old_str = 'patchset %s' % self.old_revision_num
                 self.base_commit = old_revision.commit
                 old_comments = old_revision.comments
+                show_old_commit = True
             else:
                 old_revision = None
                 self.old_revision_num = None
                 old_str = 'base'
                 self.base_commit = new_revision.parent
                 old_comments = []
+                show_old_commit = False
             self.title = u'Diff of %s change %s from %s to patchset %s' % (
                 new_revision.change.project.name,
                 new_revision.change.number,
@@ -291,7 +293,8 @@ This Screen
         lines = []  # The initial set of lines to display
         self.file_diffs = [{}, {}]  # Mapping of fn -> DiffFile object (old, new)
         # this is a list of files:
-        for i, diff in enumerate(repo.diff(self.base_commit, self.commit)):
+        for i, diff in enumerate(repo.diff(self.base_commit, self.commit,
+                show_old_commit=show_old_commit)):
             if i > 0:
                 lines.append(urwid.Text(''))
             self.file_diffs[gitrepo.OLD][diff.oldname] = diff
