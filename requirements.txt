@@ -8,4 +8,5 @@ requests
 ordereddict
 alembic>=0.4.1
 PyYAML>=3.1.0
+pytz>=2010h
 voluptuous>=0.7
