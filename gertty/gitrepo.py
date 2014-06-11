@@ -12,13 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import datetime
 import logging
 import difflib
+import itertools
 import os
 import re
 
 import git
 import gitdb
+import pytz
 
 OLD = 0
 NEW = 1
@@ -26,6 +29,74 @@ START = 0
 END = 1
 LINENO = 0
 LINE = 1
+
+class GitTimeZone(datetime.tzinfo):
+    """Because we can't have nice things."""
+
+    def __init__(self, offset_seconds):
+        self._offset = offset_seconds
+
+    def utcoffset(self, dt):
+        return datetime.timedelta(seconds=self._offset)
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+    def tzname(self, dt):
+        return None
+
+
+class CommitContext(object):
+    """A git.diff.Diff for commit messages."""
+
+    def decorate_git_time(self, seconds, tz):
+        dt = datetime.datetime.fromtimestamp(seconds, GitTimeZone(-tz))
+        return dt.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+    def decorate_message(self, commit):
+        """Put the Gerrit commit metadata at the front of the message.
+
+        e.g.:
+            Parent: cc8a51ca (Initial commit)           1
+            Author: Robert Collins <rbtcollins@hp.com>  2
+            AuthorDate: 2014-05-27 14:05:47 +1200       3
+            Commit: Robert Collins <rbtcollins@hp.com>  4
+            CommitDate: 2014-05-27 14:07:57 +1200       5
+                                                        6
+        """
+        # NB: If folk report that commits have comments at the wrong place
+        # Then this function, which reproduces gerrit behaviour, will need
+        # to be fixed (e.g. by making the behaviour match more closely.
+        if not commit:
+            return []
+        if commit.parents:
+            parentsha = commit.parents[0].hexsha[:8]
+        else:
+            parentsha = None
+        author = commit.author
+        committer = commit.committer
+        author_date = self.decorate_git_time(
+            commit.authored_date, commit.author_tz_offset)
+        commit_date = self.decorate_git_time(
+            commit.committed_date, commit.committer_tz_offset)
+        return ["Parent: %s\n" % parentsha,
+                "Author: %s <%s>\n" % (author.name, author.email),
+                "AuthorDate: %s\n" % author_date,
+                "Commit: %s <%s>\n" % (committer.name, committer.email),
+                "CommitDate: %s\n" % commit_date,
+                "\n"] + commit.message.splitlines(True)
+
+    def __init__(self, old, new):
+        """Create a CommitContext.
+
+        :param old: A git.objects.commit object or None.
+        :param new: A git.objects.commit object.
+        """
+        self.rename_from = self.rename_to = None
+        self.diff = ''.join(difflib.unified_diff(
+            self.decorate_message(old), self.decorate_message(new),
+            fromfile="/a/COMMIT_MSG", tofile="/b/COMMIT_MSG"))
+
 
 class DiffChunk(object):
     def __init__(self):
@@ -258,13 +329,24 @@ class Repo(object):
         return output_old, output_new
 
     header_re = re.compile('@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@')
-    def diff(self, old, new, context=10000):
+    def diff(self, old, new, context=10000, show_old_commit=False):
+        """Create a diff from old to new.
+
+        Note that the commit message is also diffed, and listed as /COMMIT_MSG.
+        """
         repo = git.Repo(self.path)
         #'-y', '-x', 'diff -C10', old, new, path).split('\n'):
         oldc = repo.commit(old)
         newc = repo.commit(new)
         files = []
-        for diff_context in oldc.diff(newc, create_patch=True, U=context):
+        extra_contexts = []
+        if show_old_commit:
+            extra_contexts.append(CommitContext(oldc, newc))
+        else:
+            extra_contexts.append(CommitContext(None, newc))
+        contexts = itertools.chain(
+            extra_contexts, oldc.diff(newc, create_patch=True, U=context))
+        for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
             files.append(f)
