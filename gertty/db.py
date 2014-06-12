@@ -23,6 +23,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import mapper, sessionmaker, relationship, column_property, scoped_session
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import and_
 
 metadata = MetaData()
@@ -399,7 +400,8 @@ class DatabaseSession(object):
     def delete(self, obj):
         self.session().delete(obj)
 
-    def getProjects(self, subscribed=False, names=None, get_query=False):
+    def getProjects(self, subscribed=False, names=None, get_query=False,
+                    active_only=False):
         """Retrieve projects.
 
         :param subscribed: If True limit to only subscribed projects.
@@ -407,12 +409,16 @@ class DatabaseSession(object):
             collection.
         :param get_query: If True, return the query rather than the result of
             evaluating it.
+        :param active_only: If True limit to only projects with unreviewed
+            reviews.
         """
         query = self.session().query(Project)
         if subscribed:
             query = query.filter_by(subscribed=subscribed)
         if names:
             query = query.filter(Project.name.in_(names))
+        if active_only:
+            query = query.filter(exists().where(Project.unreviewed_changes))
         if get_query:
             return query
         else:
