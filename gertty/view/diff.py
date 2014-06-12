@@ -340,8 +340,23 @@ This Screen
                 oldnew = gitrepo.OLD
             else:
                 oldnew = gitrepo.NEW
-            diff = self.file_diffs[oldnew][path]
-            for chunk in diff.chunks:
+            try:
+                diff = self.file_diffs[oldnew][path]
+                chunks = diff.chunks
+            except KeyError:
+                # When showing for instance patchset 15->16 and there are
+                # comments on p16 on file foo, but no difference in file foo
+                # from p15 to p16 then foo won't be in oldnew.
+                # The right conceptual fix is probably to add foo with content
+                # surrounding the comments, but I don't have enough of the
+                # gertty code internalised to do that yet (pointers
+                # appreciated!). So for now, we log that this comment couldn't
+                # be displayed and continue.
+                self.log.error(
+                    "Unable to display comment: %s %s", key,
+                    comment_lists.pop(key))
+                chunks = []
+            for chunk in chunks:
                 if (chunk.range[oldnew][gitrepo.START] <= lineno and
                     chunk.range[oldnew][gitrepo.END]   >= lineno):
                     i = chunk.indexOfLine(oldnew, lineno)
