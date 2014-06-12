@@ -67,6 +67,7 @@ class ProjectListView(urwid.WidgetWrap):
     help = mywid.GLOBAL_HELP + """
 This Screen
 ===========
+<a>   Toggle hiding of projects with no active reviews (default: hidden).
 <l>   Toggle whether only subscribed projects or all projects are listed.
 <s>   Toggle the subscription flag for the currently selected project.
 """
@@ -74,6 +75,7 @@ This Screen
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))
         self.app = app
+        self.active_only = True
         self.subscribed = True
         self.project_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
@@ -95,11 +97,14 @@ This Screen
             self.title = u'Subscribed Projects'
         else:
             self.title = u'All Projects'
+        if self.active_only:
+            self.title += u' with unreviewed reviews'
         self.app.status.update(title=self.title)
         unseen_keys = set(self.project_rows.keys())
         with self.app.db.getSession() as session:
             i = 0
-            for project in session.getProjects(subscribed=self.subscribed):
+            for project in session.getProjects(
+                    subscribed=self.subscribed, active_only=self.active_only):
                 row = self.project_rows.get(project.key)
                 if not row:
                     row = ProjectRow(project, self.onSelect)
@@ -125,6 +130,10 @@ This Screen
         self.app.changeScreen(view_change_list.ChangeListView(self.app, project_key))
 
     def keypress(self, size, key):
+        if key=='a':
+            self.active_only = not self.active_only
+            self.refresh()
+            return None
         if key=='l':
             self.subscribed = not self.subscribed
             self.refresh()
