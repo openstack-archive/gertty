@@ -158,6 +158,17 @@ class Change(object):
         self._ensure_approval_cache()
         return self._approval_cache.get(category, (0, 0, 0))[2]
 
+    def isVerified(self):
+        """Return True if the change is verified.
+
+        Specifically, the change is verified if there is at least
+        one positive vote and no negative votes. This treats all
+        verify-voters as equally important.
+        """
+        self._ensure_approval_cache()
+        _min, _max, extreme = self._approval_cache.get('Verified', (0, 0, 0))
+        return _min >= 0 and _max >= 1
+
     def isWIP(self):
         self._ensure_approval_cache()
         return self._approval_cache.get('Workflow', (0,))[0] == -1
