@@ -20,6 +20,7 @@ Global Keys
 <F1> or <?> Help
 <ESC>       Back to previous screen
 <CTRL-Q>    Quit Gertty
+<CTRL-O>    Open Change
 """
 
 class TextButton(urwid.Button):
