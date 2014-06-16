@@ -71,6 +71,7 @@ class ChangeListView(urwid.WidgetWrap):
 <k>   Toggle the hidden flag for the currently selected change.
 <l>   Toggle whether only unreviewed or all changes are displayed.
 <v>   Toggle the reviewed flag for the currently selected change.
+<w>   Toggle showing WIP reviews (default: off).
 """
 
     def help(self):
@@ -85,6 +86,7 @@ class ChangeListView(urwid.WidgetWrap):
         self.change_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.header = ChangeListHeader()
+        self.wip_active = False
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
@@ -99,10 +101,15 @@ class ChangeListView(urwid.WidgetWrap):
             if self.unreviewed:
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
-                self.title = u'All changes in %s' % self.query_desc
+                self.title = u'Open changes in %s' % project.name
+                lst = project.open_changes
+            if self.wip_active:
+                self.title += u' including WIP'
             self.app.status.update(title=self.title)
             i = 0
             for change in lst:
+                if not self.wip_active and change.isWIP():
+                    continue
                 row = self.change_rows.get(change.key)
                 if not row:
                     row = ChangeRow(change, self.onSelect)
@@ -150,6 +157,10 @@ class ChangeListView(urwid.WidgetWrap):
                 return None
             pos = self.listbox.focus_position
             hidden = self.toggleHidden(self.listbox.body[pos].change_key)
+            self.refresh()
+            return None
+        if key=='w':
+            self.wip_active = not self.wip_active
             self.refresh()
             return None
         return super(ChangeListView, self).keypress(size, key)
