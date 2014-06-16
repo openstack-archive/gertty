@@ -67,7 +67,10 @@ class ChangeListHeader(urwid.WidgetWrap):
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 3)))
 
 class ChangeListView(urwid.WidgetWrap):
-    _help = """
+    help = mywid.GLOBAL_HELP + """
+This Screen
+===========
+<c>   Toggle whether only verified ('checked') changes are shown (default: yes).
 <k>   Toggle the hidden flag for the currently selected change.
 <l>   Toggle whether only unreviewed or all changes are displayed.
 <v>   Toggle the reviewed flag for the currently selected change.
@@ -84,6 +87,7 @@ class ChangeListView(urwid.WidgetWrap):
         self.query_desc = query_desc or query
         self.unreviewed = unreviewed
         self.change_rows = {}
+        self.checked_only = True
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.header = ChangeListHeader()
         self.wip_active = False
@@ -97,11 +101,19 @@ class ChangeListView(urwid.WidgetWrap):
     def refresh(self):
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
-            lst = session.getChanges(self.query, self.unreviewed)
-            if self.unreviewed:
-                self.title = u'Unreviewed changes in %s' % self.query_desc
+            project = session.getProject(self.project_key)
+            self.project_name = project.name
+            if self.checked_only:
+                filler = u'verified '
             else:
-                self.title = u'Open changes in %s' % project.name
+                filler= u''
+            if self.unreviewed:
+                self.title = u'Unreviewed %schanges in %s' % (
+                    filler, project.name)
+                lst = project.unreviewed_changes
+            else:
+                self.title = u'Open %s changes in %s' % (
+                    filler, project.name)
                 lst = project.open_changes
             if self.wip_active:
                 self.title += u' including WIP'
@@ -109,6 +121,8 @@ class ChangeListView(urwid.WidgetWrap):
             i = 0
             for change in lst:
                 if not self.wip_active and change.isWIP():
+                    continue
+                if self.checked_only and not change.isVerified():
                     continue
                 row = self.change_rows.get(change.key)
                 if not row:
@@ -141,6 +155,10 @@ class ChangeListView(urwid.WidgetWrap):
         return ret
 
     def keypress(self, size, key):
+        if key=='c':
+            self.checked_only = not self.checked_only
+            self.refresh()
+            return None
         if key=='l':
             self.unreviewed = not self.unreviewed
             self.refresh()
