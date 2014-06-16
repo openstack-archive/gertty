@@ -155,11 +155,19 @@ class Change(object):
         return categories
 
     def getMaxForCategory(self, category):
+        self._ensure_approval_cache()
+        return self._approval_cache.get(category, (0, 0, 0))[2]
+
+    def isWIP(self):
+        self._ensure_approval_cache()
+        return self._approval_cache.get('Workflow', (0,))[0] == -1
+
+    def _ensure_approval_cache(self):
         if not hasattr(self, '_approval_cache'):
             self._updateApprovalCache()
-        return self._approval_cache.get(category, 0)
 
     def _updateApprovalCache(self):
+        # Builds a dict -> tuple (min, max, greatest_abs_value [+ wins]) map.
         cat_min = {}
         cat_max = {}
         cat_value = {}
@@ -176,7 +184,10 @@ class Change(object):
             if abs(cur_max) > abs(cur_value):
                 cur_value = cur_max
             cat_value[approval.category] = cur_value
-        self._approval_cache = cat_value
+        cat_map = {}
+        for k in cat_min.keys():
+            cat_map[k] = (cat_min[k], cat_max[k], cat_value[k])
+        self._approval_cache = cat_map
 
     def createRevision(self, *args, **kw):
         session = Session.object_session(self)
