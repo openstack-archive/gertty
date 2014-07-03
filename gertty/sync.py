@@ -221,7 +221,7 @@ class SyncChangeTask(Task):
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
-        fetches = []
+        fetches = collections.defaultdict(list)
         with app.db.getSession() as session:
             change = session.getChangeByID(self.change_id)
             if not change:
@@ -255,7 +255,7 @@ class SyncChangeTask(Task):
                                            sync.app.config.password, url[1])
                     url = urlparse.urlunsplit(url)
                 if (not revision) or self.force_fetch:
-                    fetches.append((url, ref))
+                    fetches[url].append(ref)
                 if not revision:
                     revision = change.createRevision(remote_revision['_number'],
                                                      remote_revision['commit']['message'], remote_commit,
@@ -381,9 +381,17 @@ class SyncChangeTask(Task):
                 # Only consider changing the reviewed state if we don't have a vote
                 if new_revision or new_message:
                     change.reviewed = False
-        for (url, ref) in fetches:
-            self.log.debug("git fetch %s %s" % (url, ref))
-            repo.fetch(url, ref)
+        for url, refs in fetches.items():
+            self.log.debug("Fetching from %s with refs %s", url, refs)
+            try:
+                repo.fetch(url, refs)
+            except Exception:
+                # Backwards compat with GitPython before the multi-ref fetch
+                # patch.
+                # (https://github.com/gitpython-developers/GitPython/pull/170)
+                for ref in refs:
+                    self.log.debug("git fetch %s %s" % (url, ref))
+                    repo.fetch(url, ref)
 
 class CheckRevisionsTask(Task):
     def __repr__(self):
