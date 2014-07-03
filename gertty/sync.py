@@ -221,7 +221,7 @@ class SyncChangeTask(Task):
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
-        fetches = []
+        fetches = collections.defaultdict(list)
         with app.db.getSession() as session:
             change = session.getChangeByID(self.change_id)
             if not change:
@@ -255,7 +255,7 @@ class SyncChangeTask(Task):
                                            sync.app.config.password, url[1])
                     url = urlparse.urlunsplit(url)
                 if (not revision) or self.force_fetch:
-                    fetches.append((url, ref))
+                    fetches[url].append(ref)
                 if not revision:
                     revision = change.createRevision(remote_revision['_number'],
                                                      remote_revision['commit']['message'], remote_commit,
@@ -381,9 +381,17 @@ class SyncChangeTask(Task):
                 # Only consider changing the reviewed state if we don't have a vote
                 if new_revision or new_message:
                     change.reviewed = False
-        for (url, ref) in fetches:
-            self.log.debug("git fetch %s %s" % (url, ref))
-            repo.fetch(url, ref)
+        for url, refs in fetches.items():
+            self.log.debug("Fetching from %s with refs %s", url, refs)
+            try:
+                repo.fetch(url, refs)
+            except Exception:
+                # Backwards compat with GitPython before the multi-ref fetch
+                # patch.
+                # (https://github.com/gitpython-developers/GitPython/pull/170)
+                for ref in refs:
+                    self.log.debug("git fetch %s %s" % (url, ref))
+                    repo.fetch(url, ref)
 
 class CheckRevisionsTask(Task):
     def __repr__(self):
@@ -391,7 +399,7 @@ class CheckRevisionsTask(Task):
 
     def run(self, sync):
         app = sync.app
-        to_fetch = []
+        to_fetch = collections.defaultdict(list)
         with app.db.getSession() as session:
             for project in session.getProjects():
                 if not project.open_changes:
@@ -402,19 +410,21 @@ class CheckRevisionsTask(Task):
                         if not (repo.hasCommit(revision.parent) and
                                 repo.hasCommit(revision.commit)):
                             if revision.fetch_ref:
+                                to_fetch[(project.name, revision.fetch_auth)
+                                    ].append(revision.fetch_ref)
                                 to_fetch.append((project.name, revision.fetch_ref, revision.fetch_auth))
-        for name, ref, auth in to_fetch:
-            sync.submitTask(FetchRefTask(name, ref, auth, priority=self.priority))
+        for (name, auth), refs in to_fetch.items():
+            sync.submitTask(FetchRefTask(name, refs, auth, priority=self.priority))
 
 class FetchRefTask(Task):
-    def __init__(self, project_name, ref, auth, priority=NORMAL_PRIORITY):
+    def __init__(self, project_name, refs, auth, priority=NORMAL_PRIORITY):
         super(FetchRefTask, self).__init__(priority)
         self.project_name = project_name
-        self.ref = ref
+        self.refs = refs
         self.auth = auth
 
     def __repr__(self):
-        return '<FetchRefTask %s %s>' % (self.project_name, self.ref)
+        return '<FetchRefTask %s %s>' % (self.project_name, self.refs)
 
     def run(self, sync):
         # TODO: handle multiple parents
@@ -424,9 +434,18 @@ class FetchRefTask(Task):
             url[1] = '%s:%s@%s' % (sync.app.config.username,
                                    sync.app.config.password, url[1])
             url = urlparse.urlunsplit(url)
-        self.log.debug("git fetch %s %s" % (url, self.ref))
+        self.log.debug("git fetch %s %s" % (url, self.refs))
         repo = sync.app.getRepo(self.project_name)
-        repo.fetch(url, self.ref)
+        refs = self.refs
+        try:
+            repo.fetch(url, refs)
+        except Exception:
+            # Backwards compat with GitPython before the multi-ref fetch
+            # patch.
+            # (https://github.com/gitpython-developers/GitPython/pull/170)
+            for ref in refs:
+                self.log.debug("git fetch %s %s" % (url, ref))
+                repo.fetch(url, ref)
 
 class UploadReviewsTask(Task):
     def __repr__(self):
