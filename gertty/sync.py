@@ -255,7 +255,7 @@ class SyncChangeTask(Task):
                                            sync.app.config.password, url[1])
                     url = urlparse.urlunsplit(url)
                 if (not revision) or self.force_fetch:
-                    fetches[url].append(ref)
+                    fetches[url].append('+%(ref)s:%(ref)s' % dict(ref=ref))
                 if not revision:
                     revision = change.createRevision(remote_revision['_number'],
                                                      remote_revision['commit']['message'], remote_commit,
@@ -436,7 +436,7 @@ class FetchRefTask(Task):
             url = urlparse.urlunsplit(url)
         self.log.debug("git fetch %s %s" % (url, self.refs))
         repo = sync.app.getRepo(self.project_name)
-        refs = self.refs
+        refs = ['+%(ref)s:%(ref)s' % dict(ref=ref) for ref in self.refs]
         try:
             repo.fetch(url, refs)
         except Exception:
