@@ -359,7 +359,7 @@ This Screen
         self.refresh()
 
     def checkGitRepo(self):
-        missing_revisions = False
+        missing_revisions = set()
         change_number = None
         change_id = None
         with self.app.db.getSession() as session:
@@ -368,12 +368,15 @@ This Screen
             change_id = change.id
             repo = self.app.getRepo(change.project.name)
             for revision in change.revisions:
-                if not (repo.hasCommit(revision.parent) and
-                        repo.hasCommit(revision.commit)):
-                    missing_revisions = True
+                if not repo.hasCommit(revision.parent):
+                    missing_revisions.add(revision.parent)
+                if not repo.hasCommit(revision.commit):
+                    missing_revisions.add(revision.commit)
+                if missing_revisions:
                     break
         if missing_revisions:
-            self.app.log.warning("Missing some commits for change %s" % change_number)
+            self.app.log.warning("Missing some commits for change %s %s",
+                change_number, missing_revisions)
             task = sync.SyncChangeTask(change_id, force_fetch=True,
                                        priority=sync.HIGH_PRIORITY)
             self.app.sync.submitTask(task)
