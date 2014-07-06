@@ -144,11 +144,9 @@ class SyncProjectTask(Task):
         # (highest_age is only non-zero when age is not None).
         buckets = collections.defaultdict(lambda:dict(age=0, projects=set()))
         # Map back to project_key to mark as complete.
-        projects = {}
         with app.db.getSession() as session:
             for project_key in self.project_keys:
                 project = session.getProject(project_key)
-                projects[project.name] = project_key
                 if not project.updated:
                     age_key = None
                 else:
@@ -176,11 +174,16 @@ class SyncProjectTask(Task):
                             SyncChangeTask(c['id'], priority=self.priority))
                         self.log.debug(
                             "Change %s update %s" % (c['id'], c['updated']))
-            for project_name in project_names:
-                project_key = projects[project_name]
-                sync.submitTask(SetProjectUpdatedTask(project_key,
-                                                      now,
-                                                      priority=self.priority))
+                # Update the project update time inline to avoid races - syncs
+                # submitted after this but before it ran should see the updated
+                # time when they run, not have the update occur after they run.
+                # It also happens to be a lot nicer to the DB - rather than N
+                # transactions, its one transaction - use visible impact is a
+                # 10-15 second stall, down to < 0.3 seconds, for a
+                # 30-subscription configuration.
+                session.getProjects(
+                    names=project_names, get_query=True).update(
+                        {'updated':now}, False)
 
 class SetProjectUpdatedTask(Task):
     def __init__(self, project_key, updated, priority=NORMAL_PRIORITY):
