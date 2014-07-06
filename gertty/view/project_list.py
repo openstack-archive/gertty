@@ -144,7 +144,7 @@ class ProjectListView(urwid.WidgetWrap):
             subscribed = self.toggleSubscribed(project_key)
             self.refresh()
             if subscribed:
-                self.app.sync.submitTask(sync.SyncProjectTask(project_key))
+                self.app.sync.submitTask(sync.SyncProjectTask([project_key]))
             return None
         return super(ProjectListView, self).keypress(size, key)
 
