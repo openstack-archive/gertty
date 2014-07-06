@@ -400,11 +400,24 @@ class DatabaseSession(object):
     def delete(self, obj):
         self.session().delete(obj)
 
-    def getProjects(self, subscribed=False):
+    def getProjects(self, subscribed=False, names=None, get_query=False):
+        """Retrieve projects.
+
+        :param subscribed: If True limit to only subscribed projects.
+        :param names: If truthy then limit to projects with names in this
+            collection.
+        :param get_query: If True, return the query rather than the result of
+            evaluating it.
+        """
+        query = self.session().query(Project)
         if subscribed:
-            return self.session().query(Project).filter_by(subscribed=subscribed).order_by(Project.name).all()
+            query = query.filter_by(subscribed=subscribed)
+        if names:
+            query = query.filter(Project.name.in_(names))
+        if get_query:
+            return query
         else:
-            return self.session().query(Project).order_by(Project.name).all()
+            return query.order_by(Project.name).all()
 
     def getProject(self, key):
         try:
