@@ -113,41 +113,74 @@ class SyncSubscribedProjectsTask(Task):
         return '<SyncSubscribedProjectsTask>'
 
     def run(self, sync):
-        app = sync.app
-        with app.db.getSession() as session:
+        keys = []
+        with sync.app.db.getSession() as session:
             for p in session.getProjects(subscribed=True):
-                sync.submitTask(SyncProjectTask(p.key, self.priority))
+                keys.append(p.key)
+        sync.submitTask(SyncProjectTask(keys, self.priority))
 
 class SyncProjectTask(Task):
+    """Sync changes from one or more projects.
+
+    The Gerrit API is used to incrementally query changes across all
+    listed projects. Projects are grouped into queries according to their
+    update time, to the nearest hour. A NULL update time is treated as a
+    special separate bucket. This avoids querying all history ever when
+    new projects are added.
+    """
     _closed_statuses = ['MERGED', 'ABANDONED']
 
-    def __init__(self, project_key, priority=NORMAL_PRIORITY):
+    def __init__(self, project_keys, priority=NORMAL_PRIORITY):
         super(SyncProjectTask, self).__init__(priority)
-        self.project_key = project_key
+        self.project_keys = project_keys
 
     def __repr__(self):
-        return '<SyncProjectTask %s>' % (self.project_key,)
+        return '<SyncProjectTask %s>' % (self.project_keys,)
 
     def run(self, sync):
         app = sync.app
         now = datetime.datetime.utcnow()
+        # age // 3600 -> {'age': highest_age, 'projects': set_of_projects}
+        # (highest_age is only non-zero when age is not None).
+        buckets = collections.defaultdict(lambda:dict(age=0, projects=set()))
+        # Map back to project_key to mark as complete.
+        projects = {}
         with app.db.getSession() as session:
-            project = session.getProject(self.project_key)
-            query = 'project:%s' % project.name
-            if project.updated:
+            for project_key in self.project_keys:
+                project = session.getProject(project_key)
+                projects[project.name] = project_key
+                if not project.updated:
+                    age_key = None
+                else:
+                    age = int(math.ceil((now-project.updated).total_seconds()))
+                    age_key = age // 3600
+                    buckets[age_key]['age'] = max(buckets[age_key]['age'], age)
+                buckets[age_key]['projects'].add(project.name)
+        for bucket_age, bucket in buckets.items():
+            project_names = bucket['projects']
+            highest_age = bucket['age']
+            project_query = '^' + '|'.join(sorted(project_names))
+            query = 'project:%s' % project_query
+            if bucket_age is not None:
                 # Allow 4 seconds for request time, etc.
-                query += ' -age:%ss' % (int(math.ceil((now-project.updated).total_seconds())) + 4,)
-        changes = sync.get('changes/?q=%s' % query)
-        self.log.debug('Query: %s ' % (query,))
-        with app.db.getSession() as session:
-            for c in changes:
-                # For now, just sync open changes or changes already
-                # in the db optionally we could sync all changes ever
-                change = session.getChangeByID(c['id'])
-                if change or (c['status'] not in self._closed_statuses):
-                    sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
-                    self.log.debug("Change %s update %s" % (c['id'], c['updated']))
-        sync.submitTask(SetProjectUpdatedTask(self.project_key, now, priority=self.priority))
+                query += ' -age:%ss' % (highest_age + 4,)
+            self.log.debug('Query: %s ' % (query,))
+            changes = sync.get('changes/?q=%s' % query)
+            with app.db.getSession() as session:
+                for c in changes:
+                    # For now, just sync open changes or changes already
+                    # in the db optionally we could sync all changes ever
+                    change = session.getChangeByID(c['id'])
+                    if change or (c['status'] not in self._closed_statuses):
+                        sync.submitTask(
+                            SyncChangeTask(c['id'], priority=self.priority))
+                        self.log.debug(
+                            "Change %s update %s" % (c['id'], c['updated']))
+            for project_name in project_names:
+                project_key = projects[project_name]
+                sync.submitTask(SetProjectUpdatedTask(project_key,
+                                                      now,
+                                                      priority=self.priority))
 
 class SetProjectUpdatedTask(Task):
     def __init__(self, project_key, updated, priority=NORMAL_PRIORITY):
@@ -585,11 +618,13 @@ class Sync(object):
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):
+        # NB: blocks for periodic-sync, so we don't have multiple outstanding
+        # jobs, but doesn't block transitively (fired off change syncs, for
+        # instance will take place after this returns).
         keys = []
         with self.app.db.getSession() as session:
             for p in session.getProjects(subscribed=True):
                 keys.append(p.key)
-        for key in keys:
-            t = SyncProjectTask(key, LOW_PRIORITY)
-            self.submitTask(t)
-            t.wait()
+        t = SyncProjectTask(keys, LOW_PRIORITY)
+        self.submitTask(t)
+        t.wait()
