@@ -506,6 +506,8 @@ class Sync(object):
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
         self.session = requests.Session()
+        self.auth = requests.auth.HTTPDigestAuth(
+            self.app.config.username, self.app.config.password)
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
@@ -565,8 +567,7 @@ class Sync(object):
         self.log.debug('GET: %s' % (url,))
         r = self.session.get(url,
                          verify=self.app.config.verify_ssl,
-                         auth=requests.auth.HTTPDigestAuth(self.app.config.username,
-                                                           self.app.config.password),
+                         auth=self.auth,
                          headers = {'Accept': 'application/json',
                                     'Accept-Encoding': 'gzip'})
         self.log.debug('Received: %s' % (r.text,))
@@ -579,8 +580,7 @@ class Sync(object):
         self.log.debug('data: %s' % (data,))
         r = self.session.post(url, data=json.dumps(data).encode('utf8'),
                           verify=self.app.config.verify_ssl,
-                          auth=requests.auth.HTTPDigestAuth(self.app.config.username,
-                                                            self.app.config.password),
+                          auth=self.auth,
                           headers = {'Content-Type': 'application/json;charset=UTF-8'})
         self.log.debug('Received: %s' % (r.text,))
 
