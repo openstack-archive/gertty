@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -58,10 +59,17 @@ class ConfigSchema(object):
 
     commentlinks = [commentlink]
 
+    dashboard = {v.Required('name'): str,
+                 v.Required('query'): str,
+                 v.Required('key'): str}
+
+    dashboards = [dashboard]
+
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
                            'commentlinks': self.commentlinks,
+                           'dashboards': self.dashboards,
                            })
         return schema
 
@@ -113,6 +121,10 @@ class Config(object):
                         dict(link=dict(
                                 text="{url}",
                                 url="{url}"))])))
+
+        self.dashboards = {}
+        for d in self.config.get('dashboards', []):
+            self.dashboards[d['key']] = d
 
     def getServer(self, name=None):
         for server in self.config['servers']:

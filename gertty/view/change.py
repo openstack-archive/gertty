@@ -293,9 +293,7 @@ class ChangeMessageBox(mywid.HyperText):
         self.set_text(text+comment_text)
 
 class ChangeView(urwid.WidgetWrap):
-    help = mywid.GLOBAL_HELP + """
-This Screen
-===========
+    help = """
 <c>   Checkout the most recent revision into the local repo.
 <d>   Show the diff of the mont recent revision.
 <k>   Toggle the hidden flag for the current change.

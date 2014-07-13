@@ -456,6 +456,8 @@ class DatabaseSession(object):
             elif key == 'status':
                 if data == 'open':
                     q = q.filter(change_table.c.status.notin_(['MERGED', 'ABANDONED']))
+                else:
+                    q = q.filter(change_table.c.status==data)
         if unreviewed:
             q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
         try:

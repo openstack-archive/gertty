@@ -210,9 +210,7 @@ class DiffContextButton(urwid.WidgetWrap):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
 class DiffView(urwid.WidgetWrap):
-    help = mywid.GLOBAL_HELP + """
-This Screen
-===========
+    help = """
 <Enter> Add an inline comment
 <p>     Select old/new patchsets to diff
 """

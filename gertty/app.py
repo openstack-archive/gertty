@@ -160,6 +160,12 @@ class App(object):
         self.loop.widget = widget
         self.refresh()
 
+    def clearHistory(self):
+        self.log.debug("Clearing screen history")
+        while self.screens:
+            widget = self.screens.pop()
+            self.loop.widget = widget
+
     def refresh(self, data=None):
         widget = self.loop.widget
         while isinstance(widget, urwid.Overlay):
@@ -180,8 +186,15 @@ class App(object):
     def help(self):
         if not hasattr(self.loop.widget, 'help'):
             return
-        dialog = mywid.MessageDialog('Help', self.loop.widget.help)
-        lines = self.loop.widget.help.split('\n')
+        text = mywid.GLOBAL_HELP
+        for d in self.config.dashboards.values():
+            space = max(9 - len(d['key']), 0) * ' '
+            text += '<%s>%s %s\n' % (d['key'], space, d['name'])
+        text += "\nThis Screen\n"
+        text += "===========\n"
+        text += self.loop.widget.help
+        dialog = mywid.MessageDialog('Help', text)
+        lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
@@ -283,6 +296,11 @@ class App(object):
             self.quit()
         elif key == 'ctrl o':
             self.searchDialog()
+        elif key in self.config.dashboards:
+            d = self.config.dashboards[key]
+            self.clearHistory()
+            view = view_change_list.ChangeListView(self, d['query'], d['name'])
+            self.changeScreen(view)
 
     def getRepo(self, project_name):
         local_path = os.path.join(self.config.git_root, project_name)

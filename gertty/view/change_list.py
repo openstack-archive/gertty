@@ -67,15 +67,13 @@ class ChangeListHeader(urwid.WidgetWrap):
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 3)))
 
 class ChangeListView(urwid.WidgetWrap):
-    help = mywid.GLOBAL_HELP + """
-This Screen
-===========
+    help = """
 <k>   Toggle the hidden flag for the currently selected change.
 <l>   Toggle whether only unreviewed or all changes are displayed.
 <v>   Toggle the reviewed flag for the currently selected change.
 """
 
-    def __init__(self, app, query, query_desc=None, unreviewed=True):
+    def __init__(self, app, query, query_desc=None, unreviewed=False):
         super(ChangeListView, self).__init__(urwid.Pile([]))
         self.app = app
         self.query = query
@@ -98,7 +96,7 @@ This Screen
             if self.unreviewed:
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
-                self.title = u'Open changes in %s' % self.query_desc
+                self.title = u'All changes in %s' % self.query_desc
             self.app.status.update(title=self.title)
             i = 0
             for change in lst:
