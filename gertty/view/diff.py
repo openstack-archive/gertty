@@ -210,10 +210,13 @@ class DiffContextButton(urwid.WidgetWrap):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
 class DiffView(urwid.WidgetWrap):
-    help = """
+    _help = """
 <Enter> Add an inline comment
 <p>     Select old/new patchsets to diff
 """
+
+    def help(self):
+        return self._help
 
     def __init__(self, app, new_revision_key):
         super(DiffView, self).__init__(urwid.Pile([]))

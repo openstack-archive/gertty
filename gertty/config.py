@@ -13,14 +13,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
 import getpass
 import os
+try:
+    import ordereddict
+except:
+    pass
 import yaml
 
 import voluptuous as v
 
 import gertty.commentlink
 import gertty.palette
+
+try:
+    OrderedDict = collections.OrderedDict
+except AttributeError:
+    OrderedDict = ordereddict.OrderedDict
 
 DEFAULT_CONFIG_PATH='~/.gertty.yaml'
 
@@ -65,11 +75,20 @@ class ConfigSchema(object):
 
     dashboards = [dashboard]
 
+    reviewkey_approval = {v.Required('category'): str,
+                          v.Required('value'): int}
+
+    reviewkey = {v.Required('approvals'): [reviewkey_approval],
+                 v.Required('key'): str}
+
+    reviewkeys = [reviewkey]
+
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
                            'commentlinks': self.commentlinks,
                            'dashboards': self.dashboards,
+                           'reviewkeys': self.reviewkeys,
                            })
         return schema
 
@@ -122,9 +141,13 @@ class Config(object):
                                 text="{url}",
                                 url="{url}"))])))
 
-        self.dashboards = {}
+        self.dashboards = OrderedDict()
         for d in self.config.get('dashboards', []):
             self.dashboards[d['key']] = d
+
+        self.reviewkeys = OrderedDict()
+        for k in self.config.get('reviewkeys', []):
+            self.reviewkeys[k['key']] = k
 
     def getServer(self, name=None):
         for server in self.config['servers']:

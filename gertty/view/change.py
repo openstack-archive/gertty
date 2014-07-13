@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -85,34 +86,13 @@ class ReviewDialog(urwid.WidgetWrap):
         super(ReviewDialog, self).__init__(urwid.LineBox(fill, 'Review'))
 
     def save(self):
-        message_key = None
-        with self.app.db.getSession() as session:
-            revision = session.getRevision(self.revision_row.revision_key)
-            change = revision.change
-            pending_approvals = {}
-            for approval in change.pending_approvals:
-                pending_approvals[approval.category] = approval
-            for category, group in self.button_groups.items():
-                approval = pending_approvals.get(category)
-                if not approval:
-                    approval = change.createApproval(u'(draft)', category, 0, pending=True)
-                    pending_approvals[category] = approval
-                for button in group:
-                    if button.state:
-                        approval.value = int(button.get_label())
-            message = None
-            for m in revision.messages:
-                if m.pending:
-                    message = m
-                    break
-            if not message:
-                message = revision.createMessage(None,
-                                                 datetime.datetime.utcnow(),
-                                                 u'(draft)', '', pending=True)
-            message.message = self.message.edit_text.strip()
-            message_key = message.key
-            change.reviewed = True
-        return message_key
+        approvals = {}
+        for category, group in self.button_groups.items():
+            for button in group:
+                if button.state:
+                    approvals[category] = int(button.get_label())
+        message = self.message.edit_text.strip()
+        self.change_view.saveReview(self.revision_row.revision_key, approvals, message)
 
     def keypress(self, size, key):
         r = super(ReviewDialog, self).keypress(size, key)
@@ -142,9 +122,6 @@ class ReviewButton(mywid.FixedButton):
     def closeReview(self, save):
         if save:
             message_key = self.dialog.save()
-            self.change_view.app.sync.submitTask(
-                sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
-            self.change_view.refresh()
         self.change_view.app.backScreen()
 
 class RevisionRow(urwid.WidgetWrap):
@@ -293,14 +270,22 @@ class ChangeMessageBox(mywid.HyperText):
         self.set_text(text+comment_text)
 
 class ChangeView(urwid.WidgetWrap):
-    help = """
-<c>   Checkout the most recent revision into the local repo.
-<d>   Show the diff of the mont recent revision.
-<k>   Toggle the hidden flag for the current change.
-<r>   Leave a review for the most recent revision.
-<v>   Toggle the reviewed flag for the current change.
-<x>   Cherry-pick the most recent revision onto the local repo.
+    _help = """
+<c>      Checkout the most recent revision into the local repo.
+<d>      Show the diff of the mont recent revision.
+<k>      Toggle the hidden flag for the current change.
+<r>      Leave a review for the most recent revision.
+<v>      Toggle the reviewed flag for the current change.
+<x>      Cherry-pick the most recent revision onto the local repo.
 """
+
+    def help(self):
+        text = self._help
+        for k in self.app.config.reviewkeys.values():
+            space = max(6 - len(k['key']), 0) * ' '
+            action = ', '.join(['{category}:{value}'.format(**a) for a in k['approvals']])
+            text += '<%s>%s %s\n' % (k['key'], space, action)
+        return text
 
     def __init__(self, app, change_key):
         super(ChangeView, self).__init__(urwid.Pile([]))
@@ -579,7 +564,54 @@ class ChangeView(urwid.WidgetWrap):
             row = self.revision_rows[self.last_revision_key]
             row.cherryPick(None)
             return None
+        if r in self.app.config.reviewkeys:
+            self.reviewKey(self.app.config.reviewkeys[r])
+            return None
         return r
 
     def diff(self, revision_key):
         self.app.changeScreen(view_diff.DiffView(self.app, revision_key))
+
+    def reviewKey(self, reviewkey):
+        approvals = {}
+        for a in reviewkey['approvals']:
+            approvals[a['category']] = a['value']
+        self.app.log.debug("Reviewkey %s with approvals %s" %
+                           (reviewkey['key'], approvals))
+        row = self.revision_rows[self.last_revision_key]
+        self.saveReview(row.revision_key, approvals, '')
+
+    def saveReview(self, revision_key, approvals, message):
+        message_key = None
+        with self.app.db.getSession() as session:
+            revision = session.getRevision(revision_key)
+            change = revision.change
+            pending_approvals = {}
+            for approval in change.pending_approvals:
+                pending_approvals[approval.category] = approval
+
+            categories = set()
+            for label in change.permitted_labels:
+                categories.add(label.category)
+            for category in categories:
+                value = approvals.get(category, 0)
+                approval = pending_approvals.get(category)
+                if not approval:
+                    approval = change.createApproval(u'(draft)', category, 0, pending=True)
+                    pending_approvals[category] = approval
+                approval.value = value
+            pending_message = None
+            for m in revision.messages:
+                if m.pending:
+                    pending_message = m
+                    break
+            if not pending_message:
+                pending_message = revision.createMessage(None,
+                                                         datetime.datetime.utcnow(),
+                                                         u'(draft)', '', pending=True)
+            pending_message.message = message
+            message_key = pending_message.key
+            change.reviewed = True
+        self.app.sync.submitTask(
+            sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
+        self.refresh()

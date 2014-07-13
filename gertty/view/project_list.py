@@ -66,10 +66,13 @@ class ProjectListHeader(urwid.WidgetWrap):
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
 class ProjectListView(urwid.WidgetWrap):
-    help = """
+    _help = """
 <l>   Toggle whether only subscribed projects or all projects are listed.
 <s>   Toggle the subscription flag for the currently selected project.
 """
+
+    def help(self):
+        return self._help
 
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))

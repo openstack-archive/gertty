@@ -192,7 +192,7 @@ class App(object):
             text += '<%s>%s %s\n' % (d['key'], space, d['name'])
         text += "\nThis Screen\n"
         text += "===========\n"
-        text += self.loop.widget.help
+        text += self.loop.widget.help()
         dialog = mywid.MessageDialog('Help', text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
