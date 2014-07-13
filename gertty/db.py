@@ -437,10 +437,10 @@ class DatabaseSession(object):
         query = self.session().query(Project)
         if subscribed:
             query = query.filter_by(subscribed=subscribed)
+            if active_only:
+                query = query.filter(exists().where(Project.unreviewed_changes))
         if names:
             query = query.filter(Project.name.in_(names))
-        if active_only:
-            query = query.filter(exists().where(Project.unreviewed_changes))
         if get_query:
             return query
         else:
