@@ -94,6 +94,13 @@ to the program:
   messages or comments) and navigating back intuitive (it matches
   expectations set by the web browsers).
 
+* Support a wide variety of Gerrit installations.  The initial
+  development of Gertty is against the OpenStack project's Gerrit, and
+  many of the features are intended to help its developers with their
+  workflow, however, those features should be implemented in a generic
+  way so that the system does not require a specific Gerrit
+  configuration.
+
 Contributing
 ------------
 
