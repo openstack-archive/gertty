@@ -95,10 +95,10 @@ This Screen
     def refresh(self):
         if self.subscribed:
             self.title = u'Subscribed Projects'
+            if self.active_only:
+                self.title += u' with unreviewed reviews'
         else:
             self.title = u'All Projects'
-        if self.active_only:
-            self.title += u' with unreviewed reviews'
         self.app.status.update(title=self.title)
         unseen_keys = set(self.project_rows.keys())
         with self.app.db.getSession() as session:
