@@ -20,7 +20,7 @@ Global Keys
 <F1> or <?> Help
 <ESC>       Back to previous screen
 <CTRL-Q>    Quit Gertty
-<CTRL-O>    Open Change
+<CTRL-O>    Search for changes
 """
 
 class TextButton(urwid.Button):
@@ -120,6 +120,7 @@ class HyperText(urwid.Text):
         self._mouse_press_item = None
         self.selectable_items = []
         self.focused_index = None
+        self.last_focused_index = None
         super(HyperText, self).__init__(markup, align, wrap, layout)
 
     def focusFirstItem(self):
@@ -137,6 +138,8 @@ class HyperText(urwid.Text):
     def focusPreviousItem(self):
         if len(self.selectable_items) == 0:
             return False
+        if self.focused_index is None:
+            self.focusItem(self.last_focused_index)
         item = max(0, self.focused_index-1)
         if item != self.focused_index:
             self.focusItem(item)
@@ -146,6 +149,8 @@ class HyperText(urwid.Text):
     def focusNextItem(self):
         if len(self.selectable_items) == 0:
             return False
+        if self.focused_index is None:
+            self.focusItem(self.last_focused_index)
         item = min(len(self.selectable_items)-1, self.focused_index+1)
         if item != self.focused_index:
             self.focusItem(item)
@@ -153,6 +158,7 @@ class HyperText(urwid.Text):
         return False
 
     def focusItem(self, item):
+        self.last_focused_index = self.focused_index
         self.focused_index = item
         self.set_text(self._markup)
         self._invalidate()

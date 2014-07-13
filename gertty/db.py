@@ -430,6 +430,12 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
+    def getChangeByChangeID(self, change_id):
+        try:
+            return self.session().query(Change).filter_by(change_id=change_id).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
     def getChangeByNumber(self, number):
         try:
             return self.session().query(Change).filter_by(number=number).one()
@@ -441,7 +447,9 @@ class DatabaseSession(object):
         q = self.session().query(Change)
         for term in query.split():
             key, data = term.split(':')
-            if key == 'changeid':
+            if key == 'number':
+                q = q.filter(change_table.c.number==data)
+            elif key == 'changeid':
                 q = q.filter(change_table.c.change_id==data)
             elif key == 'project_key':
                 q = q.filter(change_table.c.project_key==data)

@@ -375,6 +375,8 @@ This Screen
                 if missing_revisions:
                     break
         if missing_revisions:
+            if self.app.sync.offline:
+                raise gertty.view.DisplayError("Git commits not present in local repository")
             self.app.log.warning("Missing some commits for change %s %s",
                 change_number, missing_revisions)
             task = sync.SyncChangeTask(change_id, force_fetch=True,

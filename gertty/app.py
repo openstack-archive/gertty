@@ -27,6 +27,7 @@ from gertty import config
 from gertty import gitrepo
 from gertty import mywid
 from gertty import sync
+from gertty.view import change_list as view_change_list
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
 import gertty.view
@@ -70,25 +71,25 @@ class StatusHeader(urwid.WidgetWrap):
                 self.error.set_text(u'')
         self.sync.set_text(u' Sync: %i' % self.app.sync.queue.qsize())
 
-class OpenChangeDialog(mywid.ButtonDialog):
-    signals = ['open', 'cancel']
+class SearchDialog(mywid.ButtonDialog):
+    signals = ['search', 'cancel']
     def __init__(self):
-        open_button = mywid.FixedButton('Open')
+        search_button = mywid.FixedButton('Search')
         cancel_button = mywid.FixedButton('Cancel')
-        urwid.connect_signal(open_button, 'click',
-                             lambda button:self._emit('open'))
+        urwid.connect_signal(search_button, 'click',
+                             lambda button:self._emit('search'))
         urwid.connect_signal(cancel_button, 'click',
                              lambda button:self._emit('cancel'))
-        super(OpenChangeDialog, self).__init__("Open Change",
-                                               "Enter a change number to open that change.",
-                                               entry_prompt="Number: ",
-                                               buttons=[open_button,
-                                                        cancel_button])
+        super(SearchDialog, self).__init__("Search",
+                                           "Enter a change number or search string.",
+                                           entry_prompt="Search: ",
+                                           buttons=[search_button,
+                                                    cancel_button])
 
     def keypress(self, size, key):
-        r = super(OpenChangeDialog, self).keypress(size, key)
+        r = super(SearchDialog, self).keypress(size, key)
         if r == 'enter':
-            self._emit('open')
+            self._emit('search')
             return None
         return r
 
@@ -193,8 +194,48 @@ class App(object):
             lambda button: self.backScreen())
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
+    def _syncOneChangeFromQuery(self, query):
+        number = changeid = None
+        if query.startswith("number:"):
+            number = query.split(':')[1].strip()
+            try:
+                number = int(number)
+            except Exception:
+                pass
+        if query.startswith("changeid:"):
+            changeid = query.split(':')[1].strip()
+        if not (number or changeid):
+            return
+        with self.db.getSession() as session:
+            if number:
+                change = session.getChangeByNumber(number)
+            elif changeid:
+                change = session.getChangeByChangeID(changeid)
+            change_key = change and change.key or None
+        if change_key is None:
+            if self.sync.offline:
+                raise Exception('Can not sync change while offline.')
+            task = sync.SyncChangeByNumberTask(number, sync.HIGH_PRIORITY)
+            self.sync.submitTask(task)
+            succeeded = task.wait(300)
+            if not succeeded:
+                raise Exception('Unable to find change.')
+            for subtask in task.tasks:
+                succeeded = task.wait(300)
+                if not succeeded:
+                    raise Exception('Unable to sync change.')
+            with self.db.getSession() as session:
+                change = session.getChangeByNumber(number)
+                change_key = change and change.key or None
+        if change_key is None:
+            raise Exception('Change is not in local database.')
+
     def search(self, query):
         self.log.debug("Search query: %s" % query)
+        try:
+            self._syncOneChangeFromQuery(query)
+        except Exception as e:
+            return self.error(e.message)
         with self.db.getSession() as session:
             changes = session.getChanges(query)
             change_key = None
@@ -209,46 +250,22 @@ class App(object):
         except gertty.view.DisplayError as e:
             self.error(e.message)
 
-    def openChange(self):
-        dialog = OpenChangeDialog()
+    def searchDialog(self):
+        dialog = SearchDialog()
         urwid.connect_signal(dialog, 'cancel',
             lambda button: self.backScreen())
-        urwid.connect_signal(dialog, 'open',
-            lambda button: self._openChange(dialog))
+        urwid.connect_signal(dialog, 'search',
+            lambda button: self._searchDialog(dialog))
         self.popup(dialog, min_width=76, min_height=8)
 
-    def _openChange(self, open_change_dialog):
+    def _searchDialog(self, dialog):
         self.backScreen()
-        number = open_change_dialog.entry.edit_text
+        query = dialog.entry.edit_text
         try:
-            number = int(number)
+            query = 'number:%s' % int(query)
         except Exception:
-            return self.error('Change number must be an integer.')
-        with self.db.getSession() as session:
-            change = session.getChangeByNumber(number)
-            change_key = change and change.key or None
-        if change_key is None:
-            if self.sync.offline:
-                return self.error('Can not sync change while offline.')
-            task = sync.SyncChangeByNumberTask(number, sync.HIGH_PRIORITY)
-            self.sync.submitTask(task)
-            succeeded = task.wait(300)
-            if not succeeded:
-                return self.error('Unable to find change.')
-            for subtask in task.tasks:
-                succeeded = task.wait(300)
-                if not succeeded:
-                    return self.error('Unable to sync change.')
-            with self.db.getSession() as session:
-                change = session.getChangeByNumber(number)
-                change_key = change and change.key or None
-        if change_key is None:
-            return self.error('Change is not in local database.')
-        try:
-            view = view_change.ChangeView(self, change_key)
-            self.changeScreen(view)
-        except gertty.view.DisplayError as e:
-            self.error(e.message)
+            pass
+        self.search(query)
 
     def error(self, message):
         dialog = mywid.MessageDialog('Error', message)
@@ -265,7 +282,7 @@ class App(object):
         elif key == 'ctrl q':
             self.quit()
         elif key == 'ctrl o':
-            self.openChange()
+            self.searchDialog()
 
     def getRepo(self, project_name):
         local_path = os.path.join(self.config.git_root, project_name)
