@@ -431,8 +431,8 @@ class DatabaseSession(object):
         query = self.session().query(Project)
         if subscribed:
             query = query.filter_by(subscribed=subscribed)
-        if active_only:
-            query = query.filter(exists().where(Project.unreviewed_changes))
+            if active_only:
+                query = query.filter(exists().where(Project.unreviewed_changes))
         return query.order_by(Project.name).all()
 
     def getProject(self, key):
