@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -74,11 +75,12 @@ This Screen
 <v>   Toggle the reviewed flag for the currently selected change.
 """
 
-    def __init__(self, app, project_key):
+    def __init__(self, app, query, query_desc=None, unreviewed=True):
         super(ChangeListView, self).__init__(urwid.Pile([]))
         self.app = app
-        self.project_key = project_key
-        self.unreviewed = True
+        self.query = query
+        self.query_desc = query_desc or query
+        self.unreviewed = unreviewed
         self.change_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.header = ChangeListHeader()
@@ -92,14 +94,11 @@ This Screen
     def refresh(self):
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
-            project = session.getProject(self.project_key)
-            self.project_name = project.name
+            lst = session.getChanges(self.query, self.unreviewed)
             if self.unreviewed:
-                self.title = u'Unreviewed changes in %s' % project.name
-                lst = project.unreviewed_changes
+                self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
-                self.title = u'Open changes in %s' % project.name
-                lst = project.open_changes
+                self.title = u'Open changes in %s' % self.query_desc
             self.app.status.update(title=self.title)
             i = 0
             for change in lst:
@@ -112,8 +111,8 @@ This Screen
                     row.update(change)
                     unseen_keys.remove(change.key)
                 i += 1
-            if project.changes:
-                self.header.update(project.changes[0])
+            if lst:
+                self.header.update(lst[0])
         for key in unseen_keys:
             row = self.change_rows[key]
             self.listbox.body.remove(row)

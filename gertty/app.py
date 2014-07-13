@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -192,6 +193,22 @@ class App(object):
             lambda button: self.backScreen())
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
+    def search(self, query):
+        self.log.debug("Search query: %s" % query)
+        with self.db.getSession() as session:
+            changes = session.getChanges(query)
+            change_key = None
+            if len(changes) == 1:
+                change_key = changes[0].key
+        try:
+            if change_key:
+                view = view_change.ChangeView(self, change_key)
+            else:
+                view = view_change_list.ChangeListView(self, query)
+            self.changeScreen(view)
+        except gertty.view.DisplayError as e:
+            self.error(e.message)
+
     def openChange(self):
         dialog = OpenChangeDialog()
         urwid.connect_signal(dialog, 'cancel',
@@ -231,7 +248,7 @@ class App(object):
             view = view_change.ChangeView(self, change_key)
             self.changeScreen(view)
         except gertty.view.DisplayError as e:
-            self.app.error(e.message)
+            self.error(e.message)
 
     def error(self, message):
         dialog = mywid.MessageDialog('Error', message)

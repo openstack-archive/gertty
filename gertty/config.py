@@ -43,7 +43,10 @@ class ConfigSchema(object):
     link_replacement = {'link': {v.Required('url'): str,
                                  v.Required('text'): str}}
 
-    replacement = v.Any(text_replacement, link_replacement)
+    search_replacement = {'search': {v.Required('query'): str,
+                                     v.Required('text'): str}}
+
+    replacement = v.Any(text_replacement, link_replacement, search_replacement)
 
     palette = {v.Required('name'): str,
                v.Match('(?!name)'): [str]}

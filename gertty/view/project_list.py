@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -29,7 +30,8 @@ class ProjectRow(urwid.Button):
         return True
 
     def __init__(self, project, callback=None):
-        super(ProjectRow, self).__init__('', on_press=callback, user_data=project.key)
+        super(ProjectRow, self).__init__('', on_press=callback,
+                                         user_data=(project.key, project.name))
         self.project_key = project.key
         name = urwid.Text(project.name)
         name.set_wrap_mode('clip')
@@ -121,8 +123,12 @@ This Screen
             ret = project.subscribed
         return ret
 
-    def onSelect(self, button, project_key):
-        self.app.changeScreen(view_change_list.ChangeListView(self.app, project_key))
+    def onSelect(self, button, data):
+        project_key, project_name = data
+        self.app.changeScreen(view_change_list.ChangeListView(
+                self.app,
+                "project_key:%s status:open" % project_key,
+                project_name, unreviewed=True))
 
     def keypress(self, size, key):
         if key=='l':

@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -434,6 +435,25 @@ class DatabaseSession(object):
             return self.session().query(Change).filter_by(number=number).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
+
+    def getChanges(self, query, unreviewed=False):
+        #TODO(jeblair): use a real parser that supports the full gerrit query syntax
+        q = self.session().query(Change)
+        for term in query.split():
+            key, data = term.split(':')
+            if key == 'changeid':
+                q = q.filter(change_table.c.change_id==data)
+            elif key == 'project_key':
+                q = q.filter(change_table.c.project_key==data)
+            elif key == 'status':
+                if data == 'open':
+                    q = q.filter(change_table.c.status.notin_(['MERGED', 'ABANDONED']))
+        if unreviewed:
+            q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
+        try:
+            return q.order_by(change_table.c.number).all()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return []
 
     def getRevision(self, key):
         try:

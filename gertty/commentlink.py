@@ -43,6 +43,17 @@ class LinkReplacement(object):
             lambda link:app.openURL(self.url.format(**data)))
         return link
 
+class SearchReplacement(object):
+    def __init__(self, config):
+        self.query = config['query']
+        self.text = config['text']
+
+    def replace(self, app, data):
+        link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
+        urwid.connect_signal(link, 'selected',
+            lambda link:app.search(self.query.format(**data)))
+        return link
+
 class CommentLink(object):
     def __init__(self, config):
         self.match = re.compile(config['match'], re.M)
@@ -52,6 +63,8 @@ class CommentLink(object):
                 self.replacements.append(TextReplacement(r['text']))
             if 'link' in r:
                 self.replacements.append(LinkReplacement(r['link']))
+            if 'search' in r:
+                self.replacements.append(SearchReplacement(r['search']))
 
     def run(self, app, chunks):
         ret = []
