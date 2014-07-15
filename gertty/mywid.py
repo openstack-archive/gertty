@@ -213,7 +213,7 @@ class HyperText(urwid.Text):
         item = self.getItemAtCoords(size[0], col, row)
         if item is None:
             if self.focused_index is None:
-                self.focusItemLeft()
+                self.focusFirstItem()
             return False
         if event == 'mouse press':
             self.focusItem(item)
