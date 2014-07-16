@@ -16,6 +16,7 @@
 import urwid
 
 from gertty import mywid
+from gertty import sync
 from gertty.view import change as view_change
 import gertty.view
 
@@ -68,9 +69,10 @@ class ChangeListHeader(urwid.WidgetWrap):
 
 class ChangeListView(urwid.WidgetWrap):
     _help = """
-<k>   Toggle the hidden flag for the currently selected change.
-<l>   Toggle whether only unreviewed or all changes are displayed.
-<v>   Toggle the reviewed flag for the currently selected change.
+<k>      Toggle the hidden flag for the currently selected change.
+<l>      Toggle whether only unreviewed or all changes are displayed.
+<v>      Toggle the reviewed flag for the currently selected change.
+<ctrl-r> Sync all projects.
 """
 
     def help(self):
@@ -151,6 +153,11 @@ class ChangeListView(urwid.WidgetWrap):
             pos = self.listbox.focus_position
             hidden = self.toggleHidden(self.listbox.body[pos].change_key)
             self.refresh()
+            return None
+        if key == 'ctrl r':
+            self.app.sync.submitTask(
+                sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
+            self.app.status.update()
             return None
         return super(ChangeListView, self).keypress(size, key)
 
