@@ -67,8 +67,9 @@ class ProjectListHeader(urwid.WidgetWrap):
 
 class ProjectListView(urwid.WidgetWrap):
     _help = """
-<l>   Toggle whether only subscribed projects or all projects are listed.
-<s>   Toggle the subscription flag for the currently selected project.
+<l>      Toggle whether only subscribed projects or all projects are listed.
+<s>      Toggle the subscription flag for the currently selected project.
+<ctrl-r> Sync all projects.
 """
 
     def help(self):
@@ -145,6 +146,10 @@ class ProjectListView(urwid.WidgetWrap):
             self.refresh()
             if subscribed:
                 self.app.sync.submitTask(sync.SyncProjectTask(project_key))
+            return None
+        if key == 'ctrl r':
+            self.app.sync.submitTask(
+                sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             return None
         return super(ProjectListView, self).keypress(size, key)
 

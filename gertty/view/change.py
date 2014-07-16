@@ -277,6 +277,7 @@ class ChangeView(urwid.WidgetWrap):
 <r>      Leave a review for the most recent revision.
 <v>      Toggle the reviewed flag for the current change.
 <x>      Cherry-pick the most recent revision onto the local repo.
+<ctrl-r> Refresh this change.
 """
 
     def help(self):
@@ -384,6 +385,7 @@ class ChangeView(urwid.WidgetWrap):
             self.title = 'Change %s%s%s' % (change.number, reviewed, hidden)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
+            self.change_rest_id = change.id
 
             self.change_id_label.set_text(('change-data', change.change_id))
             self.owner_label.set_text(('change-data', change.owner))
@@ -563,6 +565,10 @@ class ChangeView(urwid.WidgetWrap):
         if r == 'x':
             row = self.revision_rows[self.last_revision_key]
             row.cherryPick(None)
+            return None
+        if r == 'ctrl r':
+            self.app.sync.submitTask(
+                sync.SyncChangeTask(self.change_rest_id, priority=sync.HIGH_PRIORITY))
             return None
         if r in self.app.config.reviewkeys:
             self.reviewKey(self.app.config.reviewkeys[r])
