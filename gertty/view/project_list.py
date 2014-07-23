@@ -129,7 +129,7 @@ class ProjectListView(urwid.WidgetWrap):
         project_key, project_name = data
         self.app.changeScreen(view_change_list.ChangeListView(
                 self.app,
-                "project_key:%s status:open" % project_key,
+                "_project_key:%s status:open" % project_key,
                 project_name, unreviewed=True))
 
     def keypress(self, size, key):
