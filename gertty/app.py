@@ -27,6 +27,7 @@ from gertty import config
 from gertty import gitrepo
 from gertty import mywid
 from gertty import sync
+from gertty import search
 from gertty.view import change_list as view_change_list
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
@@ -106,6 +107,7 @@ class App(object):
                             level=level)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
+        self.search = search.SearchCompiler(self)
         self.db = db.Database(self)
         self.sync = sync.Sync(self)
 
@@ -209,14 +211,12 @@ class App(object):
 
     def _syncOneChangeFromQuery(self, query):
         number = changeid = None
-        if query.startswith("number:"):
+        if query.startswith("change:"):
             number = query.split(':')[1].strip()
             try:
                 number = int(number)
-            except Exception:
-                pass
-        if query.startswith("changeid:"):
-            changeid = query.split(':')[1].strip()
+            except ValueError:
+                changeid = query.split(':')[1].strip()
         if not (number or changeid):
             return
         with self.db.getSession() as session:
@@ -243,14 +243,17 @@ class App(object):
         if change_key is None:
             raise Exception('Change is not in local database.')
 
-    def search(self, query):
+    def doSearch(self, query):
         self.log.debug("Search query: %s" % query)
         try:
             self._syncOneChangeFromQuery(query)
         except Exception as e:
             return self.error(e.message)
         with self.db.getSession() as session:
-            changes = session.getChanges(query)
+            try:
+                changes = session.getChanges(query)
+            except gertty.search.SearchSyntaxError as e:
+                return self.error(e.message)
             change_key = None
             if len(changes) == 1:
                 change_key = changes[0].key
@@ -261,7 +264,7 @@ class App(object):
                 view = view_change_list.ChangeListView(self, query)
             self.changeScreen(view)
         except gertty.view.DisplayError as e:
-            self.error(e.message)
+            return self.error(e.message)
 
     def searchDialog(self):
         dialog = SearchDialog()
@@ -275,10 +278,10 @@ class App(object):
         self.backScreen()
         query = dialog.entry.edit_text
         try:
-            query = 'number:%s' % int(query)
-        except Exception:
+            query = 'change:%s' % int(query)
+        except ValueError:
             pass
-        self.search(query)
+        self.doSearch(query)
 
     def error(self, message):
         dialog = mywid.MessageDialog('Error', message)

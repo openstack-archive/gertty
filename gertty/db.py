@@ -374,6 +374,7 @@ class DatabaseSession(object):
     def __init__(self, database):
         self.database = database
         self.session = database.session
+        self.search = database.app.search
 
     def __enter__(self):
         self.database.lock.acquire()
@@ -443,25 +444,13 @@ class DatabaseSession(object):
             return None
 
     def getChanges(self, query, unreviewed=False):
-        #TODO(jeblair): use a real parser that supports the full gerrit query syntax
-        q = self.session().query(Change)
-        for term in query.split():
-            key, data = term.split(':')
-            if key == 'number':
-                q = q.filter(change_table.c.number==data)
-            elif key == 'changeid':
-                q = q.filter(change_table.c.change_id==data)
-            elif key == 'project_key':
-                q = q.filter(change_table.c.project_key==data)
-            elif key == 'status':
-                if data == 'open':
-                    q = q.filter(change_table.c.status.notin_(['MERGED', 'ABANDONED']))
-                else:
-                    q = q.filter(change_table.c.status==data)
+        self.database.log.debug("Search query: %s" % query)
+        search_filter = self.search.parse(query)
+        q = self.session().query(Change).filter(search_filter).order_by(change_table.c.number)
         if unreviewed:
             q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
         try:
-            return q.order_by(change_table.c.number).all()
+            return q.all()
         except sqlalchemy.orm.exc.NoResultFound:
             return []
 
