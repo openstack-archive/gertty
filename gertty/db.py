@@ -464,10 +464,11 @@ class DatabaseSession(object):
 
     def getChanges(self, query, unreviewed=False):
         self.database.log.debug("Search query: %s" % query)
-        search_filter = self.search.parse(query)
-        q = self.session().query(Change).filter(search_filter).order_by(change_table.c.number)
+        q = self.session().query(Change).filter(self.search.parse(query))
         if unreviewed:
             q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
+        q = q.order_by(change_table.c.number)
+        self.database.log.debug("Search SQL: %s" % q)
         try:
             return q.all()
         except sqlalchemy.orm.exc.NoResultFound:

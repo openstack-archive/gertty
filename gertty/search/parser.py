@@ -16,7 +16,7 @@ import datetime
 import re
 
 import ply.yacc as yacc
-from sqlalchemy.sql.expression import and_, or_
+from sqlalchemy.sql.expression import and_, or_, not_, exists, select
 
 import gertty.db
 import gertty.search
@@ -53,7 +53,7 @@ def SearchParser():
     def p_negative_expr(p):
         '''negative_expr : NOT expression
                          | NEG expression'''
-        p[0] = not p[1]
+        p[0] = not_(p[2])
 
     def p_term(p):
         '''term : age_term
@@ -120,15 +120,35 @@ def SearchParser():
 
     def p_owner_term(p):
         '''owner_term : OP_OWNER string'''
-        p[0] = gertty.db.change_table.c.owner == p[2]
+        if p[2] == 'self':
+            username = p.parser.username
+            p[0] = gertty.db.account_table.c.username == username
+        else:
+            p[0] = or_(gertty.db.account_table.c.username == p[2],
+                       gertty.db.account_table.c.email == p[2],
+                       gertty.db.account_table.c.name == p[2])
 
     def p_reviewer_term(p):
         '''reviewer_term : OP_REVIEWER string'''
-        p[0] = gertty.db.approval_table.c.name == p[2]
+        filters = []
+        filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
+        if p[2] == 'self':
+            username = p.parser.username
+            filters.append(gertty.db.account_table.c.username == username)
+        else:
+            filters.append(or_(gertty.db.account_table.c.username == p[2],
+                               gertty.db.account_table.c.email == p[2],
+                               gertty.db.account_table.c.name == p[2]))
+        s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        p[0] = gertty.db.change_table.c.key.in_(s)
 
     def p_commit_term(p):
         '''commit_term : OP_COMMIT string'''
-        p[0] = gertty.db.revision_table.c.commit == p[2]
+        filters = []
+        filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
+        filters.append(gertty.db.revision_table.c.commit == p[2])
+        s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        p[0] = gertty.db.change_table.c.key.in_(s)
 
     def p_project_term(p):
         '''project_term : OP_PROJECT string'''
@@ -167,6 +187,7 @@ def SearchParser():
         user = args.group('user')
 
         filters = []
+        filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
         filters.append(gertty.db.approval_table.c.category == label)
         if op == '=':
             filters.append(gertty.db.approval_table.c.value == value)
@@ -175,31 +196,58 @@ def SearchParser():
         elif op == '<=':
             filters.append(gertty.db.approval_table.c.value <= value)
         if user is not None:
-            filters.append(gertty.db.approval_table.c.name == user)
-        p[0] = and_(*filters)
+            filters.append(
+                or_(gertty.db.account_table.c.username == user,
+                    gertty.db.account_table.c.email == user,
+                    gertty.db.account_table.c.name == user))
+        s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        p[0] = gertty.db.change_table.c.key.in_(s)
 
     def p_message_term(p):
         '''message_term : OP_MESSAGE string'''
-        p[0] = gertty.db.revision_table.c.message.like(p[1])
+        filters = []
+        filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
+        filters.append(gertty.db.revision_table.c.message == p[2])
+        s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        p[0] = gertty.db.change_table.c.key.in_(s)
 
     def p_comment_term(p):
         '''comment_term : OP_COMMENT string'''
-        p[0] = and_(gertty.db.message_table.c.message.like(p[1]),
-                    gertty.db.comment_table.c.message.like(p[1]))
+        filters = []
+        filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
+        filters.append(gertty.db.revision_table.c.message == p[2])
+        revision_select = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        filters = []
+        filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
+        filters.append(gertty.db.comment_table.c.revision_key == gertty.db.revision_table.c.key)
+        filters.append(gertty.db.comment_table.c.message == p[2])
+        comment_select = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+        p[0] = or_(gertty.db.change_table.c.key.in_(comment_select),
+                   gertty.db.change_table.c.key.in_(revision_select))
 
     def p_has_term(p):
         '''has_term : OP_HAS string'''
         #TODO: implement star
         if p[2] == 'draft':
-            p[0] = gertty.db.message_table.c.pending == True
+            filters = []
+            filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
+            filters.append(gertty.db.message_table.c.revision_key == gertty.db.revision_table.c.key)
+            filters.append(gertty.db.message_table.c.pending == True)
+            s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+            p[0] = gertty.db.change_table.c.key.in_(s)
         else:
             raise gertty.search.SearchSyntaxError('Syntax error: has:%s is not supported' % p[2])
 
     def p_is_term(p):
         '''is_term : OP_IS string'''
         #TODO: implement starred, watched, owner, reviewer, draft
+        username = p.parser.username
         if p[2] == 'reviewed':
-            p[0] = gertty.db.approval_table.c.value != 0
+            filters = []
+            filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
+            filters.append(gertty.db.approval_table.c.value != 0)
+            s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+            p[0] = gertty.db.change_table.c.key.in_(s)
         elif p[2] == 'open':
             p[0] = gertty.db.change_table.c.status.notin_(['MERGED', 'ABANDONED'])
         elif p[2] == 'closed':
@@ -210,6 +258,14 @@ def SearchParser():
             p[0] = gertty.db.change_table.c.status == 'MERGED'
         elif p[2] == 'abandoned':
             p[0] = gertty.db.change_table.c.status == 'ABANDONED'
+        elif p[2] == 'owner':
+            p[0] = gertty.db.account_table.c.username == username
+        elif p[2] == 'reviewer':
+            filters = []
+            filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
+            filters.append(gertty.db.account_table.c.username == username)
+            s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
+            p[0] = gertty.db.change_table.c.key.in_(s)
         else:
             raise gertty.search.SearchSyntaxError('Syntax error: has:%s is not supported' % p[2])
 
