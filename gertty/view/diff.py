@@ -537,9 +537,10 @@ class DiffView(urwid.WidgetWrap):
             filename = context.old_fn
         with self.app.db.getSession() as session:
             revision = session.getRevision(revision_key)
-            comment = revision.createComment(None, None,
+            account = session.getAccountByUsername(self.app.config.username)
+            comment = revision.createComment(None, account, None,
                                              datetime.datetime.utcnow(),
-                                             None, filename, parent,
+                                             filename, parent,
                                              line_num, text, pending=True)
             key = comment.key
         return key

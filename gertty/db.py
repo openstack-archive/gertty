@@ -44,7 +44,7 @@ change_table = Table(
     Column('branch', String(255), index=True, nullable=False),
     Column('change_id', String(255), index=True, nullable=False),
     Column('topic', String(255), index=True),
-    Column('owner', String(255), index=True),
+    Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('subject', Text, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
     Column('updated', DateTime, index=True, nullable=False),
@@ -67,9 +67,9 @@ message_table = Table(
     'message', metadata,
     Column('key', Integer, primary_key=True),
     Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
+    Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('id', String(255), index=True), #, unique=True, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
-    Column('name', String(255)),
     Column('message', Text, nullable=False),
     Column('pending', Boolean, index=True, nullable=False),
     )
@@ -77,10 +77,10 @@ comment_table = Table(
     'comment', metadata,
     Column('key', Integer, primary_key=True),
     Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
+    Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('id', String(255), index=True), #, unique=True, nullable=False),
     Column('in_reply_to', String(255)),
     Column('created', DateTime, index=True, nullable=False),
-    Column('name', String(255)),
     Column('file', Text, nullable=False),
     Column('parent', Boolean, nullable=False),
     Column('line', Integer),
@@ -106,12 +106,26 @@ approval_table = Table(
     'approval', metadata,
     Column('key', Integer, primary_key=True),
     Column('change_key', Integer, ForeignKey("change.key"), index=True),
-    Column('name', String(255)),
+    Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('category', String(255), nullable=False),
     Column('value', Integer, nullable=False),
     Column('pending', Boolean, index=True, nullable=False),
     )
+account_table = Table(
+    'account', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('id', Integer, index=True, unique=True, nullable=False),
+    Column('name', String(255), index=True),
+    Column('username', String(255), index=True),
+    Column('email', String(255), index=True),
+    )
 
+class Account(object):
+    def __init__(self, id, name=None, username=None, email=None):
+        self.id = id
+        self.name = name
+        self.username = username
+        self.email = email
 
 class Project(object):
     def __init__(self, name, subscribed=False, description=''):
@@ -129,16 +143,16 @@ class Project(object):
         return c
 
 class Change(object):
-    def __init__(self, project, id, number, branch, change_id,
-                 owner, subject, created, updated, status,
+    def __init__(self, project, id, owner, number, branch,
+                 change_id, subject, created, updated, status,
                  topic=False, hidden=False, reviewed=False):
         self.project_key = project.key
+        self.account_key = owner.key
         self.id = id
         self.number = number
         self.branch = branch
         self.change_id = change_id
         self.topic = topic
-        self.owner = owner
         self.subject = subject
         self.created = created
         self.updated = updated
@@ -243,21 +257,21 @@ class Revision(object):
         return c
 
 class Message(object):
-    def __init__(self, revision, id, created, name, message, pending=False):
+    def __init__(self, revision, id, author, created, message, pending=False):
         self.revision_key = revision.key
+        self.account_key = author.key
         self.id = id
         self.created = created
-        self.name = name
         self.message = message
         self.pending = pending
 
 class Comment(object):
-    def __init__(self, revision, id, in_reply_to, created, name, file, parent, line, message, pending=False):
+    def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, pending=False):
         self.revision_key = revision.key
+        self.account_key = author.key
         self.id = id
         self.in_reply_to = in_reply_to
         self.created = created
-        self.name = name
         self.file = file
         self.parent = parent
         self.line = line
@@ -278,13 +292,14 @@ class PermittedLabel(object):
         self.value = value
 
 class Approval(object):
-    def __init__(self, change, name, category, value, pending=False):
+    def __init__(self, change, reviewer, category, value, pending=False):
         self.change_key = change.key
-        self.name = name
+        self.account_key = reviewer.key
         self.category = category
         self.value = value
         self.pending = pending
 
+mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
         changes=relationship(Change, backref='project',
                              order_by=change_table.c.number),
@@ -304,6 +319,7 @@ mapper(Project, project_table, properties=dict(
                                   ),
         ))
 mapper(Change, change_table, properties=dict(
+        owner=relationship(Account),
         revisions=relationship(Revision, backref='change',
                                order_by=revision_table.c.number),
         messages=relationship(Message,
@@ -333,11 +349,14 @@ mapper(Revision, revision_table, properties=dict(
                                       order_by=(comment_table.c.line,
                                                 comment_table.c.created)),
         ))
-mapper(Message, message_table)
-mapper(Comment, comment_table)
+mapper(Message, message_table, properties=dict(
+        author=relationship(Account)))
+mapper(Comment, comment_table, properties=dict(
+        author=relationship(Account)))
 mapper(Label, label_table)
 mapper(PermittedLabel, permitted_label_table)
-mapper(Approval, approval_table)
+mapper(Approval, approval_table, properties=dict(
+        reviewer=relationship(Account)))
 
 class Database(object):
     def __init__(self, app):
@@ -505,8 +524,36 @@ class DatabaseSession(object):
     def getPendingMessages(self):
         return self.session().query(Message).filter_by(pending=True).all()
 
+    def getAccountByID(self, id, name=None, username=None, email=None):
+        try:
+            account = self.session().query(Account).filter_by(id=id).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            account = self.createAccount(id)
+        if name is not None and account.name != name:
+            account.name = name
+        if username is not None and account.username != username:
+            account.username = username
+        if email is not None and account.email != email:
+            account.email = email
+        return account
+
+    def getAccountByUsername(self, username):
+        try:
+            return self.session().query(Account).filter_by(username=username).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
+    def getSystemAccount(self):
+        return self.getAccountByID(0, 'Gerrit Code Review')
+
     def createProject(self, *args, **kw):
         o = Project(*args, **kw)
         self.session().add(o)
         self.session().flush()
         return o
+
+    def createAccount(self, *args, **kw):
+        a = Account(*args, **kw)
+        self.session().add(a)
+        self.session().flush()
+        return a

@@ -258,7 +258,7 @@ class ChangeMessageBox(mywid.HyperText):
     def __init__(self, app, message):
         super(ChangeMessageBox, self).__init__(u'')
         lines = message.message.split('\n')
-        text = [('change-message-name', message.name),
+        text = [('change-message-name', message.author.name),
                 ('change-message-header', ': '+lines.pop(0)),
                 ('change-message-header',
                  message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
@@ -388,7 +388,7 @@ class ChangeView(urwid.WidgetWrap):
             self.change_rest_id = change.id
 
             self.change_id_label.set_text(('change-data', change.change_id))
-            self.owner_label.set_text(('change-data', change.owner))
+            self.owner_label.set_text(('change-data', change.owner.name))
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', change.topic or ''))
@@ -413,16 +413,16 @@ class ChangeView(urwid.WidgetWrap):
             votes = mywid.Table(approval_headers)
             approvals_for_name = {}
             for approval in change.approvals:
-                approvals = approvals_for_name.get(approval.name)
+                approvals = approvals_for_name.get(approval.reviewer.name)
                 if not approvals:
                     approvals = {}
                     row = []
-                    row.append(urwid.Text(('reviewer-name', approval.name)))
+                    row.append(urwid.Text(('reviewer-name', approval.reviewer.name)))
                     for i, category in enumerate(categories):
                         w = urwid.Text(u'', align=urwid.CENTER)
                         approvals[category] = w
                         row.append(w)
-                    approvals_for_name[approval.name] = approvals
+                    approvals_for_name[approval.reviewer.name] = approvals
                     votes.addRow(row)
                 if str(approval.value) != '0':
                     if approval.value > 0:
@@ -591,6 +591,7 @@ class ChangeView(urwid.WidgetWrap):
     def saveReview(self, revision_key, approvals, message):
         message_key = None
         with self.app.db.getSession() as session:
+            account = session.getAccountByUsername(self.app.config.username)
             revision = session.getRevision(revision_key)
             change = revision.change
             pending_approvals = {}
@@ -604,7 +605,7 @@ class ChangeView(urwid.WidgetWrap):
                 value = approvals.get(category, 0)
                 approval = pending_approvals.get(category)
                 if not approval:
-                    approval = change.createApproval(u'(draft)', category, 0, pending=True)
+                    approval = change.createApproval(account, category, 0, pending=True)
                     pending_approvals[category] = approval
                 approval.value = value
             pending_message = None
@@ -613,9 +614,9 @@ class ChangeView(urwid.WidgetWrap):
                     pending_message = m
                     break
             if not pending_message:
-                pending_message = revision.createMessage(None,
+                pending_message = revision.createMessage(None, account,
                                                          datetime.datetime.utcnow(),
-                                                         u'(draft)', '', pending=True)
+                                                         '', pending=True)
             pending_message.message = message
             message_key = pending_message.key
             change.reviewed = True
