@@ -268,7 +268,7 @@ class DiffView(urwid.WidgetWrap):
                 if comment.pending:
                     message = comment.message
                 else:
-                    message = [('comment-name', comment.name),
+                    message = [('comment-name', comment.author.name),
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
@@ -284,7 +284,7 @@ class DiffView(urwid.WidgetWrap):
                 if comment.pending:
                     message = comment.message
                 else:
-                    message = [('comment-name', comment.name),
+                    message = [('comment-name', comment.author.name),
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
@@ -537,9 +537,10 @@ class DiffView(urwid.WidgetWrap):
             filename = context.old_fn
         with self.app.db.getSession() as session:
             revision = session.getRevision(revision_key)
-            comment = revision.createComment(None, None,
+            account = session.getAccountByUsername(self.app.config.username)
+            comment = revision.createComment(None, account, None,
                                              datetime.datetime.utcnow(),
-                                             None, filename, parent,
+                                             filename, parent,
                                              line_num, text, pending=True)
             key = comment.key
         return key
