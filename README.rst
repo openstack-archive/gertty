@@ -34,6 +34,9 @@ Create a file at ``~/.gertty.yaml`` with the following contents::
       password: <gerrit password>
       git_root: ~/git/
 
+A sample file with several options configured for use with OpenStack's
+Gerrit is available in ``gertty.yaml-sample``.
+
 You can generate or retrieve your Gerrit password by navigating to
 Settings, then HTTP Password.  Set ``git_root`` to a directory where
 Gertty should find or clone git repositories for your projects.
