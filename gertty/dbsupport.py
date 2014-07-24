@@ -103,3 +103,70 @@ def sqlite_alter_columns(table_name, column_defs):
     # (re-)create indexes
     for index in indexes:
         op.create_index(op.f(index[0]), index[1], index[2], unique=index[3])
+
+def sqlite_drop_columns(table_name, drop_columns):
+    """Implement drop columns for SQLite.
+
+    The DROP COLUMN command isn't supported by SQLite specification.
+    Instead of calling DROP COLUMN it uses the following workaround:
+
+    * create temp table '{table_name}_{rand_uuid}', without
+      dropped columns;
+    * copy all data to the temp table;
+    * drop old table;
+    * rename temp table to the old table name.
+    """
+    connection = op.get_bind()
+    meta = sqlalchemy.MetaData(bind=connection)
+    meta.reflect()
+
+    # construct lists of all columns and their names
+    old_columns = []
+    new_columns = []
+    column_names = []
+    indexes = []
+    for column in meta.tables[table_name].columns:
+        if column.name not in drop_columns:
+            old_columns.append(column)
+            column_names.append(column.name)
+            col_copy = column.copy()
+            new_columns.append(col_copy)
+
+    for key in meta.tables[table_name].foreign_keys:
+        constraint = key.constraint
+        con_copy = constraint.copy()
+        new_columns.append(con_copy)
+
+    for index in meta.tables[table_name].indexes:
+        # If this is a single column index for a dropped column, don't
+        # copy it.
+        idx_columns = [col.name for col in index.columns]
+        if len(idx_columns)==1 and idx_columns[0] in drop_columns:
+            continue
+        # Otherwise, recreate the index.
+        indexes.append((index.name,
+                        table_name,
+                        [col.name for col in index.columns],
+                        index.unique))
+
+    # create temp table
+    tmp_table_name = "%s_%s" % (table_name, six.text_type(uuid.uuid4()))
+    op.create_table(tmp_table_name, *new_columns)
+    meta.reflect()
+
+    try:
+        # copy data from the old table to the temp one
+        sql_select = sqlalchemy.sql.select(old_columns)
+        connection.execute(sqlalchemy.sql.insert(meta.tables[tmp_table_name])
+                           .from_select(column_names, sql_select))
+    except Exception:
+        op.drop_table(tmp_table_name)
+        raise
+
+    # drop the old table and rename temp table to the old table name
+    op.drop_table(table_name)
+    op.rename_table(tmp_table_name, table_name)
+
+    # (re-)create indexes
+    for index in indexes:
+        op.create_index(op.f(index[0]), index[1], index[2], unique=index[3])

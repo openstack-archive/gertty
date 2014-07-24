@@ -87,6 +87,19 @@ class Task(object):
         self.event.wait(timeout)
         return self.succeeded
 
+class SyncOwnAccountTask(Task):
+    def __repr__(self):
+        return '<SyncOwnAccountTask>'
+
+    def run(self, sync):
+        app = sync.app
+        remote = sync.get('accounts/self')
+        with app.db.getSession() as session:
+            session.getAccountByID(remote['_account_id'],
+                                   remote.get('name'),
+                                   remote['username'],
+                                   remote.get('email'))
+
 class SyncProjectListTask(Task):
     def __repr__(self):
         return '<SyncProjectListTask>'
@@ -224,16 +237,20 @@ class SyncChangeTask(Task):
         fetches = collections.defaultdict(list)
         with app.db.getSession() as session:
             change = session.getChangeByID(self.change_id)
+            account = session.getAccountByID(remote_change['owner']['_account_id'],
+                                             name=remote_change['owner'].get('name'),
+                                             username=remote_change['owner'].get('username'),
+                                             email=remote_change['owner'].get('email'))
             if not change:
                 project = session.getProjectByName(remote_change['project'])
                 created = dateutil.parser.parse(remote_change['created'])
                 updated = dateutil.parser.parse(remote_change['updated'])
-                change = project.createChange(remote_change['id'], remote_change['_number'],
+                change = project.createChange(remote_change['id'], account, remote_change['_number'],
                                               remote_change['branch'], remote_change['change_id'],
-                                              remote_change['owner']['name'],
                                               remote_change['subject'], created,
                                               updated, remote_change['status'],
                                               topic=remote_change.get('topic'))
+            change.owner = account
             change.status = remote_change['status']
             change.subject = remote_change['subject']
             change.updated = dateutil.parser.parse(remote_change['updated'])
@@ -272,6 +289,10 @@ class SyncChangeTask(Task):
                 remote_comments_data = remote_revision['_gertty_remote_comments_data']
                 for remote_file, remote_comments in remote_comments_data.items():
                     for remote_comment in remote_comments:
+                        account = session.getAccountByID(remote_comment['author']['_account_id'],
+                                                         name=remote_comment['author'].get('name'),
+                                                         username=remote_comment['author'].get('username'),
+                                                         email=remote_comment['author'].get('email'))
                         comment = session.getCommentByID(remote_comment['id'])
                         if not comment:
                             # Normalize updated -> created
@@ -279,27 +300,35 @@ class SyncChangeTask(Task):
                             parent = False
                             if remote_comment.get('side', '') == 'PARENT':
                                 parent = True
-                            comment = revision.createComment(remote_comment['id'],
+                            comment = revision.createComment(remote_comment['id'], account,
                                                              remote_comment.get('in_reply_to'),
-                                                             created, remote_comment['author']['name'],
+                                                             created,
                                                              remote_file, parent, remote_comment.get('line'),
                                                              remote_comment['message'])
+                        else:
+                            if comment.author != account:
+                                comment.author = account
             new_message = False
             for remote_message in remote_change.get('messages', []):
+                if 'author' in remote_message:
+                    account = session.getAccountByID(remote_message['author']['_account_id'],
+                                                     name=remote_message['author'].get('name'),
+                                                     username=remote_message['author'].get('username'),
+                                                     email=remote_message['author'].get('email'))
+                    if account.username != app.config.username:
+                        new_message = True
+                else:
+                    account = session.getSystemAccount()
                 message = session.getMessageByID(remote_message['id'])
                 if not message:
                     revision = session.getRevisionByNumber(change, remote_message['_revision_number'])
                     # Normalize date -> created
                     created = dateutil.parser.parse(remote_message['date'])
-                    if 'author' in remote_message:
-                        author_name = remote_message['author']['name']
-                        if remote_message['author'].get('username') != app.config.username:
-                            new_message = True
-                    else:
-                        author_name = 'Gerrit Code Review'
-                    message = revision.createMessage(remote_message['id'], created,
-                                                     author_name,
+                    message = revision.createMessage(remote_message['id'], account, created,
                                                      remote_message['message'])
+                else:
+                    if message.author != account:
+                        message.author = account
             remote_approval_entries = {}
             remote_label_entries = {}
             user_voted = False
@@ -324,7 +353,8 @@ class SyncChangeTask(Task):
             local_approvals = {}
             local_labels = {}
             for approval in change.approvals:
-                key = '%s~%s' % (approval.category, approval.name)
+                self.log.debug(approval.key)
+                key = '%s~%s' % (approval.category, approval.reviewer.name)
                 local_approvals[key] = approval
             local_approval_keys = set(local_approvals.keys())
             for label in change.labels:
@@ -340,7 +370,11 @@ class SyncChangeTask(Task):
 
             for key in remote_approval_keys-local_approval_keys:
                 remote_approval = remote_approval_entries[key]
-                change.createApproval(remote_approval['name'],
+                account = session.getAccountByID(remote_approval['_account_id'],
+                                                 name=remote_approval.get('name'),
+                                                 username=remote_approval.get('username'),
+                                                 email=remote_approval.get('email'))
+                change.createApproval(account,
                                       remote_approval['category'],
                                       remote_approval['value'])
 
@@ -354,6 +388,11 @@ class SyncChangeTask(Task):
                 local_approval = local_approvals[key]
                 remote_approval = remote_approval_entries[key]
                 local_approval.value = remote_approval['value']
+                # For the side effect of updating account info:
+                account = session.getAccountByID(remote_approval['_account_id'],
+                                                 name=remote_approval.get('name'),
+                                                 username=remote_approval.get('username'),
+                                                 email=remote_approval.get('email'))
 
             remote_permitted_entries = {}
             for remote_label_name, remote_label_values in remote_change.get('permitted_labels', {}).items():
@@ -508,6 +547,7 @@ class Sync(object):
         self.session = requests.Session()
         self.auth = requests.auth.HTTPDigestAuth(
             self.app.config.username, self.app.config.password)
+        self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
