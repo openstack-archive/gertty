@@ -12,15 +12,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sqlalchemy.sql.expression
+
 from gertty.search import tokenizer, parser
+import gertty.db
+
 
 class SearchSyntaxError(Exception):
     pass
 
+
 class SearchCompiler(object):
     def __init__(self, app):
+        self.app = app
         self.lexer = tokenizer.SearchTokenizer()
         self.parser = parser.SearchParser()
 
     def parse(self, data):
+        self.parser.username = self.app.config.username
         return self.parser.parse(data, lexer=self.lexer)
