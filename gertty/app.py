@@ -146,10 +146,11 @@ class App(object):
 
         self.popup(dialog)
 
-    def changeScreen(self, widget):
+    def changeScreen(self, widget, push=True):
         self.log.debug("Changing screen to %s" % (widget,))
         self.status.update(title=widget.title)
-        self.screens.append(self.loop.widget)
+        if push:
+            self.screens.append(self.loop.widget)
         self.loop.widget = widget
 
     def backScreen(self, target_widget=None):

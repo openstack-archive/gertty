@@ -274,6 +274,8 @@ class ChangeView(urwid.WidgetWrap):
 <c>      Checkout the most recent revision into the local repo.
 <d>      Show the diff of the mont recent revision.
 <k>      Toggle the hidden flag for the current change.
+<n>      Go to the next change in the list.
+<p>      Go to the previous change in the list.
 <r>      Leave a review for the most recent revision.
 <u>      Back to the list of changes.
 <v>      Toggle the reviewed flag for the current change.
@@ -570,6 +572,19 @@ class ChangeView(urwid.WidgetWrap):
         if r == 'u':
             widget = self.app.findChangeList()
             self.app.backScreen(widget)
+            return None
+        if r in ['n', 'p']:
+            widget = self.app.findChangeList()
+            if r == 'n':
+                new_change_key = widget.getNextChangeKey(self.change_key)
+            else:
+                new_change_key = widget.getPrevChangeKey(self.change_key)
+            if new_change_key:
+                try:
+                    view = ChangeView(self.app, new_change_key)
+                    self.app.changeScreen(view, push=False)
+                except gertty.view.DisplayError as e:
+                    self.app.error(e.message)
             return None
         if r == 'ctrl r':
             self.app.sync.submitTask(

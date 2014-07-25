@@ -121,6 +121,22 @@ class ChangeListView(urwid.WidgetWrap):
             self.listbox.body.remove(row)
             del self.change_rows[key]
 
+    def getNextChangeKey(self, change_key):
+        row = self.change_rows.get(change_key)
+        i = self.listbox.body.index(row)
+        if i+1 >= len(self.listbox.body):
+            return None
+        row = self.listbox.body[i+1]
+        return row.change_key
+
+    def getPrevChangeKey(self, change_key):
+        row = self.change_rows.get(change_key)
+        i = self.listbox.body.index(row)
+        if i <= 0:
+            return None
+        row = self.listbox.body[i-1]
+        return row.change_key
+
     def toggleReviewed(self, change_key):
         with self.app.db.getSession() as session:
             change = session.getChange(change_key)
