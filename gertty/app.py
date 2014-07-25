@@ -152,15 +152,24 @@ class App(object):
         self.screens.append(self.loop.widget)
         self.loop.widget = widget
 
-    def backScreen(self, widget=None):
+    def backScreen(self, target_widget=None):
         if not self.screens:
             return
-        widget = self.screens.pop()
+        while self.screens:
+            widget = self.screens.pop()
+            if (not target_widget) or (widget is target_widget):
+                break
         self.log.debug("Popping screen to %s" % (widget,))
         if hasattr(widget, 'title'):
             self.status.update(title=widget.title)
         self.loop.widget = widget
         self.refresh()
+
+    def findChangeList(self):
+        for widget in reversed(self.screens):
+            if isinstance(widget, view_change_list.ChangeListView):
+                return widget
+        return None
 
     def clearHistory(self):
         self.log.debug("Clearing screen history")
