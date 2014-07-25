@@ -89,6 +89,7 @@ class ConfigSchema(object):
                            'commentlinks': self.commentlinks,
                            'dashboards': self.dashboards,
                            'reviewkeys': self.reviewkeys,
+                           'change-list-query': str,
                            })
         return schema
 
@@ -140,6 +141,8 @@ class Config(object):
                         dict(link=dict(
                                 text="{url}",
                                 url="{url}"))])))
+
+        self.project_change_list_query = self.config.get('change-list-query', 'status:open')
 
         self.dashboards = OrderedDict()
         for d in self.config.get('dashboards', []):
