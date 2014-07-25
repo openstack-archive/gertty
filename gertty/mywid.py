@@ -17,10 +17,10 @@ import urwid
 GLOBAL_HELP = """\
 Global Keys
 ===========
-<F1> or <?> Help
-<ESC>       Back to previous screen
-<CTRL-Q>    Quit Gertty
-<CTRL-O>    Search for changes
+<F1> or <?> Display help.
+<ESC>       Back to previous screen.
+<CTRL-Q>    Quit Gertty.
+<CTRL-O>    Search for changes.
 """
 
 class TextButton(urwid.Button):

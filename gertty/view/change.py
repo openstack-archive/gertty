@@ -275,6 +275,7 @@ class ChangeView(urwid.WidgetWrap):
 <d>      Show the diff of the mont recent revision.
 <k>      Toggle the hidden flag for the current change.
 <r>      Leave a review for the most recent revision.
+<u>      Back to the list of changes.
 <v>      Toggle the reviewed flag for the current change.
 <x>      Cherry-pick the most recent revision onto the local repo.
 <ctrl-r> Refresh this change.
@@ -565,6 +566,10 @@ class ChangeView(urwid.WidgetWrap):
         if r == 'x':
             row = self.revision_rows[self.last_revision_key]
             row.cherryPick(None)
+            return None
+        if r == 'u':
+            widget = self.app.findChangeList()
+            self.app.backScreen(widget)
             return None
         if r == 'ctrl r':
             self.app.sync.submitTask(
