@@ -212,7 +212,7 @@ class App(object):
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
     def welcome(self):
-        text = WELCOME_TEXT + self.loop.widget.help
+        text = WELCOME_TEXT + self.loop.widget.help()
         dialog = mywid.MessageDialog('Welcome', text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
