@@ -122,16 +122,19 @@ def SearchParser():
         '''owner_term : OP_OWNER string'''
         if p[2] == 'self':
             username = p.parser.username
-            p[0] = gertty.db.account_table.c.username == username
+            p[0] = and_(gertty.db.change_table.c.account_key == gertty.db.account_table.c.key,
+                        gertty.db.account_table.c.username == username)
         else:
-            p[0] = or_(gertty.db.account_table.c.username == p[2],
-                       gertty.db.account_table.c.email == p[2],
-                       gertty.db.account_table.c.name == p[2])
+            p[0] = and_(gertty.db.change_table.c.account_key == gertty.db.account_table.c.key,
+                        or_(gertty.db.account_table.c.username == p[2],
+                            gertty.db.account_table.c.email == p[2],
+                            gertty.db.account_table.c.name == p[2]))
 
     def p_reviewer_term(p):
         '''reviewer_term : OP_REVIEWER string'''
         filters = []
         filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
+        filters.append(gertty.db.approval_table.c.account_key == gertty.db.account_table.c.key)
         if p[2] == 'self':
             username = p.parser.username
             filters.append(gertty.db.account_table.c.username == username)
@@ -196,6 +199,7 @@ def SearchParser():
         elif op == '<=':
             filters.append(gertty.db.approval_table.c.value <= value)
         if user is not None:
+            filters.append(gertty.db.approval_table.c.account_key == gertty.db.account_table.c.key)
             filters.append(
                 or_(gertty.db.account_table.c.username == user,
                     gertty.db.account_table.c.email == user,
@@ -259,10 +263,12 @@ def SearchParser():
         elif p[2] == 'abandoned':
             p[0] = gertty.db.change_table.c.status == 'ABANDONED'
         elif p[2] == 'owner':
-            p[0] = gertty.db.account_table.c.username == username
+            p[0] = and_(gertty.db.change_table.c.account_key == gertty.db.account_table.c.key,
+                        gertty.db.account_table.c.username == username)
         elif p[2] == 'reviewer':
             filters = []
             filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
+            filters.append(gertty.db.approval_table.c.account_key == gertty.db.account_table.c.key)
             filters.append(gertty.db.account_table.c.username == username)
             s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
             p[0] = gertty.db.change_table.c.key.in_(s)
