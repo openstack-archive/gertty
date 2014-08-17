@@ -186,11 +186,11 @@ class DiffContextButton(urwid.WidgetWrap):
         focus_map={'context-button':'focused-context-button'}
         buttons = [mywid.FixedButton(('context-button', "Expand previous 10"),
                                      on_press=self.prev),
-                   mywid.FixedButton(('context-button',
-                                      "Expand %s lines of context" % len(chunk.lines)),
+                   mywid.FixedButton(('context-button', "Expand"),
                                      on_press=self.all),
                    mywid.FixedButton(('context-button', "Expand next 10"),
                                      on_press=self.next)]
+        self._buttons = buttons
         buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
         buttons = urwid.Columns([urwid.Text('')] + buttons + [urwid.Text('')],
                                 dividechars=4)
@@ -199,6 +199,11 @@ class DiffContextButton(urwid.WidgetWrap):
         self.view = view
         self.diff = diff
         self.chunk = chunk
+        self.update()
+
+    def update(self):
+        self._buttons[1].set_label("Expand %s lines of context" %
+                                   (len(self.chunk.lines)),)
 
     def prev(self, button):
         self.view.expandChunk(self.diff, self.chunk, from_start=10)
@@ -253,6 +258,7 @@ class DiffView(urwid.WidgetWrap):
             self.project_name = new_revision.change.project.name
             self.commit = new_revision.commit
             comment_lists = {}
+            comment_filenames = set()
             for comment in new_revision.comments:
                 if comment.parent:
                     if old_revision:  # we're not looking at the base
@@ -272,6 +278,7 @@ class DiffView(urwid.WidgetWrap):
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
+                comment_filenames.add(comment.file)
             for comment in old_comments:
                 if comment.parent:
                     continue
@@ -288,14 +295,25 @@ class DiffView(urwid.WidgetWrap):
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
+                comment_filenames.add(comment.file)
         repo = self.app.getRepo(self.project_name)
         self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
         lines = []  # The initial set of lines to display
         self.file_diffs = [{}, {}]  # Mapping of fn -> DiffFile object (old, new)
         # this is a list of files:
-        for i, diff in enumerate(repo.diff(self.base_commit, self.commit,
-                show_old_commit=show_old_commit)):
+        diffs = repo.diff(self.base_commit, self.commit,
+                          show_old_commit=show_old_commit)
+        for diff in diffs:
+            comment_filenames.discard(diff.oldname)
+            comment_filenames.discard(diff.newname)
+        # There are comments referring to these files which do not
+        # appear in the diff so we should create fake diff objects
+        # that contain the full text.
+        for filename in comment_filenames:
+            diff = repo.getFile(self.base_commit, self.commit, filename)
+            diffs.append(diff)
+        for i, diff in enumerate(diffs):
             if i > 0:
                 lines.append(urwid.Text(''))
             self.file_diffs[gitrepo.OLD][diff.oldname] = diff
@@ -382,6 +400,8 @@ class DiffView(urwid.WidgetWrap):
         chunk.calcRange()
         if not chunk.lines:
             self.listbox.body.remove(chunk.button)
+        else:
+            chunk.button.update()
 
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []

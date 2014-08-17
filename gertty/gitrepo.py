@@ -431,3 +431,17 @@ class Repo(object):
                     raise Exception("Unhandled line: %s" % line)
             f.finalize()
         return files
+
+    def getFile(self, old, new, path):
+        f = DiffFile()
+        f.oldname = path
+        f.newname = path
+        f.old_lineno = 1
+        f.new_lineno = 1
+        repo = git.Repo(self.path)
+        newc = repo.commit(new)
+        blob = newc.tree[path]
+        for line in blob.data_stream.read().splitlines():
+            f.addContextLine(line)
+        f.finalize()
+        return f
