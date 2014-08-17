@@ -485,7 +485,8 @@ class ChangeView(urwid.WidgetWrap):
             for message in change.messages:
                 row = self.message_rows.get(message.key)
                 if not row:
-                    row = ChangeMessageBox(self.app, message)
+                    box = ChangeMessageBox(self.app, message)
+                    row = urwid.Padding(box, width=80)
                     self.listbox.body.insert(listbox_index, row)
                     self.message_rows[message.key] = row
                 # Messages are extremely unlikely to be deleted, skip
