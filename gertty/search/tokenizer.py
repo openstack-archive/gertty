@@ -68,7 +68,6 @@ tokens = [
     ] + operators.values()
 
 def SearchTokenizer():
-    t_CHANGE_ID  = r'I[a-fA-F0-9]{7,40}'
     t_LPAREN     = r'\('
     t_RPAREN     = r'\)'
     t_NEG        = r'!'
@@ -76,6 +75,10 @@ def SearchTokenizer():
     def t_OP(t):
         r'[a-zA-Z_][a-zA-Z_]*:'
         t.type = operators.get(t.value[:-1], 'OP')
+        return t
+
+    def t_CHANGE_ID(t):
+        r'I[a-fA-F0-9]{7,40}'
         return t
 
     def t_SSTRING(t):

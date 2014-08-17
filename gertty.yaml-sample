@@ -29,7 +29,7 @@ commentlinks:
     replacements:
       - search:
           text: "{id}"
-          query: "changeid:{id}"
+          query: "change:{id}"
 
 # This is the query used for the list of changes when a project is
 # selected.  The default is "status:open"; if you don't want to see
