@@ -120,7 +120,7 @@ class HyperText(urwid.Text):
         self._mouse_press_item = None
         self.selectable_items = []
         self.focused_index = None
-        self.last_focused_index = None
+        self.last_focused_index = 0
         super(HyperText, self).__init__(markup, align, wrap, layout)
 
     def focusFirstItem(self):

@@ -269,6 +269,17 @@ class ChangeMessageBox(mywid.HyperText):
             comment_text = commentlink.run(app, comment_text)
         self.set_text(text+comment_text)
 
+class CommitMessageBox(mywid.HyperText):
+    def __init__(self, app, message):
+        self.app = app
+        super(CommitMessageBox, self).__init__(message)
+
+    def set_text(self, text):
+        text = [text]
+        for commentlink in self.app.config.commentlinks:
+            text = commentlink.run(self.app, text)
+        super(CommitMessageBox, self).set_text(text)
+
 class ChangeView(urwid.WidgetWrap):
     _help = """
 <c>      Checkout the most recent revision into the local repo.
@@ -319,7 +330,7 @@ class ChangeView(urwid.WidgetWrap):
             row = urwid.Columns([(12, urwid.Text(('change-header', l), wrap='clip')), v])
             change_info.append(row)
         change_info = urwid.Pile(change_info)
-        self.commit_message = urwid.Text(u'')
+        self.commit_message = CommitMessageBox(app, u'')
         votes = mywid.Table([])
         self.depends_on = urwid.Pile([])
         self.depends_on_rows = {}
@@ -344,6 +355,8 @@ class ChangeView(urwid.WidgetWrap):
 
         self.checkGitRepo()
         self.refresh()
+        self.listbox.set_focus(0)
+        top.set_focus(0)
 
     def checkGitRepo(self):
         missing_revisions = set()
