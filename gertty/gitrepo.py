@@ -265,10 +265,10 @@ class Repo(object):
         prevstyle = None
         output_old = []
         output_new = []
-        #socket.send('startold' + repr(old)+'\n')
-        #socket.send('startnew' + repr(new)+'\n')
+        #self.log.debug('startold' + repr(old))
+        #self.log.debug('startnew' + repr(new))
         for line in self.differ.compare(old, new):
-            #socket.sendall('diff output: ' + line+'\n')
+            #self.log.debug('diff output: ' + line)
             key = line[0]
             rest = line[2:]
             if key == '?':
@@ -281,7 +281,7 @@ class Repo(object):
                         indicator = ' '
                     else:
                         indicator = rest[i]
-                    #socket.sendall('%s %s %s %s %s\n' % (i, c, indicator, emphasis, accumulator))
+                    #self.log.debug('%s %s %s %s %s' % (i, c, indicator, emphasis, accumulator))
                     if indicator != ' ' and not emphasis:
                         # changing from not emph to emph
                         if accumulator:
@@ -307,24 +307,25 @@ class Repo(object):
                 prevline = None
                 continue
             if prevline is not None:
-                if prevstyle == 'added':
+                if prevstyle == 'added' or prevstyle == 'context':
                     output_new.append((prevstyle+'-line', prevline))
-                elif prevstyle == 'removed':
+                if prevstyle == 'removed' or prevstyle == 'context':
                     output_old.append((prevstyle+'-line', prevline))
             if key == '+':
                 prevstyle = 'added'
             elif key == '-':
                 prevstyle = 'removed'
+            elif key == ' ':
+                prevstyle = 'context'
             prevline = rest
-        #socket.sendall('prev'+repr(prevline)+'\n')
+        #self.log.debug('prev'+repr(prevline))
         if prevline is not None:
             if prevstyle == 'added':
                 output_new.append((prevstyle+'-line', prevline))
             elif prevstyle == 'removed':
                 output_old.append((prevstyle+'-line', prevline))
-        #socket.sendall(repr(output_old)+'\n')
-        #socket.sendall(repr(output_new)+'\n')
-        #socket.sendall('\n')
+        #self.log.debug(repr(output_old))
+        #self.log.debug(repr(output_new))
         return output_old, output_new
 
     header_re = re.compile('@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@')
