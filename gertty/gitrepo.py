@@ -45,6 +45,11 @@ class GitTimeZone(datetime.tzinfo):
         return None
 
 
+class CommitBlob(object):
+    def __init__(self):
+        self.path = '/COMMIT_MSG'
+
+
 class CommitContext(object):
     """A git.diff.Diff for commit messages."""
 
@@ -92,6 +97,13 @@ class CommitContext(object):
         :param new: A git.objects.commit object.
         """
         self.rename_from = self.rename_to = None
+        if old is None:
+            self.new_file = True
+        else:
+            self.new_file = False
+        self.deleted_file = False
+        self.a_blob = CommitBlob()
+        self.b_blob = CommitBlob()
         self.diff = ''.join(difflib.unified_diff(
             self.decorateMessage(old), self.decorateMessage(new),
             fromfile="/a/COMMIT_MSG", tofile="/b/COMMIT_MSG"))
@@ -349,6 +361,14 @@ class Repo(object):
         for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
+            if diff_context.a_blob:
+                f.oldname = diff_context.a_blob.path
+            if diff_context.b_blob:
+                f.newname = diff_context.b_blob.path
+            if diff_context.new_file:
+                f.oldname = 'Empty file'
+            if diff_context.deleted_file:
+                f.newname = 'Empty file'
             files.append(f)
             if diff_context.rename_from:
                 f.oldname = diff_context.rename_from
@@ -361,14 +381,8 @@ class Repo(object):
             for i, line in enumerate(diff_lines):
                 last_line = (i == len(diff_lines)-1)
                 if line.startswith('---'):
-                    f.oldname = line[6:]
-                    if line[4:] == '/dev/null':
-                        f.oldname = 'Empty file'
                     continue
                 if line.startswith('+++'):
-                    f.newname = line[6:]
-                    if line[4:] == '/dev/null':
-                        f.newname = 'Empty file'
                     continue
                 if line.startswith('@@'):
                     #socket.sendall(line)
