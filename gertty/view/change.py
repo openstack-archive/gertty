@@ -336,27 +336,26 @@ class ChangeView(urwid.WidgetWrap):
         self.depends_on_rows = {}
         self.needed_by = urwid.Pile([])
         self.needed_by_rows = {}
-        self.left_column = urwid.Pile([('pack', change_info),
-                                       ('pack', urwid.Divider()),
-                                       ('pack', votes),
-                                       ('pack', urwid.Divider()),
-                                       ('pack', self.depends_on),
-                                       ('pack', self.needed_by)])
-        top = urwid.Columns([self.left_column, ('weight', 1, self.commit_message)])
+        self.related_changes = urwid.Pile([self.depends_on, self.needed_by])
+        self.grid = urwid.GridFlow([change_info, self.commit_message, votes],
+                                   cell_width=80, h_sep=2, v_sep=1, align='left')
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(2)
 
-        self.listbox.body.append(top)
+        self.listbox.body.append(self.grid)
+        self.listbox.body.append(urwid.Divider())
+        self.listbox.body.append(self.related_changes)
         self.listbox.body.append(urwid.Divider())
         self.listbox_patchset_start = len(self.listbox.body)
 
         self.checkGitRepo()
         self.refresh()
         self.listbox.set_focus(0)
-        top.set_focus(0)
+        self.grid.set_focus(1)
+        self.related_changes.set_focus(0)
 
     def checkGitRepo(self):
         missing_revisions = set()
@@ -459,7 +458,7 @@ class ChangeView(urwid.WidgetWrap):
             # TODO: update the existing table rather than replacing it
             # wholesale.  It will become more important if the table
             # gets selectable items (like clickable names).
-            self.left_column.contents[2] = (votes, ('pack', None))
+            self.grid.contents[2] = (votes, ('given', 80))
 
             self.refreshDependencies(session, change)
 
@@ -513,8 +512,6 @@ class ChangeView(urwid.WidgetWrap):
                 widget.contents.insert(i, (row, widget.options('pack')))
                 if not widget.focus.selectable():
                     widget.set_focus(i)
-                if not self.left_column.focus.selectable():
-                    self.left_column.set_focus(widget)
                 widget_rows[key] = row
             else:
                 row.original_widget.original_widget.set_label(subject)
