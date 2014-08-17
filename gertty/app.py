@@ -226,6 +226,7 @@ class App(object):
             try:
                 number = int(number)
             except ValueError:
+                number = None
                 changeid = query.split(':')[1].strip()
         if not (number or changeid):
             return

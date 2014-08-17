@@ -51,7 +51,7 @@ class SearchReplacement(object):
     def replace(self, app, data):
         link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
         urwid.connect_signal(link, 'selected',
-            lambda link:app.search(self.query.format(**data)))
+            lambda link:app.doSearch(self.query.format(**data)))
         return link
 
 class CommentLink(object):
