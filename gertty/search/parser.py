@@ -48,7 +48,7 @@ def SearchParser():
         elif p[2] == 'or':
             p[0] = or_(p[1], p[3])
         else:
-            raise SyntaxErro()
+            raise SyntaxError()
 
     def p_negative_expr(p):
         '''negative_expr : NOT expression
