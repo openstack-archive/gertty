@@ -20,7 +20,8 @@ import urwid
 from gertty import gitrepo
 from gertty import mywid
 from gertty import sync
-from gertty.view import diff as view_diff
+from gertty.view import side_diff as view_side_diff
+from gertty.view import unified_diff as view_unified_diff
 import gertty.view
 
 class ReviewDialog(urwid.WidgetWrap):
@@ -609,7 +610,11 @@ class ChangeView(urwid.WidgetWrap):
         return r
 
     def diff(self, revision_key):
-        self.app.changeScreen(view_diff.DiffView(self.app, revision_key))
+        if self.app.config.diff_view == 'unified':
+            screen = view_unified_diff.UnifiedDiffView(self.app, revision_key)
+        else:
+            screen = view_side_diff.SideDiffView(self.app, revision_key)
+        self.app.changeScreen(screen)
 
     def reviewKey(self, reviewkey):
         approvals = {}
