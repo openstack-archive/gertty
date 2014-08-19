@@ -239,7 +239,7 @@ class App(object):
         if change_key is None:
             if self.sync.offline:
                 raise Exception('Can not sync change while offline.')
-            task = sync.SyncChangeByNumberTask(number, sync.HIGH_PRIORITY)
+            task = sync.SyncChangeByNumberTask(number or changeid, sync.HIGH_PRIORITY)
             self.sync.submitTask(task)
             succeeded = task.wait(300)
             if not succeeded:
@@ -249,7 +249,10 @@ class App(object):
                 if not succeeded:
                     raise Exception('Unable to sync change.')
             with self.db.getSession() as session:
-                change = session.getChangeByNumber(number)
+                if number:
+                    change = session.getChangeByNumber(number)
+                elif changeid:
+                    change = session.getChangeByChangeID(changeid)
                 change_key = change and change.key or None
         if change_key is None:
             raise Exception('Change is not in local database.')
