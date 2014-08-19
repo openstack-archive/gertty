@@ -93,90 +93,19 @@ class LineContext(object):
         self.old_ln = old_ln
         self.new_ln = new_ln
 
-class DiffCommentEdit(urwid.Columns):
-    def __init__(self, context, old_key=None, new_key=None, old=u'', new=u''):
-        super(DiffCommentEdit, self).__init__([])
-        self.context = context
-        # If we save a comment, the resulting key will be stored here
-        self.old_key = old_key
-        self.new_key = new_key
-        self.old = urwid.Edit(edit_text=old, multiline=True)
-        self.new = urwid.Edit(edit_text=new, multiline=True)
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((urwid.AttrMap(self.new, 'draft-comment'), ('weight', 1, False)))
-        self.focus_position = 3
+class BaseDiffCommentEdit(urwid.Columns):
+    pass
 
-    def keypress(self, size, key):
-        r = super(DiffCommentEdit, self).keypress(size, key)
-        if r in ['tab', 'shift tab']:
-            if self.focus_position == 3:
-                self.focus_position = 1
-            else:
-                self.focus_position = 3
-            return None
-        return r
+class BaseDiffComment(urwid.Columns):
+    pass
 
-class DiffComment(urwid.Columns):
-    def __init__(self, context, old, new):
-        super(DiffComment, self).__init__([])
-        self.context = context
-        oldt = urwid.Text(old)
-        newt = urwid.Text(new)
-        if old:
-            oldt = urwid.AttrMap(oldt, 'comment')
-        if new:
-            newt = urwid.AttrMap(newt, 'comment')
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((oldt, ('weight', 1, False)))
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
-        self.contents.append((newt, ('weight', 1, False)))
-
-class DiffLine(urwid.Button):
+class BaseDiffLine(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, app, context, old, new, callback=None):
-        super(DiffLine, self).__init__('', on_press=callback)
-        self.context = context
-        columns = []
-        for (ln, action, line) in (old, new):
-            if ln is None:
-                ln = ''
-            else:
-                ln = str(ln)
-            ln_col = urwid.Text(('line-number', ln))
-            ln_col.set_wrap_mode('clip')
-            line_col = urwid.Text(line)
-            line_col.set_wrap_mode('clip')
-            if action == '':
-                line_col = urwid.AttrMap(line_col, 'nonexistent')
-            columns += [(4, ln_col), line_col]
-        col = urwid.Columns(columns)
-        map = {None: 'focused',
-               'added-line': 'focused-added-line',
-               'added-word': 'focused-added-word',
-               'removed-line': 'focused-removed-line',
-               'removed-word': 'focused-removed-word',
-               'nonexistent': 'focused-nonexistent',
-               'line-number': 'focused-line-number',
-               }
-        self._w = urwid.AttrMap(col, None, focus_map=map)
-
-class FileHeader(urwid.Button):
+class BaseFileHeader(urwid.Button):
     def selectable(self):
         return True
-
-    def __init__(self, app, context, old, new, callback=None):
-        super(FileHeader, self).__init__('', on_press=callback)
-        self.context = context
-        col = urwid.Columns([
-                urwid.Text(('filename', old)),
-                urwid.Text(('filename', new))])
-        map = {None: 'focused-filename',
-               'filename': 'focused-filename'}
-        self._w = urwid.AttrMap(col, None, focus_map=map)
 
 class DiffContextButton(urwid.WidgetWrap):
     def selectable(self):
@@ -214,7 +143,7 @@ class DiffContextButton(urwid.WidgetWrap):
     def next(self, button):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
-class DiffView(urwid.WidgetWrap):
+class BaseDiffView(urwid.WidgetWrap):
     _help = """
 <Enter> Add an inline comment
 <p>     Select old/new patchsets to diff
@@ -224,7 +153,7 @@ class DiffView(urwid.WidgetWrap):
         return self._help
 
     def __init__(self, app, new_revision_key):
-        super(DiffView, self).__init__(urwid.Pile([]))
+        super(BaseDiffView, self).__init__(urwid.Pile([]))
         self.log = logging.getLogger('gertty.view.diff')
         self.app = app
         self.old_revision_key = None  # Base
@@ -404,86 +333,10 @@ class DiffView(urwid.WidgetWrap):
             chunk.button.update()
 
     def makeLines(self, diff, lines_to_add, comment_lists):
-        lines = []
-        for old, new in lines_to_add:
-            context = LineContext(
-                self.old_revision_key, self.new_revision_key,
-                self.old_revision_num, self.new_revision_num,
-                diff.oldname, diff.newname,
-                old[0], new[0])
-            lines.append(DiffLine(self.app, context, old, new,
-                                  callback=self.onSelect))
-            # see if there are any comments for this line
-            key = 'old-%s-%s' % (old[0], diff.oldname)
-            old_list = comment_lists.pop(key, [])
-            key = 'new-%s-%s' % (new[0], diff.newname)
-            new_list = comment_lists.pop(key, [])
-            while old_list or new_list:
-                old_comment_key = new_comment_key = None
-                old_comment = new_comment = u''
-                if old_list:
-                    (old_comment_key, old_comment) = old_list.pop(0)
-                if new_list:
-                    (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(DiffComment(context, old_comment, new_comment))
-            # see if there are any draft comments for this line
-            key = 'olddraft-%s-%s' % (old[0], diff.oldname)
-            old_list = comment_lists.pop(key, [])
-            key = 'newdraft-%s-%s' % (new[0], diff.newname)
-            new_list = comment_lists.pop(key, [])
-            while old_list or new_list:
-                old_comment_key = new_comment_key = None
-                old_comment = new_comment = u''
-                if old_list:
-                    (old_comment_key, old_comment) = old_list.pop(0)
-                if new_list:
-                    (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(DiffCommentEdit(context,
-                                             old_comment_key,
-                                             new_comment_key,
-                                             old_comment, new_comment))
-        return lines
+        raise NotImplementedError
 
     def makeFileHeader(self, diff, comment_lists):
-        context = LineContext(
-            self.old_revision_key, self.new_revision_key,
-            self.old_revision_num, self.new_revision_num,
-            diff.oldname, diff.newname,
-            None, None)
-        lines = []
-        lines.append(FileHeader(self.app, context, diff.oldname, diff.newname,
-                                callback=self.onSelect))
-
-        # see if there are any comments for this file
-        key = 'old-None-%s' % (diff.oldname,)
-        old_list = comment_lists.pop(key, [])
-        key = 'new-None-%s' % (diff.newname,)
-        new_list = comment_lists.pop(key, [])
-        while old_list or new_list:
-            old_comment_key = new_comment_key = None
-            old_comment = new_comment = u''
-            if old_list:
-                (old_comment_key, old_comment) = old_list.pop(0)
-            if new_list:
-                (new_comment_key, new_comment) = new_list.pop(0)
-            lines.append(DiffComment(context, old_comment, new_comment))
-        # see if there are any draft comments for this file
-        key = 'olddraft-None-%s' % (diff.oldname,)
-        old_list = comment_lists.pop(key, [])
-        key = 'newdraft-None-%s' % (diff.newname,)
-        new_list = comment_lists.pop(key, [])
-        while old_list or new_list:
-            old_comment_key = new_comment_key = None
-            old_comment = new_comment = u''
-            if old_list:
-                (old_comment_key, old_comment) = old_list.pop(0)
-            if new_list:
-                (new_comment_key, new_comment) = new_list.pop(0)
-            lines.append(DiffCommentEdit(context,
-                                         old_comment_key,
-                                         new_comment_key,
-                                         old_comment, new_comment))
-        return lines
+        raise NotImplementedError
 
     def refresh(self):
         #TODO
@@ -491,9 +344,9 @@ class DiffView(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         old_focus = self.listbox.focus
-        r = super(DiffView, self).keypress(size, key)
+        r = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
-        if (isinstance(old_focus, DiffCommentEdit) and
+        if (isinstance(old_focus, BaseDiffCommentEdit) and
             (old_focus != new_focus or key == 'esc')):
             self.cleanupEdit(old_focus)
         if r == 'p':
@@ -503,36 +356,23 @@ class DiffView(urwid.WidgetWrap):
 
     def mouse_event(self, size, event, button, x, y, focus):
         old_focus = self.listbox.focus
-        r = super(DiffView, self).mouse_event(size, event, button, x, y, focus)
+        r = super(BaseDiffView, self).mouse_event(size, event, button, x, y, focus)
         new_focus = self.listbox.focus
-        if old_focus != new_focus and isinstance(old_focus, DiffCommentEdit):
+        if old_focus != new_focus and isinstance(old_focus, BaseDiffCommentEdit):
             self.cleanupEdit(old_focus)
         return r
 
+    def makeCommentEdit(self, edit):
+        raise NotImplementedError
+
     def onSelect(self, button):
         pos = self.listbox.focus_position
-        e = DiffCommentEdit(self.listbox.body[pos].context)
+        e = self.makeCommentEdit(self.listbox.body[pos])
         self.listbox.body.insert(pos+1, e)
         self.listbox.focus_position = pos+1
 
     def cleanupEdit(self, edit):
-        if edit.old_key:
-            self.deleteComment(edit.old_key)
-            edit.old_key = None
-        if edit.new_key:
-            self.deleteComment(edit.new_key)
-            edit.new_key = None
-        old = edit.old.edit_text.strip()
-        new = edit.new.edit_text.strip()
-        if old or new:
-            if old:
-                edit.old_key = self.saveComment(
-                    edit.context, old, new=False)
-            if new:
-                edit.new_key = self.saveComment(
-                    edit.context, new, new=True)
-        else:
-            self.listbox.body.remove(edit)
+        raise NotImplementedError
 
     def deleteComment(self, comment_key):
         with self.app.db.getSession() as session:

@@ -37,6 +37,10 @@ commentlinks:
 #
 # change-list-query: "status:open not label:Workflow=-1"
 
+# Uncomment the following line to use a unified diff view instead
+# of the default side-by-side:
+# diff-view: unified
+
 dashboards:
   - name: "My changes"
     query: "owner:self status:open"

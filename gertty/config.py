@@ -90,6 +90,7 @@ class ConfigSchema(object):
                            'dashboards': self.dashboards,
                            'reviewkeys': self.reviewkeys,
                            'change-list-query': str,
+                           'diff-view': str,
                            })
         return schema
 
@@ -143,6 +144,8 @@ class Config(object):
                                 url="{url}"))])))
 
         self.project_change_list_query = self.config.get('change-list-query', 'status:open')
+
+        self.diff_view = self.config.get('diff-view', 'side-by-side')
 
         self.dashboards = OrderedDict()
         for d in self.config.get('dashboards', []):
