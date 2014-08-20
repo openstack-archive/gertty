@@ -16,6 +16,7 @@
 import collections
 import getpass
 import os
+import re
 try:
     import ordereddict
 except:
@@ -83,6 +84,10 @@ class ConfigSchema(object):
 
     reviewkeys = [reviewkey]
 
+    hide_comment = {v.Required('author'): str}
+
+    hide_comments = [hide_comment]
+
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
@@ -91,6 +96,7 @@ class ConfigSchema(object):
                            'reviewkeys': self.reviewkeys,
                            'change-list-query': str,
                            'diff-view': str,
+                           'hide-comments': self.hide_comments,
                            })
         return schema
 
@@ -154,6 +160,10 @@ class Config(object):
         self.reviewkeys = OrderedDict()
         for k in self.config.get('reviewkeys', []):
             self.reviewkeys[k['key']] = k
+
+        self.hide_comments = []
+        for h in self.config.get('hide-comments', []):
+            self.hide_comments.append(re.compile(h['author']))
 
     def getServer(self, name=None):
         for server in self.config['servers']:
