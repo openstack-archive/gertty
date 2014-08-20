@@ -532,15 +532,23 @@ class ChangeView(urwid.WidgetWrap):
         parents = {}
         parent = session.getRevisionByCommit(revision.parent)
         if parent and parent.change.status != 'MERGED':
-            parents[parent.change.key] = parent.change.subject
+            subject = parent.change.subject
+            if parent != parent.change.revisions[-1]:
+                subject += ' [OUTDATED]'
+            parents[parent.change.key] = subject
         self._updateDependenciesWidget(parents,
                                        self.depends_on, self.depends_on_rows,
                                        header='Depends on:')
 
         # Handle needed-by
-        children = dict((r.change.key, r.change.subject)
-                        for r in session.getRevisionsByParent(revision.commit)
-                        if r.change.status != 'MERGED')
+        children = {}
+        for revision in change.revisions:
+            children.update((r.change.key, r.change.subject)
+                            for r in session.getRevisionsByParent(revision.commit)
+                            if (r.change.status != 'MERGED' and
+                                r == r.change.revisions[-1]))
+        for x in children:
+            self.app.log.debug("needed by %s" % x)
         self._updateDependenciesWidget(children,
                                        self.needed_by, self.needed_by_rows,
                                        header='Needed by:')
