@@ -289,6 +289,7 @@ class ChangeView(urwid.WidgetWrap):
 <n>      Go to the next change in the list.
 <p>      Go to the previous change in the list.
 <r>      Leave a review for the most recent revision.
+<t>      Toggle display of hidden comments.
 <u>      Back to the list of changes.
 <v>      Toggle the reviewed flag for the current change.
 <x>      Cherry-pick the most recent revision onto the local repo.
@@ -310,6 +311,7 @@ class ChangeView(urwid.WidgetWrap):
         self.revision_rows = {}
         self.message_rows = {}
         self.last_revision_key = None
+        self.hide_comments = True
         self.change_id_label = urwid.Text(u'', wrap='clip')
         self.owner_label = urwid.Text(u'', wrap='clip')
         self.project_label = urwid.Text(u'', wrap='clip')
@@ -482,16 +484,36 @@ class ChangeView(urwid.WidgetWrap):
             if len(self.listbox.body) == listbox_index:
                 self.listbox.body.insert(listbox_index, urwid.Divider())
                 listbox_index += 1
+            # Get the set of messages that should be displayed
+            display_messages = []
             for message in change.messages:
+                skip = False
+                if self.hide_comments:
+                    for regex in self.app.config.hide_comments:
+                        if regex.match(message.author.name):
+                            skip = True
+                            break
+                if not skip:
+                    display_messages.append(message)
+            # The set of message keys currently displayed
+            unseen_keys = set(self.message_rows.keys())
+            # Make sure all of the messages that should be displayed are
+            for message in display_messages:
                 row = self.message_rows.get(message.key)
                 if not row:
                     box = ChangeMessageBox(self.app, message)
                     row = urwid.Padding(box, width=80)
                     self.listbox.body.insert(listbox_index, row)
                     self.message_rows[message.key] = row
-                # Messages are extremely unlikely to be deleted, skip
-                # that case.
+                else:
+                    unseen_keys.remove(message.key)
                 listbox_index += 1
+            # Remove any messages that should not be displayed
+            for key in unseen_keys:
+                row = self.message_rows.get(key)
+                self.listbox.body.remove(row)
+                del self.message_rows[key]
+                listbox_index -= 1
 
     def _updateDependenciesWidget(self, changes, widget, widget_rows, header):
         if not changes:
@@ -598,6 +620,10 @@ class ChangeView(urwid.WidgetWrap):
                     self.app.changeScreen(view, push=False)
                 except gertty.view.DisplayError as e:
                     self.app.error(e.message)
+            return None
+        if r == 't':
+            self.hide_comments = not self.hide_comments
+            self.refresh()
             return None
         if r == 'ctrl r':
             self.app.sync.submitTask(

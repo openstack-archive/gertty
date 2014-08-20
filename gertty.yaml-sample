@@ -41,6 +41,11 @@ commentlinks:
 # of the default side-by-side:
 # diff-view: unified
 
+# Hide comments by default that match the following criteria.
+# You can toggle their display with 't'.
+hide-comments:
+  - author: "^(.*CI|Jenkins)$"
+
 dashboards:
   - name: "My changes"
     query: "owner:self status:open"
