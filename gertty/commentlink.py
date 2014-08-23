@@ -12,11 +12,21 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
+try:
+    import ordereddict
+except:
+    pass
 import re
 
 import urwid
 
 import mywid
+
+try:
+    OrderedDict = collections.OrderedDict
+except AttributeError:
+    OrderedDict = ordereddict.OrderedDict
 
 class TextReplacement(object):
     def __init__(self, config):
@@ -57,6 +67,7 @@ class SearchReplacement(object):
 class CommentLink(object):
     def __init__(self, config):
         self.match = re.compile(config['match'], re.M)
+        self.test_result = config.get('test-result', None)
         self.replacements = []
         for r in config['replacements']:
             if 'text' in r:
@@ -65,6 +76,18 @@ class CommentLink(object):
                 self.replacements.append(LinkReplacement(r['link']))
             if 'search' in r:
                 self.replacements.append(SearchReplacement(r['search']))
+
+    def getTestResults(self, app, text):
+        if self.test_result is None:
+            return {}
+        ret = OrderedDict()
+        for line in text.split('\n'):
+            m = self.match.search(line)
+            if m:
+                repl = [r.replace(app, m.groupdict()) for r in self.replacements]
+                job = self.test_result.format(**m.groupdict())
+                ret[job] = repl + ['\n']
+        return ret
 
     def run(self, app, chunks):
         ret = []

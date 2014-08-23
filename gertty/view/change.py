@@ -340,8 +340,9 @@ class ChangeView(urwid.WidgetWrap):
         self.needed_by = urwid.Pile([])
         self.needed_by_rows = {}
         self.related_changes = urwid.Pile([self.depends_on, self.needed_by])
-        self.grid = urwid.GridFlow([change_info, self.commit_message, votes],
-                                   cell_width=80, h_sep=2, v_sep=1, align='left')
+        self.results = mywid.HyperText(u'') # because it scrolls better than a table
+        self.grid = mywid.MyGridFlow([change_info, self.commit_message, votes, self.results],
+                                     cell_width=80, h_sep=2, v_sep=1, align='left')
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self._w.contents.append((self.app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
@@ -486,7 +487,15 @@ class ChangeView(urwid.WidgetWrap):
             listbox_index += 1
             # Get the set of messages that should be displayed
             display_messages = []
+            result_systems = {}
             for message in change.messages:
+                if message.revision == change.revisions[-1]:
+                    for commentlink in self.app.config.commentlinks:
+                        results = commentlink.getTestResults(self.app, message.message)
+                        if results:
+                            result_system = result_systems.get(message.author.name, {})
+                            result_systems[message.author.name] = result_system
+                            result_system.update(results)
                 skip = False
                 if self.hide_comments:
                     for regex in self.app.config.hide_comments:
@@ -514,6 +523,17 @@ class ChangeView(urwid.WidgetWrap):
                 self.listbox.body.remove(row)
                 del self.message_rows[key]
                 listbox_index -= 1
+        self._updateTestResults(result_systems)
+
+    def _updateTestResults(self, result_systems):
+        text = []
+        for system, results in result_systems.items():
+            for job, result in results.items():
+                text.append(result)
+        if text:
+            self.results.set_text(text)
+        else:
+            self.results.set_text('')
 
     def _updateDependenciesWidget(self, changes, widget, widget_rows, header):
         if not changes:

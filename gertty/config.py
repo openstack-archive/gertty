@@ -66,7 +66,8 @@ class ConfigSchema(object):
     palettes = [palette]
 
     commentlink = {v.Required('match'): str,
-                   v.Required('replacements'): [replacement]}
+                   v.Required('replacements'): [replacement],
+                   'test-result': str}
 
     commentlinks = [commentlink]
 

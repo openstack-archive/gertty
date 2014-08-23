@@ -276,3 +276,20 @@ class Link(urwid.Widget):
         if focus:
             return self.focused_attr
         return self.attr
+
+# A workaround for the issue fixed in
+# https://github.com/wardi/urwid/pull/74
+# included here until thi fix is released
+class MyGridFlow(urwid.GridFlow):
+    def generate_display_widget(self, size):
+        p = super(MyGridFlow, self).generate_display_widget(size)
+        for item in p.contents:
+            if isinstance(item[0], urwid.Padding):
+                c = item[0].original_widget
+                if isinstance(c, urwid.Columns):
+                    if c.focus_position == 0 and not c.contents[0][0].selectable():
+                        for i, w in enumerate(c.contents):
+                            if w[0].selectable():
+                                c.focus_position = i
+                                break
+        return p
