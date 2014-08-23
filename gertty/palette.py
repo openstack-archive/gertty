@@ -75,10 +75,30 @@ DEFAULT_PALETTE={
     'focused-reviewed-change': ['dark gray,standout', ''],
     }
 
+# A delta from the default palette
+LIGHT_PALETTE = {
+    'table-header': ['black,bold', ''],
+    'unreviewed-project': ['black', ''],
+    'subscribed-project': ['dark gray', ''],
+    'unsubscribed-project': ['dark gray', ''],
+    'focused-unreviewed-project': ['black,standout', ''],
+    'focused-subscribed-project': ['dark gray,standout', ''],
+    'focused-unsubscribed-project': ['dark gray,standout', ''],
+    'change-data': ['dark blue,bold', ''],
+    'reviewer-name': ['brown', ''],
+    'change-message-name': ['brown', ''],
+    'change-message-header': ['black', ''],
+    'focused-link': ['dark blue,bold', ''],
+    'filename': ['dark cyan', ''],
+    }
+
 class Palette(object):
     def __init__(self, config):
         self.palette = {}
         self.palette.update(DEFAULT_PALETTE)
+        self.update(config)
+
+    def update(self, config):
         d = config.copy()
         if 'name' in d:
             del d['name']

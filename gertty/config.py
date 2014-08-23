@@ -92,6 +92,7 @@ class ConfigSchema(object):
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
+                           'palette': str,
                            'commentlinks': self.commentlinks,
                            'dashboards': self.dashboards,
                            'reviewkeys': self.reviewkeys,
@@ -133,12 +134,15 @@ class Config(object):
         log_file = server.get('log_file', '~/.gertty.log')
         self.log_file = os.path.expanduser(log_file)
 
-        self.palettes = {}
+        self.palettes = {'default': gertty.palette.Palette({}),
+                         'light': gertty.palette.Palette(gertty.palette.LIGHT_PALETTE),
+                         }
         for p in self.config.get('palettes', []):
-            self.palettes[p['name']] = gertty.palette.Palette(p)
-        if not self.palettes:
-            self.palettes['default'] = gertty.palette.Palette({})
-        self.palette = self.palettes[palette]
+            if p['name'] not in self.palettes:
+                self.palettes[p['name']] = gertty.palette.Palette(p)
+            else:
+                self.palettes[p['name']].update(p)
+        self.palette = self.palettes[self.config.get('palette', palette)]
 
         self.commentlinks = [gertty.commentlink.CommentLink(c)
                              for c in self.config.get('commentlinks', [])]

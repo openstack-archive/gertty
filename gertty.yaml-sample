@@ -15,6 +15,9 @@ palettes:
     test-SUCCESS: ['light green', '', '']
     test-FAILURE: ['light red', '', '']
 
+# Uncomment the next line if your terminal has a white background
+# palette: light
+
 commentlinks:
   - match: "^- (?P<job>.*?) (?P<url>.*?) : (?P<result>[^ ]+) ?(?P<comment>.*)$"
     test-result: "{job}"
