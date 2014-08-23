@@ -67,8 +67,8 @@ class ProjectListHeader(urwid.WidgetWrap):
 
 class ProjectListView(urwid.WidgetWrap):
     _help = """
-<a>      Toggle hiding of projects with no active reviews (default: hidden).
 <l>      Toggle whether only subscribed projects or all projects are listed.
+<L>      Toggle listing of projects with unreviewed changes.
 <s>      Toggle the subscription flag for the currently selected project.
 <ctrl-r> Sync all projects.
 """
@@ -79,7 +79,7 @@ class ProjectListView(urwid.WidgetWrap):
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))
         self.app = app
-        self.active_only = True
+        self.unreviewed = True
         self.subscribed = True
         self.project_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
@@ -98,17 +98,17 @@ class ProjectListView(urwid.WidgetWrap):
 
     def refresh(self):
         if self.subscribed:
-            self.title = u'Subscribed Projects'
-            if self.active_only:
-                self.title += u' with unreviewed reviews'
+            self.title = u'Subscribed projects'
+            if self.unreviewed:
+                self.title += u' with unreviewed changes'
         else:
-            self.title = u'All Projects'
+            self.title = u'All projects'
         self.app.status.update(title=self.title)
         unseen_keys = set(self.project_rows.keys())
         with self.app.db.getSession() as session:
             i = 0
             for project in session.getProjects(
-                    subscribed=self.subscribed, active_only=self.active_only):
+                    subscribed=self.subscribed, unreviewed=self.unreviewed):
                 row = self.project_rows.get(project.key)
                 if not row:
                     row = ProjectRow(project, self.onSelect)
@@ -138,8 +138,8 @@ class ProjectListView(urwid.WidgetWrap):
                 project_name, unreviewed=True))
 
     def keypress(self, size, key):
-        if key=='a':
-            self.active_only = not self.active_only
+        if key=='L':
+            self.unreviewed = not self.unreviewed
             self.refresh()
             return None
         if key=='l':

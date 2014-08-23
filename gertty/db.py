@@ -421,17 +421,17 @@ class DatabaseSession(object):
     def delete(self, obj):
         self.session().delete(obj)
 
-    def getProjects(self, subscribed=False, active_only=False):
+    def getProjects(self, subscribed=False, unreviewed=False):
         """Retrieve projects.
 
         :param subscribed: If True limit to only subscribed projects.
-        :param active_only: If True limit to only projects with unreviewed
-            reviews.
+        :param unreviewed: If True limit to only projects with unreviewed
+            changes.
         """
         query = self.session().query(Project)
         if subscribed:
             query = query.filter_by(subscribed=subscribed)
-            if active_only:
+            if unreviewed:
                 query = query.filter(exists().where(Project.unreviewed_changes))
         return query.order_by(Project.name).all()
 
