@@ -426,7 +426,7 @@ class DatabaseSession(object):
 
         :param subscribed: If True limit to only subscribed projects.
         :param active_only: If True limit to only projects with unreviewed
-            reviews.
+            changes.
         """
         query = self.session().query(Project)
         if subscribed:
