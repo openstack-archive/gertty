@@ -67,8 +67,8 @@ class ProjectListHeader(urwid.WidgetWrap):
 
 class ProjectListView(urwid.WidgetWrap):
     _help = """
-<a>      Toggle hiding of projects with no active reviews (default: hidden).
 <l>      Toggle whether only subscribed projects or all projects are listed.
+<L>      Toggle listing of projects with unreviewed changes.
 <s>      Toggle the subscription flag for the currently selected project.
 <ctrl-r> Sync all projects.
 """
@@ -100,7 +100,7 @@ class ProjectListView(urwid.WidgetWrap):
         if self.subscribed:
             self.title = u'Subscribed Projects'
             if self.active_only:
-                self.title += u' with unreviewed reviews'
+                self.title += u' with unreviewed changes'
         else:
             self.title = u'All Projects'
         self.app.status.update(title=self.title)
@@ -138,7 +138,7 @@ class ProjectListView(urwid.WidgetWrap):
                 project_name, unreviewed=True))
 
     def keypress(self, size, key):
-        if key=='a':
+        if key=='L':
             self.active_only = not self.active_only
             self.refresh()
             return None
