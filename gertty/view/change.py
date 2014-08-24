@@ -18,6 +18,7 @@ import datetime
 import urwid
 
 from gertty import gitrepo
+from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty.view import side_diff as view_side_diff
@@ -97,7 +98,8 @@ class ReviewDialog(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         r = super(ReviewDialog, self).keypress(size, key)
-        if r=='esc':
+        commands = self.app.config.keymap.getCommands(r)
+        if keymap.PREV_SCREEN in commands:
             self._emit('cancel')
             return None
         return r
@@ -282,27 +284,38 @@ class CommitMessageBox(mywid.HyperText):
         super(CommitMessageBox, self).set_text(text)
 
 class ChangeView(urwid.WidgetWrap):
-    _help = """
-<c>      Checkout the most recent revision into the local repo.
-<d>      Show the diff of the mont recent revision.
-<k>      Toggle the hidden flag for the current change.
-<n>      Go to the next change in the list.
-<p>      Go to the previous change in the list.
-<r>      Leave a review for the most recent revision.
-<t>      Toggle display of hidden comments.
-<u>      Back to the list of changes.
-<v>      Toggle the reviewed flag for the current change.
-<x>      Cherry-pick the most recent revision onto the local repo.
-<ctrl-r> Refresh this change.
-"""
-
     def help(self):
-        text = self._help
+        key = self.app.config.keymap.formatKeys
+        ret = [
+            (key(keymap.CHECKOUT),
+             "Checkout the most recent revision into the local repo"),
+            (key(keymap.DIFF),
+             "Show the diff of the mont recent revision"),
+            (key(keymap.TOGGLE_HIDDEN),
+             "Toggle the hidden flag for the current change"),
+            (key(keymap.NEXT_CHANGE),
+             "Go to the next change in the list"),
+            (key(keymap.PREV_CHANGE),
+             "Go to the previous change in the list"),
+            (key(keymap.REVIEW),
+             "Leave a review for the most recent revision"),
+            (key(keymap.TOGGLE_HIDDEN_COMMENTS),
+             "Toggle display of hidden comments"),
+            (key(keymap.SEARCH_RESULTS),
+             "Back to the list of changes"),
+            (key(keymap.TOGGLE_REVIEWED),
+             "Toggle the reviewed flag for the current change"),
+            (key(keymap.CHERRY_PICK),
+             "Cherry-pick the most recent revision onto the local repo"),
+            (key(keymap.REFRESH),
+             "Refresh this change"),
+            ]
+
         for k in self.app.config.reviewkeys.values():
-            space = max(6 - len(k['key']), 0) * ' '
             action = ', '.join(['{category}:{value}'.format(**a) for a in k['approvals']])
-            text += '<%s>%s %s\n' % (k['key'], space, action)
-        return text
+            ret.append((keymap.formatKey(k['key']), action))
+
+        return ret
 
     def __init__(self, app, change_key):
         super(ChangeView, self).__init__(urwid.Pile([]))
@@ -608,37 +621,39 @@ class ChangeView(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
-        if r == 'v':
+        commands = self.app.config.keymap.getCommands(r)
+        if keymap.TOGGLE_REVIEWED in commands:
             self.toggleReviewed()
             self.refresh()
             return None
-        if r == 'k':
+        if keymap.TOGGLE_HIDDEN in commands:
             self.toggleHidden()
             self.refresh()
             return None
-        if r == 'r':
+        if keymap.REVIEW in commands:
             row = self.revision_rows[self.last_revision_key]
             row.review_button.openReview()
             return None
-        if r == 'd':
+        if keymap.DIFF in commands:
             row = self.revision_rows[self.last_revision_key]
             row.diff(None)
             return None
-        if r == 'c':
+        if keymap.CHECKOUT in commands:
             row = self.revision_rows[self.last_revision_key]
             row.checkout(None)
             return None
-        if r == 'x':
+        if keymap.CHERRY_PICK in commands:
             row = self.revision_rows[self.last_revision_key]
             row.cherryPick(None)
             return None
-        if r == 'u':
+        if keymap.SEARCH_RESULTS in commands:
             widget = self.app.findChangeList()
             self.app.backScreen(widget)
             return None
-        if r in ['n', 'p']:
+        if ((keymap.NEXT_CHANGE in commands) or
+            (keymap.PREV_CHANGE in commands)):
             widget = self.app.findChangeList()
-            if r == 'n':
+            if keymap.NEXT_CHANGE in commands:
                 new_change_key = widget.getNextChangeKey(self.change_key)
             else:
                 new_change_key = widget.getPrevChangeKey(self.change_key)
@@ -649,11 +664,11 @@ class ChangeView(urwid.WidgetWrap):
                 except gertty.view.DisplayError as e:
                     self.app.error(e.message)
             return None
-        if r == 't':
+        if keymap.TOGGLE_HIDDEN_COMMENTS in commands:
             self.hide_comments = not self.hide_comments
             self.refresh()
             return None
-        if r == 'ctrl r':
+        if keymap.REFRESH in commands:
             self.app.sync.submitTask(
                 sync.SyncChangeTask(self.change_rest_id, priority=sync.HIGH_PRIORITY))
             self.app.status.update()

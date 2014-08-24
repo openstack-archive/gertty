@@ -15,6 +15,7 @@
 
 import urwid
 
+from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty.view import change as view_change
@@ -68,15 +69,18 @@ class ChangeListHeader(urwid.WidgetWrap):
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 3)))
 
 class ChangeListView(urwid.WidgetWrap):
-    _help = """
-<k>      Toggle the hidden flag for the currently selected change.
-<l>      Toggle whether only unreviewed or all changes are displayed.
-<v>      Toggle the reviewed flag for the currently selected change.
-<ctrl-r> Sync all projects.
-"""
-
     def help(self):
-        return self._help
+        key = self.app.config.keymap.formatKeys
+        return [
+            (key(keymap.TOGGLE_HIDDEN),
+             "Toggle the hidden flag for the currently selected change"),
+            (key(keymap.TOGGLE_LIST_REVIEWED),
+             "Toggle whether only unreviewed or all changes are displayed"),
+            (key(keymap.TOGGLE_REVIEWED),
+             "Toggle the reviewed flag for the currently selected change"),
+            (key(keymap.REFRESH),
+             "Sync all projects")
+            ]
 
     def __init__(self, app, query, query_desc=None, unreviewed=False):
         super(ChangeListView, self).__init__(urwid.Pile([]))
@@ -152,30 +156,32 @@ class ChangeListView(urwid.WidgetWrap):
         return ret
 
     def keypress(self, size, key):
-        if key=='l':
+        r = super(ChangeListView, self).keypress(size, key)
+        commands = self.app.config.keymap.getCommands(r)
+        if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
             return None
-        if key=='v':
+        if keymap.TOGGLE_REVIEWED in commands:
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position
             reviewed = self.toggleReviewed(self.listbox.body[pos].change_key)
             self.refresh()
             return None
-        if key=='k':
+        if keymap.TOGGLE_HIDDEN in commands:
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position
             hidden = self.toggleHidden(self.listbox.body[pos].change_key)
             self.refresh()
             return None
-        if key == 'ctrl r':
+        if keymap.REFRESH in commands:
             self.app.sync.submitTask(
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
-        return super(ChangeListView, self).keypress(size, key)
+        return key
 
     def onSelect(self, button, change_key):
         try:

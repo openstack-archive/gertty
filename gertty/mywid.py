@@ -14,14 +14,18 @@
 
 import urwid
 
-GLOBAL_HELP = """\
-Global Keys
-===========
-<F1> or <?> Display help.
-<ESC>       Back to previous screen.
-<CTRL-Q>    Quit Gertty.
-<CTRL-O>    Search for changes.
-"""
+from gertty import keymap
+
+GLOBAL_HELP = (
+    (keymap.HELP,
+     "Display help"),
+    (keymap.PREV_SCREEN,
+     "Back to previous screen"),
+    (keymap.QUIT,
+     "Quit Gertty"),
+    (keymap.CHANGE_SEARCH,
+     "Search for changes"),
+    )
 
 class TextButton(urwid.Button):
     def selectable(self):
@@ -176,7 +180,7 @@ class HyperText(urwid.Text):
             if self.focusNextItem():
                 return False
             return key
-        elif key == 'enter':
+        elif self._command_map[key] == urwid.ACTIVATE:
             self.select()
             return False
         return key
