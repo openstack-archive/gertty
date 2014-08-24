@@ -25,6 +25,7 @@ import urwid
 from gertty import db
 from gertty import config
 from gertty import gitrepo
+from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty import search
@@ -36,9 +37,9 @@ import gertty.view
 WELCOME_TEXT = """\
 Welcome to Gertty!
 
-To get started, you should subscribe to some projects.  Press the "l"
-key to list all the projects, navigate to the ones you are interested
-in, and then press "s" to subscribe to them.  Gertty will
+To get started, you should subscribe to some projects.  Press the "L"
+key (shift-L) to list all the projects, navigate to the ones you are
+interested in, and then press "s" to subscribe to them.  Gertty will
 automatically sync changes in your subscribed projects.
 
 Press the F1 key anywhere to get help.  Your terminal emulator may
@@ -74,7 +75,8 @@ class StatusHeader(urwid.WidgetWrap):
 
 class SearchDialog(mywid.ButtonDialog):
     signals = ['search', 'cancel']
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         search_button = mywid.FixedButton('Search')
         cancel_button = mywid.FixedButton('Cancel')
         urwid.connect_signal(search_button, 'click',
@@ -89,15 +91,18 @@ class SearchDialog(mywid.ButtonDialog):
 
     def keypress(self, size, key):
         r = super(SearchDialog, self).keypress(size, key)
-        if r == 'enter':
+        commands = self.app.config.keymap.getCommands(r)
+        self.app.log.debug('search %s %s' % (r, commands))
+        if keymap.ACTIVATE in commands:
             self._emit('search')
             return None
         return r
 
 class App(object):
-    def __init__(self, server=None, palette='default', debug=False, disable_sync=False):
+    def __init__(self, server=None, palette='default', keymap='default',
+                 debug=False, disable_sync=False):
         self.server = server
-        self.config = config.Config(server, palette)
+        self.config = config.Config(server, palette, keymap)
         if debug:
             level = logging.DEBUG
         else:
@@ -107,6 +112,7 @@ class App(object):
                             level=level)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
+        self.config.keymap.updateCommandMap()
         self.search = search.SearchCompiler(self)
         self.db = db.Database(self)
         self.sync = sync.Sync(self)
@@ -198,13 +204,25 @@ class App(object):
     def help(self):
         if not hasattr(self.loop.widget, 'help'):
             return
-        text = mywid.GLOBAL_HELP
+        global_help = [(self.config.keymap.formatKeys(k), t)
+                       for (k, t) in mywid.GLOBAL_HELP]
         for d in self.config.dashboards.values():
-            space = max(9 - len(d['key']), 0) * ' '
-            text += '<%s>%s %s\n' % (d['key'], space, d['name'])
-        text += "\nThis Screen\n"
-        text += "===========\n"
-        text += self.loop.widget.help()
+            global_help.append((keymap.formatKey(d['key']), d['name']))
+        parts = [('Global Keys', global_help),
+                 ('This Screen', self.loop.widget.help())]
+        keylen = 0
+        for title, items in parts:
+            for keys, text in items:
+                keylen = max(len(keys), keylen)
+        text = ''
+        for title, items in parts:
+            if text:
+                text += '\n'
+            text += title+'\n'
+            text += '%s\n' % ('='*len(title),)
+            for keys, cmdtext in items:
+                text += '{keys:{width}} {text}\n'.format(
+                    keys=keys, width=keylen, text=cmdtext)
         dialog = mywid.MessageDialog('Help', text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
@@ -281,7 +299,7 @@ class App(object):
             return self.error(e.message)
 
     def searchDialog(self):
-        dialog = SearchDialog()
+        dialog = SearchDialog(self)
         urwid.connect_signal(dialog, 'cancel',
             lambda button: self.backScreen())
         urwid.connect_signal(dialog, 'search',
@@ -305,13 +323,14 @@ class App(object):
         return None
 
     def unhandledInput(self, key):
-        if key == 'esc':
+        commands = self.config.keymap.getCommands(key)
+        if keymap.PREV_SCREEN in commands:
             self.backScreen()
-        elif key == 'f1' or key == '?':
+        elif keymap.HELP in commands:
             self.help()
-        elif key == 'ctrl q':
+        elif keymap.QUIT in commands:
             self.quit()
-        elif key == 'ctrl o':
+        elif keymap.CHANGE_SEARCH in commands:
             self.searchDialog()
         elif key in self.config.dashboards:
             d = self.config.dashboards[key]
@@ -339,10 +358,12 @@ def main():
                         help='disable remote syncing')
     parser.add_argument('-p', dest='palette', default='default',
                         help='Color palette to use')
+    parser.add_argument('-k', dest='keymap', default='default',
+                        help='Keymap to use')
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
-    g = App(args.server, args.palette, args.debug, args.no_sync)
+    g = App(args.server, args.palette, args.keymap, args.debug, args.no_sync)
     g.run()
 
 
