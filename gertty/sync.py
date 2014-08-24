@@ -353,7 +353,6 @@ class SyncChangeTask(Task):
             local_approvals = {}
             local_labels = {}
             for approval in change.approvals:
-                self.log.debug(approval.key)
                 key = '%s~%s' % (approval.category, approval.reviewer.name)
                 local_approvals[key] = approval
             local_approval_keys = set(local_approvals.keys())
