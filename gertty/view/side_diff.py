@@ -17,13 +17,15 @@ import logging
 
 import urwid
 
+from gertty import keymap
 from gertty import mywid
 from gertty import gitrepo
 from gertty.view.diff import *
 
 class SideDiffCommentEdit(BaseDiffCommentEdit):
-    def __init__(self, context, old_key=None, new_key=None, old=u'', new=u''):
+    def __init__(self, app, context, old_key=None, new_key=None, old=u'', new=u''):
         super(SideDiffCommentEdit, self).__init__([])
+        self.app = app
         self.context = context
         # If we save a comment, the resulting key will be stored here
         self.old_key = old_key
@@ -38,7 +40,9 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
 
     def keypress(self, size, key):
         r = super(SideDiffCommentEdit, self).keypress(size, key)
-        if r in ['tab', 'shift tab']:
+        commands = self.app.config.keymap.getCommands(r)
+        if ((keymap.NEXT_SELECTABLE in commands) or
+            (keymap.PREV_SELECTABLE in commands)):
             if self.focus_position == 3:
                 self.focus_position = 1
             else:
@@ -137,7 +141,7 @@ class SideDiffView(BaseDiffView):
                     (old_comment_key, old_comment) = old_list.pop(0)
                 if new_list:
                     (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(SideDiffCommentEdit(context,
+                lines.append(SideDiffCommentEdit(self.app, context,
                                                  old_comment_key,
                                                  new_comment_key,
                                                  old_comment, new_comment))
@@ -178,14 +182,14 @@ class SideDiffView(BaseDiffView):
                 (old_comment_key, old_comment) = old_list.pop(0)
             if new_list:
                 (new_comment_key, new_comment) = new_list.pop(0)
-            lines.append(SideDiffCommentEdit(context,
+            lines.append(SideDiffCommentEdit(self.app, context,
                                              old_comment_key,
                                              new_comment_key,
                                              old_comment, new_comment))
         return lines
 
     def makeCommentEdit(self, edit):
-        return SideDiffCommentEdit(edit.context)
+        return SideDiffCommentEdit(self.app, edit.context)
 
     def cleanupEdit(self, edit):
         if edit.old_key:

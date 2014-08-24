@@ -17,6 +17,7 @@ import logging
 
 import urwid
 
+from gertty import keymap
 from gertty import mywid
 from gertty import gitrepo
 
@@ -144,13 +145,14 @@ class DiffContextButton(urwid.WidgetWrap):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
 class BaseDiffView(urwid.WidgetWrap):
-    _help = """
-<Enter> Add an inline comment
-<p>     Select old/new patchsets to diff
-"""
-
     def help(self):
-        return self._help
+        key = self.app.config.keymap.formatKeys
+        return [
+            (key(keymap.ACTIVATE),
+             "Add an inline comment"),
+            (key(keymap.SELECT_PATCHSETS),
+             "Select old/new patchsets to diff"),
+            ]
 
     def __init__(self, app, new_revision_key):
         super(BaseDiffView, self).__init__(urwid.Pile([]))
@@ -346,10 +348,11 @@ class BaseDiffView(urwid.WidgetWrap):
         old_focus = self.listbox.focus
         r = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
+        commands = self.app.config.keymap.getCommands(r)
         if (isinstance(old_focus, BaseDiffCommentEdit) and
-            (old_focus != new_focus or key == 'esc')):
+            (old_focus != new_focus or (keymap.PREV_SCREEN in commands))):
             self.cleanupEdit(old_focus)
-        if r == 'p':
+        if keymap.SELECT_PATCHSETS in commands:
             self.openPatchsetDialog()
             return None
         return r

@@ -15,6 +15,7 @@
 
 import urwid
 
+from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty.view import change_list as view_change_list
@@ -66,15 +67,18 @@ class ProjectListHeader(urwid.WidgetWrap):
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
 class ProjectListView(urwid.WidgetWrap):
-    _help = """
-<l>      Toggle whether only subscribed projects or all projects are listed.
-<L>      Toggle listing of projects with unreviewed changes.
-<s>      Toggle the subscription flag for the currently selected project.
-<ctrl-r> Sync all projects.
-"""
-
     def help(self):
-        return self._help
+        key = self.app.config.keymap.formatKeys
+        return [
+            (key(keymap.TOGGLE_LIST_SUBSCRIBED),
+             "Toggle whether only subscribed projects or all projects are listed"),
+            (key(keymap.TOGGLE_LIST_REVIEWED),
+             "Toggle listing of projects with unreviewed changes"),
+            (key(keymap.TOGGLE_SUBSCRIBED),
+             "Toggle the subscription flag for the currently selected project"),
+            (key(keymap.REFRESH),
+             "Sync all projects")
+            ]
 
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))
@@ -138,15 +142,17 @@ class ProjectListView(urwid.WidgetWrap):
                 project_name, unreviewed=True))
 
     def keypress(self, size, key):
-        if key=='L':
+        r = super(ProjectListView, self).keypress(size, key)
+        commands = self.app.config.keymap.getCommands(r)
+        if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
             return None
-        if key=='l':
+        if keymap.TOGGLE_LIST_SUBSCRIBED in commands:
             self.subscribed = not self.subscribed
             self.refresh()
             return None
-        if key=='s':
+        if keymap.TOGGLE_SUBSCRIBED in commands:
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position
@@ -156,11 +162,9 @@ class ProjectListView(urwid.WidgetWrap):
             if subscribed:
                 self.app.sync.submitTask(sync.SyncProjectTask(project_key))
             return None
-        if key == 'ctrl r':
+        if keymap.REFRESH in commands:
             self.app.sync.submitTask(
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
-        return super(ProjectListView, self).keypress(size, key)
-
-
+        return r

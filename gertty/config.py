@@ -27,6 +27,7 @@ import voluptuous as v
 
 import gertty.commentlink
 import gertty.palette
+import gertty.keymap
 
 try:
     OrderedDict = collections.OrderedDict
@@ -89,10 +90,17 @@ class ConfigSchema(object):
 
     hide_comments = [hide_comment]
 
+    keymap = {v.Required('name'): str,
+              v.Match('(?!name)'): v.Any([str], str)}
+
+    keymaps = [keymap]
+
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
                            'palette': str,
+                           'keymaps': self.keymaps,
+                           'keymap': str,
                            'commentlinks': self.commentlinks,
                            'dashboards': self.dashboards,
                            'reviewkeys': self.reviewkeys,
@@ -103,7 +111,7 @@ class ConfigSchema(object):
         return schema
 
 class Config(object):
-    def __init__(self, server=None, palette='default',
+    def __init__(self, server=None, palette='default', keymap='default',
                  path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
 
@@ -143,6 +151,14 @@ class Config(object):
             else:
                 self.palettes[p['name']].update(p)
         self.palette = self.palettes[self.config.get('palette', palette)]
+
+        self.keymaps = {'default': gertty.keymap.KeyMap({})}
+        for p in self.config.get('keymaps', []):
+            if p['name'] not in self.keymaps:
+                self.keymaps[p['name']] = gertty.keymap.KeyMap(p)
+            else:
+                self.keymaps[p['name']].update(p)
+        self.keymap = self.keymaps[self.config.get('keymap', keymap)]
 
         self.commentlinks = [gertty.commentlink.CommentLink(c)
                              for c in self.config.get('commentlinks', [])]
