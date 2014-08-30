@@ -124,8 +124,14 @@ class App(object):
         self.status.update(title=screen.title)
         self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
                                    unhandled_input=self.unhandledInput)
-        if screen.isEmpty():
+
+        has_subscribed_projects = False
+        with self.db.getSession() as session:
+            if session.getProjects(subscribed=True):
+                has_subscribed_projects = True
+        if not has_subscribed_projects:
             self.welcome()
+
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
@@ -230,7 +236,7 @@ class App(object):
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
     def welcome(self):
-        text = WELCOME_TEXT + self.loop.widget.help()
+        text = WELCOME_TEXT
         dialog = mywid.MessageDialog('Welcome', text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
