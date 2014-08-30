@@ -30,6 +30,9 @@ try:
 except:
     pass
 import requests
+import requests.utils
+
+import gertty.version
 
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
@@ -563,6 +566,8 @@ class UploadReviewTask(Task):
 
 class Sync(object):
     def __init__(self, app):
+        self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.version_string(),
+                                            requests.utils.default_user_agent())
         self.offline = False
         self.app = app
         self.log = logging.getLogger('gertty.sync')
@@ -632,7 +637,8 @@ class Sync(object):
                          verify=self.app.config.verify_ssl,
                          auth=self.auth,
                          headers = {'Accept': 'application/json',
-                                    'Accept-Encoding': 'gzip'})
+                                    'Accept-Encoding': 'gzip',
+                                    'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
         ret = json.loads(r.text[4:])
         return ret
@@ -644,7 +650,8 @@ class Sync(object):
         r = self.session.post(url, data=json.dumps(data).encode('utf8'),
                           verify=self.app.config.verify_ssl,
                           auth=self.auth,
-                          headers = {'Content-Type': 'application/json;charset=UTF-8'})
+                          headers = {'Content-Type': 'application/json;charset=UTF-8',
+                                     'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):

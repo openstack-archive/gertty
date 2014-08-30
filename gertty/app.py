@@ -357,6 +357,10 @@ class App(object):
         self.log.debug("Open URL %s" % url)
         webbrowser.open_new_tab(url)
 
+def version():
+    from gertty.version import version_info as gertty_version_info
+    return "Gertty version: %s" % gertty_version_info.version_string()
+
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
@@ -367,6 +371,9 @@ def main():
     parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
                         action='store_true',
                         help='fetch any refs missing from local repos')
+    parser.add_argument('--version', dest='version', action='version',
+                        version=version(),
+                        help='show zuul version')
     parser.add_argument('-p', dest='palette', default='default',
                         help='Color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
