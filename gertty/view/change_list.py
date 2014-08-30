@@ -30,13 +30,20 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, change, callback=None):
+    def __init__(self, change, project=False, owner=False, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
         self.change_key = change.key
         self.subject = urwid.Text(u'', wrap='clip')
         self.number = urwid.Text(u'')
-        cols = [(8, self.number), self.subject]
-        self.columns = urwid.Columns(cols)
+        self.project = urwid.Text(u'', wrap='clip')
+        self.owner = urwid.Text(u'', wrap='clip')
+        cols = [(6, self.number), ('weight', 4, self.subject)]
+        if project:
+            cols.append(('weight', 1, self.project))
+        if owner:
+            cols.append(('weight', 2, self.owner))
+        self.num_columns = len(cols)
+        self.columns = urwid.Columns(cols, dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.change_focus_map)
         self.update(change)
@@ -49,24 +56,34 @@ class ChangeRow(urwid.Button):
         self.row_style.set_attr_map({None: style})
         self.subject.set_text(change.subject)
         self.number.set_text(str(change.number))
-        del self.columns.contents[2:]
+        self.project.set_text(change.project.name.split('/')[-1])
+        if change.owner:
+            self.owner.set_text(change.owner.name)
+        else:
+            self.owner.set_text(u'')
+        del self.columns.contents[self.num_columns:]
         for category in change.getCategories():
             v = change.getMaxForCategory(category)
             if v == 0:
                 v = ''
             else:
                 v = '%2i' % v
-            self.columns.contents.append((urwid.Text(v), self.columns.options('given', 3)))
+            self.columns.contents.append((urwid.Text(v), self.columns.options('given', 2)))
 
 class ChangeListHeader(urwid.WidgetWrap):
-    def __init__(self):
-        cols = [(8, urwid.Text(u'Number')), urwid.Text(u'Subject')]
-        super(ChangeListHeader, self).__init__(urwid.Columns(cols))
+    def __init__(self, project=False, owner=False):
+        cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u'Subject'))]
+        if project:
+            cols.append(('weight', 1, urwid.Text(u'Project')))
+        if owner:
+            cols.append(('weight', 2, urwid.Text(u'Owner')))
+        self.num_columns = len(cols)
+        super(ChangeListHeader, self).__init__(urwid.Columns(cols, dividechars=1))
 
     def update(self, change):
-        del self._w.contents[2:]
+        del self._w.contents[self.num_columns:]
         for category in change.getCategories():
-            self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 3)))
+            self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 2)))
 
 class ChangeListView(urwid.WidgetWrap):
     def help(self):
@@ -90,7 +107,10 @@ class ChangeListView(urwid.WidgetWrap):
         self.unreviewed = unreviewed
         self.change_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-        self.header = ChangeListHeader()
+        self.display_owner = self.display_project = True
+        if '_project_key' in query:
+            self.display_project = False
+        self.header = ChangeListHeader(self.display_project, self.display_owner)
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
@@ -111,7 +131,8 @@ class ChangeListView(urwid.WidgetWrap):
             for change in lst:
                 row = self.change_rows.get(change.key)
                 if not row:
-                    row = ChangeRow(change, self.onSelect)
+                    row = ChangeRow(change, self.display_project,
+                                    self.display_owner, callback=self.onSelect)
                     self.listbox.body.insert(i, row)
                     self.change_rows[change.key] = row
                 else:
