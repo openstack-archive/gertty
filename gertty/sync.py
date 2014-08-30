@@ -1,4 +1,5 @@
 # Copyright 2014 OpenStack Foundation
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -431,25 +432,48 @@ class SyncChangeTask(Task):
                     self.log.debug("git fetch %s %s" % (url, ref))
                     repo.fetch(url, ref)
 
-class CheckRevisionsTask(Task):
+class CheckReposTask(Task):
+    # on startup, check all projects
+    #   for any newly cloned project, run checkrevisionstask on that project
+    #   if --fetch-missing-refs is supplied, run crt on every project
     def __repr__(self):
-        return '<CheckRevisionsTask>'
+        return '<CheckReposTask>'
+
+    def run(self, sync):
+        app = sync.app
+        to_check = []
+        with app.db.getSession() as session:
+            for project in session.getProjects(subscribed=True):
+                try:
+                    repo = app.getRepo(project.name)
+                    if repo.newly_cloned or app.fetch_missing_refs:
+                        to_check.append(project.key)
+                except Exception:
+                    self.log.exception("Exception checking repo %s" % (project.name,))
+        for key in to_check:
+            sync.submitTask(CheckRevisionsTask(key, priority=LOW_PRIORITY))
+
+class CheckRevisionsTask(Task):
+    def __init__(self, project_key, priority=NORMAL_PRIORITY):
+        super(CheckRevisionsTask, self).__init__(priority)
+        self.project_key = project_key
+
+    def __repr__(self):
+        return '<CheckRevisionsTask %s>' % (self.project_key,)
 
     def run(self, sync):
         app = sync.app
         to_fetch = collections.defaultdict(list)
         with app.db.getSession() as session:
-            for project in session.getProjects():
-                if not project.open_changes:
-                    continue
-                repo = app.getRepo(project.name)
-                for change in project.open_changes:
-                    for revision in change.revisions:
-                        if not (repo.hasCommit(revision.parent) and
-                                repo.hasCommit(revision.commit)):
-                            if revision.fetch_ref:
-                                to_fetch[(project.name, revision.fetch_auth)
-                                    ].append(revision.fetch_ref)
+            project = session.getProject(self.project_key)
+            repo = app.getRepo(project.name)
+            for change in project.open_changes:
+                for revision in change.revisions:
+                    if not (repo.hasCommit(revision.parent) and
+                            repo.hasCommit(revision.commit)):
+                        if revision.fetch_ref:
+                            to_fetch[(project.name, revision.fetch_auth)
+                                     ].append(revision.fetch_ref)
         for (name, auth), refs in to_fetch.items():
             sync.submitTask(FetchRefTask(name, refs, auth, priority=self.priority))
 
@@ -547,10 +571,10 @@ class Sync(object):
         self.auth = requests.auth.HTTPDigestAuth(
             self.app.config.username, self.app.config.password)
         self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
+        self.submitTask(CheckReposTask(HIGH_PRIORITY))
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
-        self.submitTask(CheckRevisionsTask(LOW_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
         self.periodic_thread.daemon = True
         self.periodic_thread.start()

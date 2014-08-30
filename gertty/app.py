@@ -100,7 +100,7 @@ class SearchDialog(mywid.ButtonDialog):
 
 class App(object):
     def __init__(self, server=None, palette='default', keymap='default',
-                 debug=False, disable_sync=False):
+                 debug=False, disable_sync=False, fetch_missing_refs=False):
         self.server = server
         self.config = config.Config(server, palette, keymap)
         if debug:
@@ -112,6 +112,8 @@ class App(object):
                             level=level)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
+
+        self.fetch_missing_refs = fetch_missing_refs
         self.config.keymap.updateCommandMap()
         self.search = search.SearchCompiler(self)
         self.db = db.Database(self)
@@ -362,6 +364,9 @@ def main():
                         help='enable debug logging')
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
                         help='disable remote syncing')
+    parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
+                        action='store_true',
+                        help='fetch any refs missing from local repos')
     parser.add_argument('-p', dest='palette', default='default',
                         help='Color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
@@ -369,7 +374,8 @@ def main():
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
-    g = App(args.server, args.palette, args.keymap, args.debug, args.no_sync)
+    g = App(args.server, args.palette, args.keymap, args.debug, args.no_sync,
+            args.fetch_missing_refs)
     g.run()
 
 

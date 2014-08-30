@@ -232,6 +232,9 @@ class Repo(object):
         self.differ = difflib.Differ()
         if not os.path.exists(path):
             git.Repo.clone_from(self.url, self.path)
+            self.newly_cloned = True
+        else:
+            self.newly_cloned = False
 
     def hasCommit(self, sha):
         repo = git.Repo(self.path)
