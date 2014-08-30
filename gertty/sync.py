@@ -154,8 +154,21 @@ class SyncProjectTask(Task):
             if project.updated:
                 # Allow 4 seconds for request time, etc.
                 query += ' -age:%ss' % (int(math.ceil((now-project.updated).total_seconds())) + 4,)
-        changes = sync.get('changes/?q=%s' % query)
-        self.log.debug('Query: %s ' % (query,))
+            else:
+                query += ' status:open'
+        changes = []
+        sortkey = ''
+        while True:
+            # We don't actually want to limit to 500, but that's the server-side default, and
+            # if we don't specify this, we won't get a _more_changes flag.
+            q = 'changes/?n=500%s&q=%s' % (sortkey, query,)
+            self.log.debug('Query: %s ' % (q,))
+            batch = sync.get(q)
+            changes += batch
+            if batch and '_more_changes' in batch[-1]:
+                sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
+            else:
+                break
         with app.db.getSession() as session:
             for c in changes:
                 # For now, just sync open changes or changes already
