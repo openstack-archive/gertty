@@ -236,7 +236,7 @@ def SearchParser():
             filters = []
             filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
             filters.append(gertty.db.message_table.c.revision_key == gertty.db.revision_table.c.key)
-            filters.append(gertty.db.message_table.c.pending == True)
+            filters.append(gertty.db.message_table.c.draft == True)
             s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
             p[0] = gertty.db.change_table.c.key.in_(s)
         else:

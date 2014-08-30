@@ -72,6 +72,7 @@ message_table = Table(
     Column('id', String(255), index=True), #, unique=True, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
     Column('message', Text, nullable=False),
+    Column('draft', Boolean, index=True, nullable=False),
     Column('pending', Boolean, index=True, nullable=False),
     )
 comment_table = Table(
@@ -86,7 +87,7 @@ comment_table = Table(
     Column('parent', Boolean, nullable=False),
     Column('line', Integer),
     Column('message', Text, nullable=False),
-    Column('pending', Boolean, index=True, nullable=False),
+    Column('draft', Boolean, index=True, nullable=False),
     )
 label_table = Table(
     'label', metadata,
@@ -110,7 +111,7 @@ approval_table = Table(
     Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('category', String(255), nullable=False),
     Column('value', Integer, nullable=False),
-    Column('pending', Boolean, index=True, nullable=False),
+    Column('draft', Boolean, index=True, nullable=False),
     )
 account_table = Table(
     'account', metadata,
@@ -257,17 +258,31 @@ class Revision(object):
         session.flush()
         return c
 
+    def getPendingMessage(self):
+        for m in self.messages:
+            if m.pending:
+                return m
+        return None
+
+    def getDraftMessage(self):
+        for m in self.messages:
+            if m.draft:
+                return m
+        return None
+
+
 class Message(object):
-    def __init__(self, revision, id, author, created, message, pending=False):
+    def __init__(self, revision, id, author, created, message, draft=False, pending=False):
         self.revision_key = revision.key
         self.account_key = author.key
         self.id = id
         self.created = created
         self.message = message
+        self.draft = draft
         self.pending = pending
 
 class Comment(object):
-    def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, pending=False):
+    def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, draft=False):
         self.revision_key = revision.key
         self.account_key = author.key
         self.id = id
@@ -277,7 +292,7 @@ class Comment(object):
         self.parent = parent
         self.line = line
         self.message = message
-        self.pending = pending
+        self.draft = draft
 
 class Label(object):
     def __init__(self, change, category, value, description):
@@ -293,12 +308,12 @@ class PermittedLabel(object):
         self.value = value
 
 class Approval(object):
-    def __init__(self, change, reviewer, category, value, pending=False):
+    def __init__(self, change, reviewer, category, value, draft=False):
         self.change_key = change.key
         self.account_key = reviewer.key
         self.category = category
         self.value = value
-        self.pending = pending
+        self.draft = draft
 
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
@@ -333,22 +348,22 @@ mapper(Change, change_table, properties=dict(
                                                 permitted_label_table.c.value)),
         approvals=relationship(Approval, backref='change', order_by=(approval_table.c.category,
                                                                      approval_table.c.value)),
-        pending_approvals=relationship(Approval,
-                                       primaryjoin=and_(change_table.c.key==approval_table.c.change_key,
-                                                        approval_table.c.pending==True),
-                                       order_by=(approval_table.c.category,
-                                                 approval_table.c.value))
+        draft_approvals=relationship(Approval,
+                                     primaryjoin=and_(change_table.c.key==approval_table.c.change_key,
+                                                      approval_table.c.draft==True),
+                                     order_by=(approval_table.c.category,
+                                               approval_table.c.value))
         ))
 mapper(Revision, revision_table, properties=dict(
         messages=relationship(Message, backref='revision'),
         comments=relationship(Comment, backref='revision',
                               order_by=(comment_table.c.line,
                                         comment_table.c.created)),
-        pending_comments=relationship(Comment,
-                                      primaryjoin=and_(revision_table.c.key==comment_table.c.revision_key,
-                                                       comment_table.c.pending==True),
-                                      order_by=(comment_table.c.line,
-                                                comment_table.c.created)),
+        draft_comments=relationship(Comment,
+                                    primaryjoin=and_(revision_table.c.key==comment_table.c.revision_key,
+                                                     comment_table.c.draft==True),
+                                    order_by=(comment_table.c.line,
+                                              comment_table.c.created)),
         ))
 mapper(Message, message_table, properties=dict(
         author=relationship(Account)))

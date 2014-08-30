@@ -197,12 +197,12 @@ class BaseDiffView(urwid.WidgetWrap):
                     key = 'old'
                 else:
                     key = 'new'
-                if comment.pending:
+                if comment.draft:
                     key += 'draft'
                 key += '-' + str(comment.line)
                 key += '-' + str(comment.file)
                 comment_list = comment_lists.get(key, [])
-                if comment.pending:
+                if comment.draft:
                     message = comment.message
                 else:
                     message = [('comment-name', comment.author.name),
@@ -214,12 +214,12 @@ class BaseDiffView(urwid.WidgetWrap):
                 if comment.parent:
                     continue
                 key = 'old'
-                if comment.pending:
+                if comment.draft:
                     key += 'draft'
                 key += '-' + str(comment.line)
                 key += '-' + str(comment.file)
                 comment_list = comment_lists.get(key, [])
-                if comment.pending:
+                if comment.draft:
                     message = comment.message
                 else:
                     message = [('comment-name', comment.author.name),
@@ -404,7 +404,7 @@ class BaseDiffView(urwid.WidgetWrap):
             comment = revision.createComment(None, account, None,
                                              datetime.datetime.utcnow(),
                                              filename, parent,
-                                             line_num, text, pending=True)
+                                             line_num, text, draft=True)
             key = comment.key
         return key
 

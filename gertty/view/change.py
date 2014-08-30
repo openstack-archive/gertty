@@ -53,14 +53,14 @@ class ReviewDialog(urwid.WidgetWrap):
                         categories.append(label.category)
                         values[label.category] = []
                     values[label.category].append(label.value)
-                pending_approvals = {}
-                for approval in change.pending_approvals:
-                    pending_approvals[approval.category] = approval
+                draft_approvals = {}
+                for approval in change.draft_approvals:
+                    draft_approvals[approval.category] = approval
                 for category in categories:
                     rows.append(urwid.Text(category))
                     group = []
                     self.button_groups[category] = group
-                    current = pending_approvals.get(category)
+                    current = draft_approvals.get(category)
                     if current is None:
                         current = 0
                     else:
@@ -75,10 +75,11 @@ class ReviewDialog(urwid.WidgetWrap):
                         b = urwid.RadioButton(group, strvalue, state=(value == current))
                         rows.append(b)
                     rows.append(urwid.Divider())
-            for m in revision.messages:
-                if m.pending:
-                    message = m.message
-                    break
+            m = revision.getPendingMessage()
+            if not m:
+                m = revision.getDraftMessage()
+            if m:
+                message = m.message
         self.message = urwid.Edit("Message: \n", edit_text=message, multiline=True)
         rows.append(self.message)
         rows.append(urwid.Divider())
@@ -87,14 +88,15 @@ class ReviewDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(ReviewDialog, self).__init__(urwid.LineBox(fill, 'Review'))
 
-    def save(self):
+    def save(self, upload=False):
         approvals = {}
         for category, group in self.button_groups.items():
             for button in group:
                 if button.state:
                     approvals[category] = int(button.get_label())
         message = self.message.edit_text.strip()
-        self.change_view.saveReview(self.revision_row.revision_key, approvals, message)
+        self.change_view.saveReview(self.revision_row.revision_key, approvals,
+                                    message, upload)
 
     def keypress(self, size, key):
         r = super(ReviewDialog, self).keypress(size, key)
@@ -122,9 +124,8 @@ class ReviewButton(mywid.FixedButton):
                                    relative_width=50, relative_height=75,
                                    min_width=60, min_height=20)
 
-    def closeReview(self, save):
-        if save:
-            message_key = self.dialog.save()
+    def closeReview(self, upload):
+        self.dialog.save(upload)
         self.change_view.app.backScreen()
 
 class RevisionRow(urwid.WidgetWrap):
@@ -192,10 +193,12 @@ class RevisionRow(urwid.WidgetWrap):
     def update(self, revision):
         line = [('revision-name', 'Patch Set %s ' % revision.number),
                 ('revision-commit', revision.commit)]
-        num_drafts = len(revision.pending_comments)
+        num_drafts = len(revision.draft_comments)
         if num_drafts:
-            line.append(('revision-drafts', ' (%s draft%s)' % (
-                        num_drafts, num_drafts>1 and 's' or '')))
+            pending_message = revision.getPendingMessage()
+            if not pending_message:
+                line.append(('revision-drafts', ' (%s draft%s)' % (
+                            num_drafts, num_drafts>1 and 's' or '')))
         num_comments = len(revision.comments) - num_drafts
         if num_comments:
             line.append(('revision-comments', ' (%s inline comment%s)' % (
@@ -260,16 +263,26 @@ class ChangeButton(mywid.FixedButton):
 class ChangeMessageBox(mywid.HyperText):
     def __init__(self, app, message):
         super(ChangeMessageBox, self).__init__(u'')
+        self.app = app
+        self.refresh(message)
+
+    def refresh(self, message):
+        self.message_created = message.created
         lines = message.message.split('\n')
+        if message.draft:
+            lines.insert(0, '')
+            lines.insert(0, 'Patch Set %s:' % (message.revision.number,))
         text = [('change-message-name', message.author.name),
                 ('change-message-header', ': '+lines.pop(0)),
                 ('change-message-header',
                  message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
+        if message.draft and not message.pending:
+            text.append(('change-message-draft', ' (draft)'))
         if lines and lines[-1]:
             lines.append('')
         comment_text = ['\n'.join(lines)]
-        for commentlink in app.config.commentlinks:
-            comment_text = commentlink.run(app, comment_text)
+        for commentlink in self.app.config.commentlinks:
+            comment_text = commentlink.run(self.app, comment_text)
         self.set_text(text+comment_text)
 
 class CommitMessageBox(mywid.HyperText):
@@ -443,7 +456,11 @@ class ChangeView(urwid.WidgetWrap):
                 categories.append(label.category)
             votes = mywid.Table(approval_headers)
             approvals_for_name = {}
+            pending_message = change.revisions[-1].getPendingMessage()
             for approval in change.approvals:
+                # Don't display draft approvals unless they are pending-upload
+                if approval.draft and not pending_message:
+                    continue
                 approvals = approvals_for_name.get(approval.reviewer.name)
                 if not approvals:
                     approvals = {}
@@ -529,6 +546,8 @@ class ChangeView(urwid.WidgetWrap):
                     self.message_rows[message.key] = row
                 else:
                     unseen_keys.remove(message.key)
+                    if message.created != row.original_widget.message_created:
+                        row.original_widget.refresh(message)
                 listbox_index += 1
             # Remove any messages that should not be displayed
             for key in unseen_keys:
@@ -692,40 +711,45 @@ class ChangeView(urwid.WidgetWrap):
         self.app.log.debug("Reviewkey %s with approvals %s" %
                            (reviewkey['key'], approvals))
         row = self.revision_rows[self.last_revision_key]
-        self.saveReview(row.revision_key, approvals, '')
+        self.saveReview(row.revision_key, approvals, '', True)
 
-    def saveReview(self, revision_key, approvals, message):
+    def saveReview(self, revision_key, approvals, message, upload):
         message_key = None
         with self.app.db.getSession() as session:
             account = session.getAccountByUsername(self.app.config.username)
             revision = session.getRevision(revision_key)
             change = revision.change
-            pending_approvals = {}
-            for approval in change.pending_approvals:
-                pending_approvals[approval.category] = approval
+            draft_approvals = {}
+            for approval in change.draft_approvals:
+                draft_approvals[approval.category] = approval
 
             categories = set()
             for label in change.permitted_labels:
                 categories.add(label.category)
             for category in categories:
                 value = approvals.get(category, 0)
-                approval = pending_approvals.get(category)
+                approval = draft_approvals.get(category)
                 if not approval:
-                    approval = change.createApproval(account, category, 0, pending=True)
-                    pending_approvals[category] = approval
+                    approval = change.createApproval(account, category, 0, draft=True)
+                    draft_approvals[category] = approval
                 approval.value = value
-            pending_message = None
-            for m in revision.messages:
-                if m.pending:
-                    pending_message = m
-                    break
-            if not pending_message:
-                pending_message = revision.createMessage(None, account,
-                                                         datetime.datetime.utcnow(),
-                                                         '', pending=True)
-            pending_message.message = message
-            message_key = pending_message.key
-            change.reviewed = True
-        self.app.sync.submitTask(
-            sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
+            draft_message = revision.getPendingMessage()
+            if not draft_message:
+                draft_message = revision.getDraftMessage()
+            if not draft_message:
+                if message or upload:
+                    draft_message = revision.createMessage(None, account,
+                                                           datetime.datetime.utcnow(),
+                                                           '', draft=True)
+            if draft_message:
+                draft_message.created = datetime.datetime.utcnow()
+                draft_message.message = message
+                draft_message.pending = upload
+                message_key = draft_message.key
+            if upload:
+                change.reviewed = True
+        # Outside of db session
+        if upload:
+            self.app.sync.submitTask(
+                sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
         self.refresh()

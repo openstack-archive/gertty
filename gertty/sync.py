@@ -540,14 +540,14 @@ class UploadReviewTask(Task):
                         strict_labels=False)
             if revision == current_revision:
                 data['labels'] = {}
-                for approval in change.pending_approvals:
+                for approval in change.draft_approvals:
                     data['labels'][approval.category] = approval.value
                     session.delete(approval)
-            if revision.pending_comments:
+            if revision.draft_comments:
                 data['comments'] = {}
                 last_file = None
                 comment_list = []
-                for comment in revision.pending_comments:
+                for comment in revision.draft_comments:
                     if comment.file != last_file:
                         last_file = comment.file
                         comment_list = []

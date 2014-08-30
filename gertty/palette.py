@@ -56,6 +56,7 @@ DEFAULT_PALETTE={
     'focused-revision-drafts': ['dark red,standout', ''],
     'change-message-name': ['yellow', ''],
     'change-message-header': ['brown', ''],
+    'change-message-draft': ['dark red', ''],
     'revision-button': ['dark magenta', ''],
     'focused-revision-button': ['light magenta', ''],
     'lines-added': ['light green', ''],
