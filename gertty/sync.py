@@ -17,7 +17,9 @@ import collections
 import logging
 import math
 import os
+import re
 import threading
+import urllib
 import urlparse
 import json
 import time
@@ -124,6 +126,49 @@ class SyncProjectListTask(Task):
             for name in remote_keys-local_keys:
                 p = remote[name]
                 session.createProject(name, description=p.get('description', ''))
+
+class SyncSubscribedProjectBranchesTask(Task):
+    def __repr__(self):
+        return '<SyncSubscribedProjectBranchesTask>'
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            for p in session.getProjects(subscribed=True):
+                sync.submitTask(SyncProjectBranchesTask(p.name, self.priority))
+
+class SyncProjectBranchesTask(Task):
+    branch_re = re.compile(r'refs/heads/(.*)')
+
+    def __init__(self, project_name, priority=NORMAL_PRIORITY):
+        super(SyncProjectBranchesTask, self).__init__(priority)
+        self.project_name = project_name
+
+    def __repr__(self):
+        return '<SyncProjectBranchesTask %s>' % (self.project_name,)
+
+    def run(self, sync):
+        app = sync.app
+        remote = sync.get('projects/%s/branches/' % urllib.quote_plus(self.project_name))
+        remote_branches = set()
+        for x in remote:
+            m = self.branch_re.match(x['ref'])
+            if m:
+                remote_branches.add(m.group(1))
+        with app.db.getSession() as session:
+            local = {}
+            project = session.getProjectByName(self.project_name)
+            for branch in project.branches:
+                local[branch.name] = branch
+            local_branches = set(local.keys())
+
+            for name in local_branches-remote_branches:
+                self.log.debug("Delete branch %s from project %s" % (name, project.name))
+                session.delete(local[name])
+
+            for name in remote_branches-local_branches:
+                self.log.debug("Add branch %s to project %s" % (name, project.name))
+                project.createBranch(name)
 
 class SyncSubscribedProjectsTask(Task):
     def __repr__(self):
@@ -537,6 +582,8 @@ class UploadReviewsTask(Task):
                 sync.submitTask(RebaseChangeTask(c.key, self.priority))
             for c in session.getPendingStatusChanges():
                 sync.submitTask(ChangeStatusTask(c.key, self.priority))
+            for c in session.getPendingCherryPicks():
+                sync.submitTask(SendCherryPickTask(c.key, self.priority))
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
 
@@ -603,6 +650,28 @@ class ChangeStatusTask(Task):
                           data)
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
+class SendCherryPickTask(Task):
+    def __init__(self, cp_key, priority=NORMAL_PRIORITY):
+        super(SendCherryPickTask, self).__init__(priority)
+        self.cp_key = cp_key
+
+    def __repr__(self):
+        return '<SendCherryPickTask %s>' % (self.cp_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            cp = session.getPendingCherryPick(self.cp_key)
+            data = dict(message=cp.message,
+                        destination=cp.branch)
+            session.delete(cp)
+            # Inside db session for rollback
+            ret = sync.post('changes/%s/revisions/%s/cherrypick' %
+                            (cp.revision.change.id, cp.revision.commit),
+                            data)
+        if ret and 'id' in ret:
+            sync.submitTask(SyncChangeTask(ret['id'], priority=self.priority))
+
 class UploadReviewTask(Task):
     def __init__(self, message_key, priority=NORMAL_PRIORITY):
         super(UploadReviewTask, self).__init__(priority)
@@ -662,6 +731,7 @@ class Sync(object):
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
+        self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
         self.periodic_thread.daemon = True
         self.periodic_thread.start()
@@ -735,6 +805,14 @@ class Sync(object):
                           headers = {'Content-Type': 'application/json;charset=UTF-8',
                                      'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
+        ret = None
+        if r.text and len(r.text)>4:
+            try:
+                ret = json.loads(r.text[4:])
+            except Exception:
+                self.log.exception("Unable to parse result %s from post to %s" %
+                                   (r.text, url))
+        return ret
 
     def put(self, path, data):
         url = self.url(path)

@@ -300,6 +300,15 @@ class Revision(object):
         session.flush()
         return c
 
+    def createPendingCherryPick(self, *args, **kw):
+        session = Session.object_session(self)
+        args = [self] + list(args)
+        c = PendingCherryPick(*args, **kw)
+        self.pending_cherry_picks.append(c)
+        session.add(c)
+        session.flush()
+        return c
+
     def getPendingMessage(self):
         for m in self.messages:
             if m.pending:
@@ -366,7 +375,7 @@ class PendingCherryPick(object):
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
         branches=relationship(Branch, backref='project',
-                              order_by=branch_table.c.key),
+                              order_by=branch_table.c.name),
         changes=relationship(Change, backref='project',
                              order_by=change_table.c.number),
         unreviewed_changes=relationship(Change,
@@ -415,6 +424,7 @@ mapper(Revision, revision_table, properties=dict(
                                                      comment_table.c.draft==True),
                                     order_by=(comment_table.c.line,
                                               comment_table.c.created)),
+        pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
         ))
 mapper(Message, message_table, properties=dict(
         author=relationship(Account)))
@@ -424,8 +434,7 @@ mapper(Label, label_table)
 mapper(PermittedLabel, permitted_label_table)
 mapper(Approval, approval_table, properties=dict(
         reviewer=relationship(Account)))
-mapper(PendingCherryPick, pending_cherry_pick_table, properties=dict(
-        revision=relationship(Revision)))
+mapper(PendingCherryPick, pending_cherry_pick_table)
 
 class Database(object):
     def __init__(self, app):
@@ -539,6 +548,12 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
+    def getPendingCherryPick(self, key):
+        try:
+            return self.session().query(PendingCherryPick).filter_by(key=key).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
     def getChanges(self, query, unreviewed=False):
         self.database.log.debug("Search query: %s" % query)
         q = self.session().query(Change).filter(self.search.parse(query))
@@ -610,6 +625,9 @@ class DatabaseSession(object):
 
     def getPendingStatusChanges(self):
         return self.session().query(Change).filter_by(pending_status=True).all()
+
+    def getPendingCherryPicks(self):
+        return self.session().query(PendingCherryPick).all()
 
     def getAccountByID(self, id, name=None, username=None, email=None):
         try:

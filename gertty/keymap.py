@@ -48,6 +48,7 @@ TOGGLE_HIDDEN_COMMENTS = 'toggle hidden comments'
 ABANDON_CHANGE = 'abandon change'
 RESTORE_CHANGE = 'restore change'
 REBASE_CHANGE = 'rebase change'
+CHERRY_PICK_CHANGE = 'cherry-pick change'
 REFRESH = 'refresh'
 EDIT_TOPIC = 'edit topic'
 # Project list screen:
@@ -89,6 +90,7 @@ DEFAULT_KEYMAP = {
     ABANDON_CHANGE: 'ctrl a',
     RESTORE_CHANGE: 'ctrl e',
     REBASE_CHANGE: 'ctrl b',
+    CHERRY_PICK_CHANGE: 'ctrl x',
     REFRESH: 'ctrl r',
     EDIT_TOPIC: 'ctrl t',
 
