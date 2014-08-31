@@ -711,8 +711,6 @@ class ChangeView(urwid.WidgetWrap):
                             for r in session.getRevisionsByParent(revision.commit)
                             if (r.change.status != 'MERGED' and
                                 r == r.change.revisions[-1]))
-        for x in children:
-            self.app.log.debug("needed by %s" % x)
         self._updateDependenciesWidget(children,
                                        self.needed_by, self.needed_by_rows,
                                        header='Needed by:')
