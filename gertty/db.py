@@ -36,6 +36,12 @@ project_table = Table(
     Column('description', Text, nullable=False, default=''),
     Column('updated', DateTime, index=True),
     )
+branch_table = Table(
+    'branch', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('project_key', Integer, ForeignKey("project.key"), index=True),
+    Column('name', String(255), index=True, nullable=False),
+    )
 change_table = Table(
     'change', metadata,
     Column('key', Integer, primary_key=True),
@@ -52,6 +58,10 @@ change_table = Table(
     Column('status', String(16), index=True, nullable=False),
     Column('hidden', Boolean, index=True, nullable=False),
     Column('reviewed', Boolean, index=True, nullable=False),
+    Column('pending_rebase', Boolean, index=True, nullable=False),
+    Column('pending_topic', Boolean, index=True, nullable=False),
+    Column('pending_status', Boolean, index=True, nullable=False),
+    Column('pending_status_message', Text),
     )
 revision_table = Table(
     'revision', metadata,
@@ -63,6 +73,7 @@ revision_table = Table(
     Column('parent', String(255), nullable=False),
     Column('fetch_auth', Boolean, nullable=False),
     Column('fetch_ref', String(255), nullable=False),
+    Column('pending_message', Boolean, index=True, nullable=False),
     )
 message_table = Table(
     'message', metadata,
@@ -121,6 +132,15 @@ account_table = Table(
     Column('username', String(255), index=True),
     Column('email', String(255), index=True),
     )
+pending_cherry_pick_table = Table(
+    'pending_cherry_pick', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
+    # Branch is a str here to avoid FK complications if the branch
+    # entry is removed.
+    Column('branch', String(255), nullable=False),
+    Column('message', Text, nullable=False),
+    )
 
 class Account(object):
     def __init__(self, id, name=None, username=None, email=None):
@@ -144,10 +164,26 @@ class Project(object):
         session.flush()
         return c
 
+    def createBranch(self, *args, **kw):
+        session = Session.object_session(self)
+        args = [self] + list(args)
+        b = Branch(*args, **kw)
+        self.branches.append(b)
+        session.add(b)
+        session.flush()
+        return b
+
+class Branch(object):
+    def __init__(self, project, name):
+        self.project_key = project.key
+        self.name = name
+
 class Change(object):
     def __init__(self, project, id, owner, number, branch,
                  change_id, subject, created, updated, status,
-                 topic=False, hidden=False, reviewed=False):
+                 topic=None, hidden=False, reviewed=False,
+                 pending_rebase=False, pending_topic=False,
+                 pending_status=False, pending_status_message=None):
         self.project_key = project.key
         self.account_key = owner.key
         self.id = id
@@ -161,6 +197,10 @@ class Change(object):
         self.status = status
         self.hidden = hidden
         self.reviewed = reviewed
+        self.pending_rebase = pending_rebase
+        self.pending_topic = pending_topic
+        self.pending_status = pending_status
+        self.pending_status_message = pending_status_message
 
     def getCategories(self):
         categories = []
@@ -231,7 +271,8 @@ class Change(object):
         return l
 
 class Revision(object):
-    def __init__(self, change, number, message, commit, parent, fetch_auth, fetch_ref):
+    def __init__(self, change, number, message, commit, parent,
+                 fetch_auth, fetch_ref, pending_message=False):
         self.change_key = change.key
         self.number = number
         self.message = message
@@ -239,6 +280,7 @@ class Revision(object):
         self.parent = parent
         self.fetch_auth = fetch_auth
         self.fetch_ref = fetch_ref
+        self.pending_message = pending_message
 
     def createMessage(self, *args, **kw):
         session = Session.object_session(self)
@@ -315,8 +357,16 @@ class Approval(object):
         self.value = value
         self.draft = draft
 
+class PendingCherryPick(object):
+    def __init__(self, revision, branch, message):
+        self.revision_key = revision.key
+        self.branch = branch
+        self.message = message
+
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
+        branches=relationship(Branch, backref='project',
+                              order_by=branch_table.c.key),
         changes=relationship(Change, backref='project',
                              order_by=change_table.c.number),
         unreviewed_changes=relationship(Change,
@@ -334,6 +384,7 @@ mapper(Project, project_table, properties=dict(
                                   order_by=change_table.c.number,
                                   ),
         ))
+mapper(Branch, branch_table)
 mapper(Change, change_table, properties=dict(
         owner=relationship(Account),
         revisions=relationship(Revision, backref='change',
@@ -373,6 +424,8 @@ mapper(Label, label_table)
 mapper(PermittedLabel, permitted_label_table)
 mapper(Approval, approval_table, properties=dict(
         reviewer=relationship(Account)))
+mapper(PendingCherryPick, pending_cherry_pick_table, properties=dict(
+        revision=relationship(Revision)))
 
 class Database(object):
     def __init__(self, app):
