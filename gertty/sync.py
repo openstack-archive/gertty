@@ -531,8 +531,29 @@ class UploadReviewsTask(Task):
     def run(self, sync):
         app = sync.app
         with app.db.getSession() as session:
+            for c in session.getPendingTopics():
+                sync.submitTask(SetTopicTask(c.key, self.priority))
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
+
+class SetTopicTask(Task):
+    def __init__(self, change_key, priority=NORMAL_PRIORITY):
+        super(SetTopicTask, self).__init__(priority)
+        self.change_key = change_key
+
+    def __repr__(self):
+        return '<SetTopicTask %s>' % (self.change_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            data = dict(topic=change.topic)
+            change.pending_topic = False
+            # Inside db session for rollback
+            sync.put('changes/%s/topic' % (change.id,),
+                     data)
+            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class UploadReviewTask(Task):
     def __init__(self, message_key, priority=NORMAL_PRIORITY):
@@ -665,6 +686,17 @@ class Sync(object):
                           auth=self.auth,
                           headers = {'Content-Type': 'application/json;charset=UTF-8',
                                      'User-Agent': self.user_agent})
+        self.log.debug('Received: %s' % (r.text,))
+
+    def put(self, path, data):
+        url = self.url(path)
+        self.log.debug('PUT: %s' % (url,))
+        self.log.debug('data: %s' % (data,))
+        r = self.session.put(url, data=json.dumps(data).encode('utf8'),
+                             verify=self.app.config.verify_ssl,
+                             auth=self.auth,
+                             headers = {'Content-Type': 'application/json;charset=UTF-8',
+                                        'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):

@@ -25,6 +25,31 @@ from gertty.view import side_diff as view_side_diff
 from gertty.view import unified_diff as view_unified_diff
 import gertty.view
 
+class EditTopicDialog(mywid.ButtonDialog):
+    signals = ['save', 'cancel']
+    def __init__(self, app, topic):
+        self.app = app
+        save_button = mywid.FixedButton('Search')
+        cancel_button = mywid.FixedButton('Cancel')
+        urwid.connect_signal(save_button, 'click',
+                             lambda button:self._emit('save'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        super(EditTopicDialog, self).__init__("Edit Topic",
+                                              "Edit the change topic.",
+                                              entry_prompt="Topic: ",
+                                              entry_text=topic,
+                                              buttons=[save_button,
+                                                       cancel_button])
+
+    def keypress(self, size, key):
+        r = super(EditTopicDialog, self).keypress(size, key)
+        commands = self.app.config.keymap.getCommands(r)
+        if keymap.ACTIVATE in commands:
+            self._emit('save')
+            return None
+        return r
+
 class ReviewDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
     def __init__(self, revision_row):
@@ -322,6 +347,8 @@ class ChangeView(urwid.WidgetWrap):
              "Cherry-pick the most recent revision onto the local repo"),
             (key(keymap.REFRESH),
              "Refresh this change"),
+            (key(keymap.EDIT_TOPIC),
+             "Edit the topic of this change"),
             ]
 
         for k in self.app.config.reviewkeys.values():
@@ -418,6 +445,7 @@ class ChangeView(urwid.WidgetWrap):
         change_info = []
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
+            self.topic = change.topic or ''
             if change.reviewed:
                 reviewed = ' (reviewed)'
             else:
@@ -435,7 +463,7 @@ class ChangeView(urwid.WidgetWrap):
             self.owner_label.set_text(('change-data', change.owner.name))
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
-            self.topic_label.set_text(('change-data', change.topic or ''))
+            self.topic_label.set_text(('change-data', self.topic))
             self.created_label.set_text(('change-data', str(change.created)))
             self.updated_label.set_text(('change-data', str(change.updated)))
             self.status_label.set_text(('change-data', change.status))
@@ -692,6 +720,9 @@ class ChangeView(urwid.WidgetWrap):
                 sync.SyncChangeTask(self.change_rest_id, priority=sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
+        if keymap.EDIT_TOPIC in commands:
+            self.editTopic()
+            return None
         if r in self.app.config.reviewkeys:
             self.reviewKey(self.app.config.reviewkeys[r])
             return None
@@ -703,6 +734,27 @@ class ChangeView(urwid.WidgetWrap):
         else:
             screen = view_side_diff.SideDiffView(self.app, revision_key)
         self.app.changeScreen(screen)
+
+    def editTopic(self):
+        dialog = EditTopicDialog(self.app, self.topic)
+        urwid.connect_signal(dialog, 'save',
+            lambda button: self.closeEditTopic(dialog, True))
+        urwid.connect_signal(dialog, 'cancel',
+            lambda button: self.closeEditTopic(dialog, False))
+        self.app.popup(dialog)
+
+    def closeEditTopic(self, dialog, save):
+        if save:
+            change_key = None
+            with self.app.db.getSession() as session:
+                change = session.getChange(self.change_key)
+                change.topic = dialog.entry.edit_text
+                change.pending_topic = True
+                change_key = change.key
+            self.app.sync.submitTask(
+                sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
 
     def reviewKey(self, reviewkey):
         approvals = {}

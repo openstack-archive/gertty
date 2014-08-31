@@ -602,6 +602,9 @@ class DatabaseSession(object):
     def getPendingMessages(self):
         return self.session().query(Message).filter_by(pending=True).all()
 
+    def getPendingTopics(self):
+        return self.session().query(Change).filter_by(pending_topic=True).all()
+
     def getAccountByID(self, id, name=None, username=None, email=None):
         try:
             account = self.session().query(Account).filter_by(id=id).one()

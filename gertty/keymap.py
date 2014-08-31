@@ -46,6 +46,7 @@ NEXT_CHANGE = 'next change'
 PREV_CHANGE = 'previous change'
 TOGGLE_HIDDEN_COMMENTS = 'toggle hidden comments'
 REFRESH = 'refresh'
+EDIT_TOPIC = 'edit topic'
 # Project list screen:
 TOGGLE_LIST_REVIEWED = 'toggle list reviewed'
 TOGGLE_LIST_SUBSCRIBED = 'toggle list subscribed'
@@ -83,6 +84,7 @@ DEFAULT_KEYMAP = {
     PREV_CHANGE: 'p',
     TOGGLE_HIDDEN_COMMENTS: 't',
     REFRESH: 'ctrl r',
+    EDIT_TOPIC: 'ctrl t',
 
     TOGGLE_LIST_REVIEWED: 'l',
     TOGGLE_LIST_SUBSCRIBED: 'L',
