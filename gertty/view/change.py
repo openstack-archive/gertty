@@ -50,6 +50,29 @@ class EditTopicDialog(mywid.ButtonDialog):
             return None
         return r
 
+class AbandonRestoreDialog(urwid.WidgetWrap):
+    signals = ['save', 'cancel']
+    def __init__(self, action, text):
+        self.action = action
+        save_button = mywid.FixedButton(action)
+        cancel_button = mywid.FixedButton('Cancel')
+        urwid.connect_signal(save_button, 'click',
+                             lambda button:self._emit('save'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        button_widgets = [('pack', save_button),
+                          ('pack', cancel_button)]
+        button_columns = urwid.Columns(button_widgets, dividechars=2)
+        rows = []
+        self.entry = urwid.Edit(edit_text=text, multiline=True)
+        rows.append(urwid.Text(u"%s message: " % action))
+        rows.append(self.entry)
+        rows.append(urwid.Divider())
+        rows.append(button_columns)
+        pile = urwid.Pile(rows)
+        fill = urwid.Filler(pile, valign='top')
+        super(AbandonRestoreDialog, self).__init__(urwid.LineBox(fill, '%s Change' % (action,)))
+
 class ReviewDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
     def __init__(self, revision_row):
@@ -345,8 +368,12 @@ class ChangeView(urwid.WidgetWrap):
              "Toggle the reviewed flag for the current change"),
             (key(keymap.CHERRY_PICK),
              "Cherry-pick the most recent revision onto the local repo"),
+            (key(keymap.ABANDON_CHANGE),
+             "Abandon this change"),
             (key(keymap.REBASE_CHANGE),
              "Rebase this change (remotely)"),
+            (key(keymap.RESTORE_CHANGE),
+             "Restore this change"),
             (key(keymap.REFRESH),
              "Refresh this change"),
             (key(keymap.EDIT_TOPIC),
@@ -448,6 +475,7 @@ class ChangeView(urwid.WidgetWrap):
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
             self.topic = change.topic or ''
+            self.pending_status_message = change.pending_status_message or ''
             if change.reviewed:
                 reviewed = ' (reviewed)'
             else:
@@ -717,8 +745,14 @@ class ChangeView(urwid.WidgetWrap):
             self.hide_comments = not self.hide_comments
             self.refresh()
             return None
+        if keymap.ABANDON_CHANGE in commands:
+            self.abandonChange()
+            return None
         if keymap.REBASE_CHANGE in commands:
             self.rebaseChange()
+            return None
+        if keymap.RESTORE_CHANGE in commands:
+            self.restoreChange()
             return None
         if keymap.REFRESH in commands:
             self.app.sync.submitTask(
@@ -739,6 +773,33 @@ class ChangeView(urwid.WidgetWrap):
         else:
             screen = view_side_diff.SideDiffView(self.app, revision_key)
         self.app.changeScreen(screen)
+
+    def abandonChange(self):
+        dialog = AbandonRestoreDialog(u'Abandon', self.pending_status_message)
+        urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
+        urwid.connect_signal(dialog, 'save', lambda button:
+                                 self.doAbandonRestoreChange(dialog, 'ABANDONED'))
+        self.app.popup(dialog)
+
+    def restoreChange(self):
+        dialog = AbandonRestoreDialog(u'Restore', self.pending_status_message)
+        urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
+        urwid.connect_signal(dialog, 'save', lambda button:
+                                 self.doAbandonRestoreChange(dialog, 'NEW'))
+        self.app.popup(dialog)
+
+    def doAbandonRestoreChange(self, dialog, state):
+        change_key = None
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.status = state
+            change.pending_status = True
+            change.pending_status_message = dialog.entry.edit_text
+            change_key = change.key
+        self.app.sync.submitTask(
+            sync.ChangeStatusTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
 
     def rebaseChange(self):
         dialog = mywid.YesNoDialog(u'Rebase Change',

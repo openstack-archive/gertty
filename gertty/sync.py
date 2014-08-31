@@ -535,6 +535,8 @@ class UploadReviewsTask(Task):
                 sync.submitTask(SetTopicTask(c.key, self.priority))
             for c in session.getPendingRebases():
                 sync.submitTask(RebaseChangeTask(c.key, self.priority))
+            for c in session.getPendingStatusChanges():
+                sync.submitTask(ChangeStatusTask(c.key, self.priority))
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
 
@@ -572,6 +574,33 @@ class RebaseChangeTask(Task):
             change.pending_rebase = False
             # Inside db session for rollback
             sync.post('changes/%s/rebase' % (change.id,), {})
+            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
+
+class ChangeStatusTask(Task):
+    def __init__(self, change_key, priority=NORMAL_PRIORITY):
+        super(ChangeStatusTask, self).__init__(priority)
+        self.change_key = change_key
+
+    def __repr__(self):
+        return '<ChangeStatusTask %s>' % (self.change_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            if change.pending_status_message:
+                data = dict(message=change.pending_status_message)
+            else:
+                data = {}
+            change.pending_status = False
+            change.pending_status_message = None
+            # Inside db session for rollback
+            if change.status == 'ABANDONED':
+                sync.post('changes/%s/abandon' % (change.id,),
+                          data)
+            elif change.status == 'NEW':
+                sync.post('changes/%s/restore' % (change.id,),
+                          data)
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class UploadReviewTask(Task):
