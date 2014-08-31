@@ -39,8 +39,8 @@ TOGGLE_REVIEWED = 'toggle reviewed'
 TOGGLE_HIDDEN = 'toggle hidden'
 REVIEW = 'review'
 DIFF = 'diff'
-CHECKOUT = 'checkout'
-CHERRY_PICK = 'cherry pick'
+LOCAL_CHECKOUT = 'local checkout'
+LOCAL_CHERRY_PICK = 'local cherry pick'
 SEARCH_RESULTS = 'search results'
 NEXT_CHANGE = 'next change'
 PREV_CHANGE = 'previous change'
@@ -48,7 +48,7 @@ TOGGLE_HIDDEN_COMMENTS = 'toggle hidden comments'
 ABANDON_CHANGE = 'abandon change'
 RESTORE_CHANGE = 'restore change'
 REBASE_CHANGE = 'rebase change'
-CHERRY_PICK_CHANGE = 'cherry-pick change'
+CHERRY_PICK_CHANGE = 'cherry pick change'
 REFRESH = 'refresh'
 EDIT_TOPIC = 'edit topic'
 EDIT_COMMIT_MESSAGE = 'edit commit message'
@@ -82,8 +82,8 @@ DEFAULT_KEYMAP = {
     TOGGLE_HIDDEN: 'k',
     REVIEW: 'r',
     DIFF: 'd',
-    CHECKOUT: 'c',
-    CHERRY_PICK: 'x',
+    LOCAL_CHECKOUT: 'c',
+    LOCAL_CHERRY_PICK: 'x',
     SEARCH_RESULTS: 'u',
     NEXT_CHANGE: 'n',
     PREV_CHANGE: 'p',

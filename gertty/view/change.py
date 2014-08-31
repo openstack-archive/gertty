@@ -355,7 +355,7 @@ class ChangeView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys
         ret = [
-            (key(keymap.CHECKOUT),
+            (key(keymap.LOCAL_CHECKOUT),
              "Checkout the most recent revision into the local repo"),
             (key(keymap.DIFF),
              "Show the diff of the mont recent revision"),
@@ -373,7 +373,7 @@ class ChangeView(urwid.WidgetWrap):
              "Back to the list of changes"),
             (key(keymap.TOGGLE_REVIEWED),
              "Toggle the reviewed flag for the current change"),
-            (key(keymap.CHERRY_PICK),
+            (key(keymap.LOCAL_CHERRY_PICK),
              "Cherry-pick the most recent revision onto the local repo"),
             (key(keymap.ABANDON_CHANGE),
              "Abandon this change"),
@@ -724,11 +724,11 @@ class ChangeView(urwid.WidgetWrap):
             row = self.revision_rows[self.last_revision_key]
             row.diff(None)
             return None
-        if keymap.CHECKOUT in commands:
+        if keymap.LOCAL_CHECKOUT in commands:
             row = self.revision_rows[self.last_revision_key]
             row.checkout(None)
             return None
-        if keymap.CHERRY_PICK in commands:
+        if keymap.LOCAL_CHERRY_PICK in commands:
             row = self.revision_rows[self.last_revision_key]
             row.cherryPick(None)
             return None
