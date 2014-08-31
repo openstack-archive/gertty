@@ -92,7 +92,6 @@ class SearchDialog(mywid.ButtonDialog):
     def keypress(self, size, key):
         r = super(SearchDialog, self).keypress(size, key)
         commands = self.app.config.keymap.getCommands(r)
-        self.app.log.debug('search %s %s' % (r, commands))
         if keymap.ACTIVATE in commands:
             self._emit('search')
             return None
@@ -271,7 +270,7 @@ class App(object):
             if not succeeded:
                 raise Exception('Unable to find change.')
             for subtask in task.tasks:
-                succeeded = task.wait(300)
+                succeeded = subtask.wait(300)
                 if not succeeded:
                     raise Exception('Unable to sync change.')
             with self.db.getSession() as session:
