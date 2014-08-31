@@ -51,6 +51,7 @@ REBASE_CHANGE = 'rebase change'
 CHERRY_PICK_CHANGE = 'cherry-pick change'
 REFRESH = 'refresh'
 EDIT_TOPIC = 'edit topic'
+EDIT_COMMIT_MESSAGE = 'edit commit message'
 # Project list screen:
 TOGGLE_LIST_REVIEWED = 'toggle list reviewed'
 TOGGLE_LIST_SUBSCRIBED = 'toggle list subscribed'
@@ -93,6 +94,7 @@ DEFAULT_KEYMAP = {
     CHERRY_PICK_CHANGE: 'ctrl x',
     REFRESH: 'ctrl r',
     EDIT_TOPIC: 'ctrl t',
+    EDIT_COMMIT_MESSAGE: 'ctrl d',
 
     TOGGLE_LIST_REVIEWED: 'l',
     TOGGLE_LIST_SUBSCRIBED: 'L',

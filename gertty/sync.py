@@ -341,6 +341,7 @@ class SyncChangeTask(Task):
                                                      remote_revision['commit']['parents'][0]['commit'],
                                                      auth, ref)
                     new_revision = True
+                revision.message = remote_revision['commit']['message']
                 # TODO: handle multiple parents
                 parent_revision = session.getRevisionByCommit(revision.parent)
                 # TODO: use a singleton list of closed states
@@ -584,6 +585,8 @@ class UploadReviewsTask(Task):
                 sync.submitTask(ChangeStatusTask(c.key, self.priority))
             for c in session.getPendingCherryPicks():
                 sync.submitTask(SendCherryPickTask(c.key, self.priority))
+            for r in session.getPendingCommitMessages():
+                sync.submitTask(ChangeCommitMessageTask(r.key, self.priority))
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
 
@@ -671,6 +674,27 @@ class SendCherryPickTask(Task):
                             data)
         if ret and 'id' in ret:
             sync.submitTask(SyncChangeTask(ret['id'], priority=self.priority))
+
+class ChangeCommitMessageTask(Task):
+    def __init__(self, revision_key, priority=NORMAL_PRIORITY):
+        super(ChangeCommitMessageTask, self).__init__(priority)
+        self.revision_key = revision_key
+
+    def __repr__(self):
+        return '<ChangeCommitMessageTask %s>' % (self.revision_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            revision = session.getRevision(self.revision_key)
+            revision.pending_message = False
+            data = dict(message=revision.message)
+            # Inside db session for rollback
+            ret = sync.post('changes/%s/revisions/%s/message' %
+                            (revision.change.id, revision.commit),
+                            data)
+            change_id = revision.change.id
+        sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
 class UploadReviewTask(Task):
     def __init__(self, message_key, priority=NORMAL_PRIORITY):

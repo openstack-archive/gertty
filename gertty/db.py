@@ -629,6 +629,9 @@ class DatabaseSession(object):
     def getPendingCherryPicks(self):
         return self.session().query(PendingCherryPick).all()
 
+    def getPendingCommitMessages(self):
+        return self.session().query(Revision).filter_by(pending_message=True).all()
+
     def getAccountByID(self, id, name=None, username=None, email=None):
         try:
             account = self.session().query(Account).filter_by(id=id).one()

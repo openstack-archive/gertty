@@ -88,6 +88,28 @@ class ButtonDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(ButtonDialog, self).__init__(urwid.LineBox(fill, title))
 
+class TextEditDialog(urwid.WidgetWrap):
+    signals = ['save', 'cancel']
+    def __init__(self, title, prompt, button, text):
+        save_button = FixedButton(button)
+        cancel_button = FixedButton('Cancel')
+        urwid.connect_signal(save_button, 'click',
+                             lambda button:self._emit('save'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        button_widgets = [('pack', save_button),
+                          ('pack', cancel_button)]
+        button_columns = urwid.Columns(button_widgets, dividechars=2)
+        rows = []
+        self.entry = urwid.Edit(edit_text=text, multiline=True)
+        rows.append(urwid.Text(prompt))
+        rows.append(self.entry)
+        rows.append(urwid.Divider())
+        rows.append(button_columns)
+        pile = urwid.Pile(rows)
+        fill = urwid.Filler(pile, valign='top')
+        super(TextEditDialog, self).__init__(urwid.LineBox(fill, title))
+
 class MessageDialog(ButtonDialog):
     signals = ['close']
     def __init__(self, title, message):

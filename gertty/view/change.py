@@ -50,29 +50,6 @@ class EditTopicDialog(mywid.ButtonDialog):
             return None
         return r
 
-class AbandonRestoreDialog(urwid.WidgetWrap):
-    signals = ['save', 'cancel']
-    def __init__(self, action, text):
-        self.action = action
-        save_button = mywid.FixedButton(action)
-        cancel_button = mywid.FixedButton('Cancel')
-        urwid.connect_signal(save_button, 'click',
-                             lambda button:self._emit('save'))
-        urwid.connect_signal(cancel_button, 'click',
-                             lambda button:self._emit('cancel'))
-        button_widgets = [('pack', save_button),
-                          ('pack', cancel_button)]
-        button_columns = urwid.Columns(button_widgets, dividechars=2)
-        rows = []
-        self.entry = urwid.Edit(edit_text=text, multiline=True)
-        rows.append(urwid.Text(u"%s message:" % action))
-        rows.append(self.entry)
-        rows.append(urwid.Divider())
-        rows.append(button_columns)
-        pile = urwid.Pile(rows)
-        fill = urwid.Filler(pile, valign='top')
-        super(AbandonRestoreDialog, self).__init__(urwid.LineBox(fill, '%s Change' % (action,)))
-
 class CherryPickDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
     def __init__(self, change):
@@ -400,6 +377,8 @@ class ChangeView(urwid.WidgetWrap):
              "Cherry-pick the most recent revision onto the local repo"),
             (key(keymap.ABANDON_CHANGE),
              "Abandon this change"),
+            (key(keymap.EDIT_COMMIT_MESSAGE),
+             "Edit the commit message of this change"),
             (key(keymap.REBASE_CHANGE),
              "Rebase this change (remotely)"),
             (key(keymap.RESTORE_CHANGE),
@@ -778,6 +757,9 @@ class ChangeView(urwid.WidgetWrap):
         if keymap.ABANDON_CHANGE in commands:
             self.abandonChange()
             return None
+        if keymap.EDIT_COMMIT_MESSAGE in commands:
+            self.editCommitMessage()
+            return None
         if keymap.REBASE_CHANGE in commands:
             self.rebaseChange()
             return None
@@ -808,14 +790,18 @@ class ChangeView(urwid.WidgetWrap):
         self.app.changeScreen(screen)
 
     def abandonChange(self):
-        dialog = AbandonRestoreDialog(u'Abandon', self.pending_status_message)
+        dialog = mywid.TextEditDialog(u'Abandon Change', u'Abandon message:',
+                                      u'Abandon Change',
+                                      self.pending_status_message)
         urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
         urwid.connect_signal(dialog, 'save', lambda button:
                                  self.doAbandonRestoreChange(dialog, 'ABANDONED'))
         self.app.popup(dialog)
 
     def restoreChange(self):
-        dialog = AbandonRestoreDialog(u'Restore', self.pending_status_message)
+        dialog = mywid.TextEditDialog(u'Restore Change', u'Restore message:',
+                                      u'Restore Change',
+                                      self.pending_status_message)
         urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
         urwid.connect_signal(dialog, 'save', lambda button:
                                  self.doAbandonRestoreChange(dialog, 'NEW'))
@@ -831,6 +817,31 @@ class ChangeView(urwid.WidgetWrap):
             change_key = change.key
         self.app.sync.submitTask(
             sync.ChangeStatusTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
+
+    def editCommitMessage(self):
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            dialog = mywid.TextEditDialog(u'Edit Commit Message', u'Commit message:',
+                                          u'Save', change.revisions[-1].message)
+        urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
+        urwid.connect_signal(dialog, 'save', lambda button:
+                                 self.doEditCommitMessage(dialog))
+        self.app.popup(dialog,
+                       relative_width=50, relative_height=75,
+                       min_width=60, min_height=20)
+
+    def doEditCommitMessage(self, dialog):
+        revision_key = None
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            revision = change.revisions[-1]
+            revision.message = dialog.entry.edit_text
+            revision.pending_message = True
+            revision_key = revision.key
+        self.app.sync.submitTask(
+            sync.ChangeCommitMessageTask(revision_key, sync.HIGH_PRIORITY))
         self.app.backScreen()
         self.refresh()
 
