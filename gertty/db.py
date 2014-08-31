@@ -605,6 +605,9 @@ class DatabaseSession(object):
     def getPendingTopics(self):
         return self.session().query(Change).filter_by(pending_topic=True).all()
 
+    def getPendingRebases(self):
+        return self.session().query(Change).filter_by(pending_rebase=True).all()
+
     def getAccountByID(self, id, name=None, username=None, email=None):
         try:
             account = self.session().query(Account).filter_by(id=id).one()

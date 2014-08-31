@@ -45,6 +45,7 @@ SEARCH_RESULTS = 'search results'
 NEXT_CHANGE = 'next change'
 PREV_CHANGE = 'previous change'
 TOGGLE_HIDDEN_COMMENTS = 'toggle hidden comments'
+REBASE_CHANGE = 'rebase change'
 REFRESH = 'refresh'
 EDIT_TOPIC = 'edit topic'
 # Project list screen:
@@ -83,6 +84,7 @@ DEFAULT_KEYMAP = {
     NEXT_CHANGE: 'n',
     PREV_CHANGE: 'p',
     TOGGLE_HIDDEN_COMMENTS: 't',
+    REBASE_CHANGE: 'ctrl b',
     REFRESH: 'ctrl r',
     EDIT_TOPIC: 'ctrl t',
 

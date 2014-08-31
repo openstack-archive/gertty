@@ -29,7 +29,7 @@ class EditTopicDialog(mywid.ButtonDialog):
     signals = ['save', 'cancel']
     def __init__(self, app, topic):
         self.app = app
-        save_button = mywid.FixedButton('Search')
+        save_button = mywid.FixedButton('Save')
         cancel_button = mywid.FixedButton('Cancel')
         urwid.connect_signal(save_button, 'click',
                              lambda button:self._emit('save'))
@@ -345,6 +345,8 @@ class ChangeView(urwid.WidgetWrap):
              "Toggle the reviewed flag for the current change"),
             (key(keymap.CHERRY_PICK),
              "Cherry-pick the most recent revision onto the local repo"),
+            (key(keymap.REBASE_CHANGE),
+             "Rebase this change (remotely)"),
             (key(keymap.REFRESH),
              "Refresh this change"),
             (key(keymap.EDIT_TOPIC),
@@ -715,6 +717,9 @@ class ChangeView(urwid.WidgetWrap):
             self.hide_comments = not self.hide_comments
             self.refresh()
             return None
+        if keymap.REBASE_CHANGE in commands:
+            self.rebaseChange()
+            return None
         if keymap.REFRESH in commands:
             self.app.sync.submitTask(
                 sync.SyncChangeTask(self.change_rest_id, priority=sync.HIGH_PRIORITY))
@@ -734,6 +739,24 @@ class ChangeView(urwid.WidgetWrap):
         else:
             screen = view_side_diff.SideDiffView(self.app, revision_key)
         self.app.changeScreen(screen)
+
+    def rebaseChange(self):
+        dialog = mywid.YesNoDialog(u'Rebase Change',
+                                   u'Perform a remote rebase of this change?')
+        urwid.connect_signal(dialog, 'no', self.app.backScreen)
+        urwid.connect_signal(dialog, 'yes', self.doRebaseChange)
+        self.app.popup(dialog)
+
+    def doRebaseChange(self, button=None):
+        change_key = None
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.pending_rebase = True
+            change_key = change.key
+        self.app.sync.submitTask(
+            sync.RebaseChangeTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
 
     def editTopic(self):
         dialog = EditTopicDialog(self.app, self.topic)

@@ -533,6 +533,8 @@ class UploadReviewsTask(Task):
         with app.db.getSession() as session:
             for c in session.getPendingTopics():
                 sync.submitTask(SetTopicTask(c.key, self.priority))
+            for c in session.getPendingRebases():
+                sync.submitTask(RebaseChangeTask(c.key, self.priority))
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
 
@@ -553,6 +555,23 @@ class SetTopicTask(Task):
             # Inside db session for rollback
             sync.put('changes/%s/topic' % (change.id,),
                      data)
+            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
+
+class RebaseChangeTask(Task):
+    def __init__(self, change_key, priority=NORMAL_PRIORITY):
+        super(RebaseChangeTask, self).__init__(priority)
+        self.change_key = change_key
+
+    def __repr__(self):
+        return '<RebaseChangeTask %s>' % (self.change_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.pending_rebase = False
+            # Inside db session for rollback
+            sync.post('changes/%s/rebase' % (change.id,), {})
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class UploadReviewTask(Task):
