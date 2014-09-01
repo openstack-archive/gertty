@@ -1,0 +1,166 @@
+# This is an example ~/.gertty.yaml with an exhaustive listing of
+# options with commentary.
+
+# This section lists the servers that Gertty can talk to.  Multiple
+# servers may be listed; by default, Gertty will use the first one
+# listed.  To select another, simply specify its name on the command
+# line.
+servers:
+  - name: CHANGEME
+    url: https://CHANGEME.example.org/
+    username: CHANGEME
+    password: CHANGEME
+    git_root: ~/git/
+
+# Each server section can have the following fields:
+# A name that describes the server, to reference on the command line. [required]
+#  - name: sample
+# The URL of the Gerrit server.  HTTPS should be preferred. [required]
+#    url: https://example.org/
+# Your username in Gerrit. [required]
+#    username: CHANGEME
+# Your password in Gerrit (Settings -> HTTP Password). [required]
+#    password: CHANGEME
+# A location where Gertty should store its git repositories.  These
+# can be the same git repositories where you do your own work --
+# Gertty will not modify them unless you tell it to, and even then the
+# normal git protections against losing work remain in place. [required]
+#    git-root: ~/git/
+# The location of Gertty's sqlite database.  If you have more than one
+# server, you should specify a dburi for any additional servers.
+#    dburi: ~/.gertty.db
+# If your Gerrit server has a self-signed cert (eg, a test server),
+# you can set this value to false to turn of certificate validation.
+#    verify-ssl: true
+# By default Gertty logs errors to a file and truncates that file each
+# time it starts (so that it does not grow without bound).  If you
+# would like to log to a different location, you may specify it here.
+#    log-file: ~/.gertty.log
+
+# Gertty comes with two palettes defined internally.  The default
+# palette is suitable for use on a terminal with a dark background.
+# The "light" palette is for a terminal with a white or light
+# background.  You may customize the colors in either of those
+# palettes, or define your own palette.
+
+# The following alters two colors in the default palette, one color in
+# the light palette, and one color in a custom palette.  If any color
+# is not defined in a palette, the value from the default palette is
+# used.  The values are a list of at least two elements describing the
+# colors to be use for the foreground and background colors.
+# Additional elements can specify (in order) the color to use for
+# monochrome terminals, the foreground, and background colors to use
+# in high-color terminals.
+
+# For a reference of possible color names, see:
+# http://urwid.org/manual/displayattributes.html#foreground-and-background-settings
+# To see the list of possible palette entries, run "gertty --print-palette".
+
+palettes:
+  - name: default
+    added-line: ['dark green', '']
+    added-word: ['light green', '']
+  - name: light
+    filename: ['dark cyan', '']
+  - name: custom
+    filename: ['light yellow', '']
+
+# Palettes may be selected at runtime with the "-p PALETTE" command
+# line option, or you may set the default palette here:
+# palette: light
+
+# Keymaps work the same way as palettes.  Only one keymap is defined
+# internally, the default keymap.  Individual keys may be overridden
+# and custom keymaps defined and selected in the config file or the
+# command line.
+
+# Each keymap contains a mapping of command -> key(s).  If a command
+# is not specified, Gertty will use the keybinding specified in the
+# default map.  More than one key can be bound to a command.
+
+# Run "gertty --print-keymap" for a list of commands that can be
+# bound.
+
+keymaps:
+  - name: default
+    diff: 'd'
+  - name: custom
+    review: ['r', 'R']
+
+# The default keymap may be selected with the '-k KEYMAP' command line
+# option, or with the following line:
+# keymap: custom
+
+# Commentlinks are regular expressions that are applied to commit and
+# review messages.  They can be replaced with internal or external
+# links, or have colors applied.
+commentlinks:
+# Match Gerrit change ids, and replace them with a link to an internal
+# Gertty search for that change id.
+  - match: "(?P<id>I[0-9a-fA-F]{40})"
+    replacements:
+      - search:
+          text: "{id}"
+          query: "change:{id}"
+# Any number of commentlink entries may be specified.  Start each with
+# a "match" key and regex.  Named match groups within the regex may be
+# used in the replacements section.  Any number of replacements may be
+# specified.  The types of replacement available are:
+#
+# Text: Plain text whose color may be specified.  The color references
+# a palette entry.
+#      - text:
+#          color: ""
+#          text: ""
+# Link: A hyperlink with the indicated text that when activated will
+# open the user's browser with the supplied URL
+#      - link:
+#          text: ""
+#          url: ""
+# Search: A hyperlink that will perform a Gertty search when
+# activated.
+#      - search:
+#          text: "{id}"
+#          query: "change:{id}"
+
+# This is the query used for the list of changes when a project is
+# selected.  The default is "status:open".
+# change-list-query: "status:open"
+
+# Uncomment the following line to use a unified diff view instead
+# of the default side-by-side:
+# diff-view: unified
+
+# Uncomment the following lines to Hide comments by default that match
+# certain criteria.  You can toggle their display with 't'.  Currently
+# the only supported criterion is "author".
+# hide-comments:
+#  - author: "^(.*CI|Jenkins)$"
+
+# This section defines customized dashboards.  You can supply any
+# Gertty search string and bind them to any key.  They will appear in
+# the global help text, and pressing the key anywhere in Gertty will
+# discard the current display stack and replace it with the results of
+# the query.
+dashboards:
+  - name: "My changes"
+    query: "owner:self status:open"
+    key: "f2"
+
+# Reviewkeys are hotkeys that perform immediate reviews within the
+# change screen.  Any pending comments or review messages will be
+# attached to the review; otherwise an empty review will be left.  The
+# approvals list is exhaustive, so if you specify an empty list,
+# Gertty will submit a review that clears any previous approvals.
+# They will appear in the help text for the change screen.
+reviewkeys:
+  - key: 'meta 0'
+    approvals: []
+  - key: 'meta 1'
+    approvals:
+      - category: 'Code-Review'
+        value: 1
+  - key: 'meta 2'
+    approvals:
+      - category: 'Code-Review'
+        value: 2

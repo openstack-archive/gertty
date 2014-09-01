@@ -193,19 +193,11 @@ class Config(object):
         return None
 
     def printSample(self):
-        print """Please create a configuration file ~/.gertty.yaml
+        filename = 'share/gertty/examples'
+        print """Gertty requires a configuration file at ~/.gertty.yaml
 
-Example:
+Several sample configuration files were installed with Gertty and are
+available in %s in the root of the installation.
 
------8<-------8<-----8<-----8<---
-servers:
-  - name: gerrit
-    url: https://review.example.org/
-    username: <gerrit username>
-    password: <gerrit password>
-    git_root: ~/git/
------8<-------8<-----8<-----8<---
-
-Then invoke:
-  gertty gerrit
-        """
+For more information, please see the README.
+""" % (filename,)

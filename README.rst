@@ -22,90 +22,104 @@ As compared to the web interface, the main advantages are:
    repos, a single command instructs it to checkout a change into that
    repo for detailed examination or testing of larger changes.
 
+Installation
+------------
+
+It is recommended (but not required) to install Gertty in a
+virtualenv.  To do set one up::
+
+  virtualenv gertty-env
+  source gertty-env/bin/activate
+
+To install the latest version from the cheeseshop::
+
+  pip install gertty
+
+To install from a git checkout::
+
+  pip install .
+
+Gertty uses a YAML based configuration file that it looks for at
+``~/.gertty.yaml``.  Several sample configuration files are included.
+You can find them in the examples/ directory of the source
+distribution or the share/gertty/examples directory after installation.
+
+Select one of the sample config files, copy it to ~/.gertty.yaml and
+edit as necessary.  Search for ``CHANGEME`` to find parameters that
+need to be supplied.  The sample config files are as follows:
+
+**minimal-gertty.yaml**
+  Only contains the parameters required for Gertty to actually run.
+
+**reference-gertty.yaml**
+  An exhaustive list of all supported options with examples.
+
+**openstack-gertty.yaml**
+  A configuration designed for use with OpenStack's installation of
+  Gerrit.
+
+You will need your Gerrit password which you can generate or retrieve
+by navigating to ``Settings``, then ``HTTP Password``.
+
+Gertty uses local git repositories to perform much of its work.  These
+can be the same git repositories that you use when developing a
+project.  Gertty will not alter the working directory or index unless
+you request it to (and even then, the usual git safeguards against
+accidentally losing work remain in place).  You will need to supply
+the name of a directory where Gertty will find or clone git
+repositories for your projects as the ``git-root`` parameter.
+
+The config file is designed to support multiple Gerrit instances.  The
+first one is used by default, but others can be specified by supplying
+the name on the command line.
+
 Usage
 -----
 
-Create a file at ``~/.gertty.yaml`` with the following contents::
+After installing Gertty, you should be able to run it by invoking
+``gertty``.  If you installed it in a virtualenv, you can invoke it
+without activating the virtualenv with ``/path/to/venv/bin/gertty``
+which you may wish to add to your shell aliases.  Use ``gertty
+--help`` to see a list of command line options available.
 
-  servers:
-    - name: gerrit
-      url: https://review.example.org/
-      username: <gerrit username>
-      password: <gerrit password>
-      git_root: ~/git/
-
-A sample file with several options configured for use with OpenStack's
-Gerrit is available in ``gertty.yaml-sample``.
-
-You can generate or retrieve your Gerrit password by navigating to
-Settings, then HTTP Password.  Set ``git_root`` to a directory where
-Gertty should find or clone git repositories for your projects.
-
-If your Gerrit uses a self-signed certificate, you can add::
-
-  verify_ssl: False
-
-To the section.
-
-The config file is designed to support multiple Gerrit instances, but
-currently, only the first one is used.
-
-After installing the requirements (listed in requirements.txt), you
-should be able to simply run Gertty.  You will need to start by
-subscribing to some projects.  Use 'l' to list all of the projects and
-then 's' to subscribe to them.
+Once Gertty is running, you will need to start by subscribing to some
+projects.  Use 'L' to list all of the projects and then 's' to
+subscribe to the ones you are interested in.  Hit 'L' again to shrink
+the list to your subscribed projects.
 
 In general, pressing the F1 key will show help text on any screen, and
 ESC will take you to the previous screen.
 
+Gertty works seamlessly offline or online.  All of the actions that it
+performs are first recorded in a local database (in ``~/.gertty.db``
+by default), and are then transmitted to Gerrit.  If Gertty is unable
+to contact Gerrit for any reason, it will continue to operate against
+the local database, and once it re-establishes contact, it will
+process any pending changes.
+
+The status bar at the top of the screen displays the current number of
+outstanding tasks that Gertty must perform in order to be fully up to
+date.  Some of these tasks are more complicated than others, and some
+of them will end up creating new tasks (for instance, one task may be
+to search for new changes in a project which will then produce 5 new
+tasks if there are 5 new changes).  This will explain why the number
+of tasks displayed in the status bar sometimes changes rapidly.
+
+If Gertty is offline, it will so indicate in the status bar.  It will
+retry requests if needed, and will switch between offline and online
+mode automatically.
+
+If Gertty encounters an error, this will also be indicated in the
+status bar.  You may wish to examine ~/.gertty.log to see what the
+error was.  In may cases, Gertty can continue after encountering an
+error.  The error flag will be cleared when you leave the current
+screen.
+
 To select text (e.g., to copy to the clipboard), hold Shift while
 selecting the text.
-
-Philosophy
-----------
-
-Gertty is based on the following precepts which should inform changes
-to the program:
-
-* Support large numbers of review requests across large numbers of
-  projects.  Help the user prioritize those reviews.
-
-* Adopt a news/mailreader-like workflow in support of the above.
-  Being able to subscribe to projects, mark reviews as "read" without
-  reviewing, etc, are all useful concepts to support a heavy review
-  load (they have worked extremely well in supporting people who
-  read/write a lot of mail/news).
-
-* Support off-line use.  Gertty should be completely usable off-line
-  with reliable syncing between local data and Gerrit when a
-  connection is available (just like git or mail or news).
-
-* Ample use of color.  Unlike a web interface, a good text interface
-  relies mostly on color and precise placement rather than whitespace
-  and decoration to indicate to the user the purpose of a given piece
-  of information.  Gertty should degrade well to 16 colors, but more
-  (88 or 256) may be used.
-
-* Keyboard navigation (with easy-to-remember commands) should be
-  considered the primary mode of interaction.  Mouse interaction
-  should also be supported.
-
-* The navigation philosophy is a stack of screens, where each
-  selection pushes a new screen onto the stack, and ESC pops the
-  screen off.  This makes sense when drilling down to a change from
-  lists, but also supports linking from change to change (via commit
-  messages or comments) and navigating back intuitive (it matches
-  expectations set by the web browsers).
-
-* Support a wide variety of Gerrit installations.  The initial
-  development of Gertty is against the OpenStack project's Gerrit, and
-  many of the features are intended to help its developers with their
-  workflow, however, those features should be implemented in a generic
-  way so that the system does not require a specific Gerrit
-  configuration.
 
 Contributing
 ------------
 
-For information on how to contribute to gertty, please see the
+For information on how to contribute to Gertty, please see the
 contents of the CONTRIBUTING.rst file.

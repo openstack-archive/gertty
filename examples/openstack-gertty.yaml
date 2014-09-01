@@ -1,0 +1,103 @@
+# This is an example ~/.gertty.yaml file for use with OpenStack's
+# Gerrit.  Most of these options are not required, rather, they
+# customize Gertty to better deal with the particulars of OpenStack's
+# Gerrit configuration.
+
+servers:
+  - name: openstack
+    url: https://review.openstack.org/
+    username: CHANGEME
+    password: CHANGEME
+    git-root: ~/git/
+
+# This section adds the colors that we will reference later in the
+# commentlinks section for test results.  You can also change other
+# colors here.
+palettes:
+  - name: default
+    test-SUCCESS: ['light green', '']
+    test-FAILURE: ['light red', '']
+
+# Uncomment the next line if your terminal has a white background
+# palette: light
+
+# Commentlinks are regexes that are applied to commit and review
+# messages.  They can be replaced with internal or external links, or
+# have colors applied.
+commentlinks:
+  # This matches the job results left by Zuul.
+  - match: "^- (?P<job>.*?) (?P<url>.*?) : (?P<result>[^ ]+) ?(?P<comment>.*)$"
+    # This indicates that this is a test result, and should be indexed
+    # using the "job" match group from the commentlink regex.  Gertty
+    # displays test results in their own area of the screen.
+    test-result: "{job}"
+    replacements:
+      # Replace the matching text with a hyperlink to the "url" match
+      # group whose text is the "job" match group.
+      - link:
+          text: "{job:<42}"
+          url: "{url}"
+      # Follow that with the plain text of the "result" match group
+      # with the color "test-{result}" applied.  See the palette
+      # section above.
+      - text:
+          color: "test-{result}"
+          text: "{result} "
+      # And then follow that with the plain text of the "comment"
+      # match group.
+      - text: "{comment}"
+  # Match Gerrit change ids, and replace them with a link to an
+  # internal Gertty search for that change id.
+  - match: "(?P<id>I[0-9a-fA-F]{40})"
+    replacements:
+      - search:
+          text: "{id}"
+          query: "change:{id}"
+
+# This is the query used for the list of changes when a project is
+# selected.  The default is "status:open"; if you don't want to see
+# WIP changes, use a query like this: 
+# change-list-query: "status:open not label:Workflow=-1"
+
+# Uncomment the following line to use a unified diff view instead
+# of the default side-by-side:
+# diff-view: unified
+
+# Hide comments by default that match the following criteria.
+# You can toggle their display with 't'.
+hide-comments:
+  - author: "^(.*CI|Jenkins)$"
+
+# This section defines customized dashboards.  You can supply any
+# Gertty search string and bind them to any key.  They will appear in
+# the global help text, and pressing the key anywhere in Gertty will
+# discard the current display stack and replace it with the results of
+# the query.
+dashboards:
+  - name: "My changes"
+    query: "owner:self status:open"
+    key: "f2"
+
+# Reviewkeys are hotkeys that perform immediate reviews within the
+# change screen.  Any pending comments or review messages will be
+# attached to the review; otherwise an empty review will be left.  The
+# approvals list is exhaustive, so if you specify an empty list,
+# Gertty will submit a review that clears any previous approvals.
+# They will appear in the help text for the change screen.
+reviewkeys:
+  - key: 'meta 0'
+    approvals: []
+  - key: 'meta 1'
+    approvals:
+      - category: 'Code-Review'
+        value: 1
+  - key: 'meta 2'
+    approvals:
+      - category: 'Code-Review'
+        value: 2
+  - key: 'meta 3'
+    approvals:
+      - category: 'Code-Review'
+        value: 2
+      - category: 'Workflow'
+        value: 1
