@@ -27,12 +27,14 @@ from gertty import config
 from gertty import gitrepo
 from gertty import keymap
 from gertty import mywid
+from gertty import palette
 from gertty import sync
 from gertty import search
 from gertty.view import change_list as view_change_list
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
 import gertty.view
+import gertty.version
 
 WELCOME_TEXT = """\
 Welcome to Gertty!
@@ -357,8 +359,19 @@ class App(object):
         webbrowser.open_new_tab(url)
 
 def version():
-    from gertty.version import version_info as gertty_version_info
-    return "Gertty version: %s" % gertty_version_info.version_string()
+    return "Gertty version: %s" % gertty.version.version_info.version_string()
+
+class PrintKeymapAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        for cmd in sorted(keymap.DEFAULT_KEYMAP.keys()):
+            print cmd.replace(' ', '-')
+        sys.exit(0)
+
+class PrintPaletteAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        for attr in sorted(palette.DEFAULT_PALETTE.keys()):
+            print attr
+        sys.exit(0)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -370,6 +383,10 @@ def main():
     parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
                         action='store_true',
                         help='fetch any refs missing from local repos')
+    parser.add_argument('--print-keymap', nargs=0, action=PrintKeymapAction,
+                        help='print the keymap command names to stdout')
+    parser.add_argument('--print-palette', nargs=0, action=PrintPaletteAction,
+                        help='print the palette attribute names to stdout')
     parser.add_argument('--version', dest='version', action='version',
                         version=version(),
                         help='show zuul version')
