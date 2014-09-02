@@ -790,16 +790,16 @@ class Sync(object):
                 self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
                 self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.offline = True
-            self.app.status.update(offline=True)
+            self.app.status.update(offline=True, refresh=False)
             os.write(pipe, 'refresh\n')
             time.sleep(30)
             return task
         except Exception:
             task.complete(False)
             self.log.exception('Exception running task %s' % (task,))
-            self.app.status.update(error=True)
+            self.app.status.update(error=True, refresh=False)
         self.offline = False
-        self.app.status.update(offline=False)
+        self.app.status.update(offline=False, refresh=False)
         os.write(pipe, 'refresh\n')
         return None
 

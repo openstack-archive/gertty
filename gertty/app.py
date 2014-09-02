@@ -53,27 +53,55 @@ class StatusHeader(urwid.WidgetWrap):
     def __init__(self, app):
         super(StatusHeader, self).__init__(urwid.Columns([]))
         self.app = app
-        self.title = urwid.Text(u'Start')
-        self.error = urwid.Text('')
-        self.offline = urwid.Text('')
-        self.sync = urwid.Text(u'Sync: 0')
-        self._w.contents.append((self.title, ('pack', None, False)))
+        self.title_widget = urwid.Text(u'Start')
+        self.error_widget = urwid.Text('')
+        self.offline_widget = urwid.Text('')
+        self.sync_widget = urwid.Text(u'Sync: 0')
+        self._w.contents.append((self.title_widget, ('pack', None, False)))
         self._w.contents.append((urwid.Text(u''), ('weight', 1, False)))
-        self._w.contents.append((self.error, ('pack', None, False)))
-        self._w.contents.append((self.offline, ('pack', None, False)))
-        self._w.contents.append((self.sync, ('pack', None, False)))
+        self._w.contents.append((self.error_widget, ('pack', None, False)))
+        self._w.contents.append((self.offline_widget, ('pack', None, False)))
+        self._w.contents.append((self.sync_widget, ('pack', None, False)))
+        self.error = None
+        self.offline = None
+        self.title = None
+        self.sync = None
+        self._error = False
+        self._offline = False
+        self._title = ''
+        self._sync = 0
 
-    def update(self, title=None, error=False, offline=None):
-        if title:
-            self.title.set_text(title)
-        if error:
-            self.error.set_text(('error', u'Error'))
+    def update(self, title=None, error=None, offline=None, refresh=True):
+        if title is not None:
+            self.title = title
+        if error is not None:
+            self.error = error
         if offline is not None:
-            if offline:
-                self.error.set_text(u'Offline')
+            self.offline = offline
+        self.sync = self.app.sync.queue.qsize()
+        if refresh:
+            self.refresh()
+
+    def refresh(self):
+        if self._title != self.title:
+            self._title = self.title
+            self.title_widget.set_text(self._title)
+        if self._error != self.error:
+            self._error = self.error
+            if self.error:
+                self.error_widget.set_text(('error', u'Error'))
             else:
-                self.error.set_text(u'')
-        self.sync.set_text(u' Sync: %i' % self.app.sync.queue.qsize())
+                self.error_widget.set_text(u'')
+        if self._offline != self.offline:
+            self._offline = self.offline
+            if self._offline:
+                self.offline_widget.set_text(u'Offline')
+            else:
+                self.offline_widget.set_text(u'')
+        if self._sync != self.sync:
+            self._sync = self.sync
+            self.sync_widget.set_text(u' Sync: %i' % self._sync)
+
 
 class SearchDialog(mywid.ButtonDialog):
     signals = ['search', 'cancel']
@@ -194,6 +222,7 @@ class App(object):
             self.loop.widget = widget
 
     def refresh(self, data=None):
+        self.status.refresh()
         widget = self.loop.widget
         while isinstance(widget, urwid.Overlay):
             widget = widget.contents[0][0]
