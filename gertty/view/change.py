@@ -653,14 +653,15 @@ class ChangeView(urwid.WidgetWrap):
             if not row:
                 row = urwid.AttrMap(urwid.Padding(ChangeButton(self, key, subject), width='pack'),
                                     'link', focus_map={None: 'focused-link'})
-                widget.contents.insert(i, (row, widget.options('pack')))
+                row = (row, widget.options('pack'))
+                widget.contents.insert(i, row)
                 if not widget.selectable():
                     widget.set_focus(i)
                 if not self.related_changes.selectable():
                     self.related_changes.set_focus(widget)
                 widget_rows[key] = row
             else:
-                row.original_widget.original_widget.set_label(subject)
+                row[0].original_widget.original_widget.set_label(subject)
                 unseen_keys.remove(key)
             i += 1
         for key in unseen_keys:
