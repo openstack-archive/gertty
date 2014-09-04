@@ -74,7 +74,7 @@ DEFAULT_KEYMAP = {
     ACTIVATE: 'enter',
 
     PREV_SCREEN: 'esc',
-    HELP: ['f1', 'h'],
+    HELP: ['f1', '?'],
     QUIT: 'ctrl q',
     CHANGE_SEARCH: 'ctrl o',
 
