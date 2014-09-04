@@ -41,10 +41,10 @@ class ConfigSchema(object):
               v.Required('url'): str,
               v.Required('username'): str,
               'password': str,
-              'verify_ssl': bool,
+              'verify-ssl': bool,
               'dburi': str,
-              v.Required('git_root'): str,
-              'log_file': str,
+              v.Required('git-root'): str,
+              'log-file': str,
               }
 
     servers = [server]
@@ -133,13 +133,13 @@ class Config(object):
         if self.password is None:
             self.password = getpass.getpass("Password for %s (%s): "
                                             % (self.url, self.username))
-        self.verify_ssl = server.get('verify_ssl', True)
+        self.verify_ssl = server.get('verify-ssl', True)
         if not self.verify_ssl:
             os.environ['GIT_SSL_NO_VERIFY']='true'
-        self.git_root = os.path.expanduser(server['git_root'])
+        self.git_root = os.path.expanduser(server['git-root'])
         self.dburi = server.get('dburi',
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
-        log_file = server.get('log_file', '~/.gertty.log')
+        log_file = server.get('log-file', '~/.gertty.log')
         self.log_file = os.path.expanduser(log_file)
 
         self.palettes = {'default': gertty.palette.Palette({}),
