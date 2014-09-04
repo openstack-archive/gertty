@@ -41,8 +41,9 @@ To install from a git checkout::
 
 Gertty uses a YAML based configuration file that it looks for at
 ``~/.gertty.yaml``.  Several sample configuration files are included.
-You can find them in the examples/ directory of the source
-distribution or the share/gertty/examples directory after installation.
+You can find them in the examples/ directory of the 
+`source distribution <https://git.openstack.org/cgit/stackforge/gertty/tree/examples>`_
+or the share/gertty/examples directory after installation.
 
 Select one of the sample config files, copy it to ~/.gertty.yaml and
 edit as necessary.  Search for ``CHANGEME`` to find parameters that
