@@ -88,14 +88,14 @@ class StatusHeader(urwid.WidgetWrap):
             self.title_widget.set_text(self._title)
         if self._error != self.error:
             self._error = self.error
-            if self.error:
-                self.error_widget.set_text(('error', u'Error'))
+            if self._error:
+                self.error_widget.set_text(('error', u' Error'))
             else:
                 self.error_widget.set_text(u'')
         if self._offline != self.offline:
             self._offline = self.offline
             if self._offline:
-                self.offline_widget.set_text(u'Offline')
+                self.offline_widget.set_text(u' Offline')
             else:
                 self.offline_widget.set_text(u'')
         if self._sync != self.sync:
@@ -191,7 +191,7 @@ class App(object):
 
     def changeScreen(self, widget, push=True):
         self.log.debug("Changing screen to %s" % (widget,))
-        self.status.update(title=widget.title)
+        self.status.update(error=False, title=widget.title)
         if push:
             self.screens.append(self.loop.widget)
         self.loop.widget = widget
