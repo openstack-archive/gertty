@@ -148,7 +148,10 @@ class ChangeListView(urwid.WidgetWrap):
 
     def getNextChangeKey(self, change_key):
         row = self.change_rows.get(change_key)
-        i = self.listbox.body.index(row)
+        try:
+            i = self.listbox.body.index(row)
+        except ValueError:
+            return None
         if i+1 >= len(self.listbox.body):
             return None
         row = self.listbox.body[i+1]
@@ -156,7 +159,10 @@ class ChangeListView(urwid.WidgetWrap):
 
     def getPrevChangeKey(self, change_key):
         row = self.change_rows.get(change_key)
-        i = self.listbox.body.index(row)
+        try:
+            i = self.listbox.body.index(row)
+        except ValueError:
+            return None
         if i <= 0:
             return None
         row = self.listbox.body[i-1]
