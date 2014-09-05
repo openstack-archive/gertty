@@ -735,21 +735,23 @@ class ChangeView(urwid.WidgetWrap):
             return None
         if keymap.SEARCH_RESULTS in commands:
             widget = self.app.findChangeList()
-            self.app.backScreen(widget)
+            if widget:
+                self.app.backScreen(widget)
             return None
         if ((keymap.NEXT_CHANGE in commands) or
             (keymap.PREV_CHANGE in commands)):
             widget = self.app.findChangeList()
-            if keymap.NEXT_CHANGE in commands:
-                new_change_key = widget.getNextChangeKey(self.change_key)
-            else:
-                new_change_key = widget.getPrevChangeKey(self.change_key)
-            if new_change_key:
-                try:
-                    view = ChangeView(self.app, new_change_key)
-                    self.app.changeScreen(view, push=False)
-                except gertty.view.DisplayError as e:
-                    self.app.error(e.message)
+            if widget:
+                if keymap.NEXT_CHANGE in commands:
+                    new_change_key = widget.getNextChangeKey(self.change_key)
+                else:
+                    new_change_key = widget.getPrevChangeKey(self.change_key)
+                if new_change_key:
+                    try:
+                        view = ChangeView(self.app, new_change_key)
+                        self.app.changeScreen(view, push=False)
+                    except gertty.view.DisplayError as e:
+                        self.app.error(e.message)
             return None
         if keymap.TOGGLE_HIDDEN_COMMENTS in commands:
             self.hide_comments = not self.hide_comments
