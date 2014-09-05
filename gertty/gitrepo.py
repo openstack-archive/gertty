@@ -269,7 +269,7 @@ class Repo(object):
 
     def diffstat(self, old, new):
         repo = git.Repo(self.path)
-        diff = repo.git.diff('-M', '--numstat', old, new)
+        diff = repo.git.diff('-M', '--color=never', '--numstat', old, new)
         ret = []
         for x in diff.split('\n'):
             # Added, removed, filename
@@ -362,7 +362,8 @@ class Repo(object):
         else:
             extra_contexts.append(CommitContext(None, newc))
         contexts = itertools.chain(
-            extra_contexts, oldc.diff(newc, create_patch=True, U=context))
+            extra_contexts, oldc.diff(
+                newc, color='never',create_patch=True, U=context))
         for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
