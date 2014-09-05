@@ -267,7 +267,7 @@ class Repo(object):
 
     def diffstat(self, old, new):
         repo = git.Repo(self.path)
-        diff = repo.git.diff('-M', '--numstat', old, new)
+        diff = repo.git.diff('--no-color', '-M', '--numstat', old, new)
         ret = []
         for x in diff.split('\n'):
             # Added, removed, filename
