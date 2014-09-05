@@ -83,12 +83,14 @@ class CommitContext(object):
             commit.authored_date, commit.author_tz_offset)
         commit_date = self.decorateGitTime(
             commit.committed_date, commit.committer_tz_offset)
-        return ["Parent: %s\n" % parentsha,
-                "Author: %s <%s>\n" % (author.name, author.email),
-                "AuthorDate: %s\n" % author_date,
-                "Commit: %s <%s>\n" % (committer.name, committer.email),
-                "CommitDate: %s\n" % commit_date,
-                "\n"] + commit.message.splitlines(True)
+        return [u"Parent: %s\n" % parentsha,
+                u"Author: %s <%s>\n" % (author.name,
+                                        unicode(author.email, 'utf8')),
+                u"AuthorDate: %s\n" % author_date,
+                u"Commit: %s <%s>\n" % (committer.name,
+                                        unicode(committer.email, 'utf')),
+                u"CommitDate: %s\n" % commit_date,
+                u"\n"] + commit.message.splitlines(True)
 
     def __init__(self, old, new):
         """Create a CommitContext.
