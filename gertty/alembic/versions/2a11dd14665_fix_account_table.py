@@ -15,9 +15,9 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.drop_index('ix_account_name')
-    op.drop_index('ix_account_username')
-    op.drop_index('ix_account_email')
+    op.drop_index('ix_account_name', 'account')
+    op.drop_index('ix_account_username', 'account')
+    op.drop_index('ix_account_email', 'account')
     op.create_index(op.f('ix_account_name'), 'account', ['name'])
     op.create_index(op.f('ix_account_username'), 'account', ['username'])
     op.create_index(op.f('ix_account_email'), 'account', ['email'])
