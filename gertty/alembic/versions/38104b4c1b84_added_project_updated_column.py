@@ -18,12 +18,12 @@ def upgrade():
     op.add_column('project', sa.Column('updated', sa.DateTime))
 
     conn = op.get_bind()
-    res = conn.execute("select key, name from project")
+    res = conn.execute('select "key", name from project')
     for (key, name) in res.fetchall():
         q = sa.text("select max(updated) from change where project_key=:key")
         res = conn.execute(q, key=key)
         for (updated,) in res.fetchall():
-            q = sa.text("update project set updated=:updated where key=:key")
+            q = sa.text('update project set updated=:updated where "key"=:key')
             conn.execute(q, key=key, updated=updated)
 
     op.create_index(op.f('ix_project_updated'), 'project', ['updated'], unique=False)
