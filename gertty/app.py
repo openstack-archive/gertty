@@ -261,7 +261,7 @@ class App(object):
             for keys, cmdtext in items:
                 text += '{keys:{width}} {text}\n'.format(
                     keys=keys, width=keylen, text=cmdtext)
-        dialog = mywid.MessageDialog('Help', text)
+        dialog = mywid.MessageDialog('Help for %s' % version(), text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
