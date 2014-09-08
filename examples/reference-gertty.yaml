@@ -9,6 +9,8 @@ servers:
   - name: CHANGEME
     url: https://CHANGEME.example.org/
     username: CHANGEME
+    # Your HTTP Password for gerrit. Go to the "HTTP Password" section in your
+    # account settings to generate/retrieve this password.
     password: CHANGEME
     git_root: ~/git/
 
