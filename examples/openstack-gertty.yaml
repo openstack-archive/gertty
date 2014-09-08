@@ -6,7 +6,11 @@
 servers:
   - name: openstack
     url: https://review.openstack.org/
+    # Your gerrit username.
     username: CHANGEME
+    # Your HTTP Password for gerrit. Go to the "HTTP Password" section in your
+    # account settings to generate/retrieve this password.  It is *not* your
+    # launchpad password.
     password: CHANGEME
     git-root: ~/git/
 
