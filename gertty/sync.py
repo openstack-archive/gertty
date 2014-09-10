@@ -762,7 +762,11 @@ class Sync(object):
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
         self.session = requests.Session()
-        self.auth = requests.auth.HTTPDigestAuth(
+        if self.app.config.auth_type == 'basic':
+            authclass = requests.auth.HTTPBasicAuth
+        else:
+            authclass = requests.auth.HTTPDigestAuth
+        self.auth = authclass(
             self.app.config.username, self.app.config.password)
         self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
         self.submitTask(CheckReposTask(HIGH_PRIORITY))
