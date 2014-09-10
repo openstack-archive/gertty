@@ -45,6 +45,7 @@ class ConfigSchema(object):
               'dburi': str,
               v.Required('git-root'): str,
               'log-file': str,
+              'basic-auth': bool,
               }
 
     servers = [server]
@@ -133,6 +134,7 @@ class Config(object):
         if self.password is None:
             self.password = getpass.getpass("Password for %s (%s): "
                                             % (self.url, self.username))
+        self.basic_auth = server.get('basic-auth', False)
         self.verify_ssl = server.get('verify-ssl', True)
         if not self.verify_ssl:
             os.environ['GIT_SSL_NO_VERIFY']='true'
