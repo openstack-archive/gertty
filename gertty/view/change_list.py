@@ -57,10 +57,15 @@ class ChangeRow(urwid.Button):
         self.subject.set_text(change.subject)
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
-        if change.owner and change.owner.name:
-            self.owner.set_text(change.owner.name)
-        else:
-            self.owner.set_text(u'')
+        owner_name = 'Anonymous Coward'
+        if change.owner:
+            if change.owner.name:
+                owner_name = change.owner.name
+            elif change.owner.username:
+                owner_name = change.owner.username
+            elif change.owner.email:
+                owner_name = change.owner.email
+        self.owner.set_text(owner_name)
         del self.columns.contents[self.num_columns:]
         for category in change.getCategories():
             v = change.getMaxForCategory(category)
