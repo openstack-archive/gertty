@@ -400,7 +400,7 @@ class SyncChangeTask(Task):
                     account = session.getSystemAccount()
                 message = session.getMessageByID(remote_message['id'])
                 if not message:
-                    revision = session.getRevisionByNumber(change, remote_message['_revision_number'])
+                    revision = session.getRevisionByNumber(change, remote_message.get('_revision_number', 1))
                     # Normalize date -> created
                     created = dateutil.parser.parse(remote_message['date'])
                     message = revision.createMessage(remote_message['id'], account, created,
