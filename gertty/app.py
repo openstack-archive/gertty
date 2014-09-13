@@ -129,9 +129,10 @@ class SearchDialog(mywid.ButtonDialog):
 
 class App(object):
     def __init__(self, server=None, palette='default', keymap='default',
-                 debug=False, disable_sync=False, fetch_missing_refs=False):
+                 debug=False, disable_sync=False, fetch_missing_refs=False,
+                 path=config.DEFAULT_CONFIG_PATH):
         self.server = server
-        self.config = config.Config(server, palette, keymap)
+        self.config = config.Config(server, palette, keymap, path)
         if debug:
             level = logging.DEBUG
         else:
@@ -405,6 +406,9 @@ class PrintPaletteAction(argparse.Action):
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
+    parser.add_argument('-c', dest='path',
+                        default=config.DEFAULT_CONFIG_PATH,
+                        help='path to config file')
     parser.add_argument('-d', dest='debug', action='store_true',
                         help='enable debug logging')
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
@@ -427,7 +431,7 @@ def main():
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.palette, args.keymap, args.debug, args.no_sync,
-            args.fetch_missing_refs)
+            args.fetch_missing_refs, args.path)
     g.run()
 
 
