@@ -101,10 +101,11 @@ class SyncOwnAccountTask(Task):
     def run(self, sync):
         app = sync.app
         remote = sync.get('accounts/self')
+        sync.account_id = remote['_account_id']
         with app.db.getSession() as session:
             session.getAccountByID(remote['_account_id'],
                                    remote.get('name'),
-                                   remote['username'],
+                                   remote.get('username'),
                                    remote.get('email'))
 
 class SyncProjectListTask(Task):
@@ -344,8 +345,9 @@ class SyncChangeTask(Task):
                     auth = True
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(url))
-                    url[1] = '%s:%s@%s' % (sync.app.config.username,
-                                           sync.app.config.password, url[1])
+                    url[1] = '%s:%s@%s' % (
+                        urllib.quote_plus(sync.app.config.username),
+                        urllib.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
                 if (not revision) or self.force_fetch:
                     fetches[url].append('+%(ref)s:%(ref)s' % dict(ref=ref))
@@ -414,9 +416,9 @@ class SyncChangeTask(Task):
                     if remote_approval.get('value') is None:
                         continue
                     remote_approval['category'] = remote_label_name
-                    key = '%s~%s' % (remote_approval['category'], remote_approval['name'])
+                    key = '%s~%s' % (remote_approval['category'], remote_approval['_account_id'])
                     remote_approval_entries[key] = remote_approval
-                    if remote_approval.get('username', None) == app.config.username and int(remote_approval['value']) != 0:
+                    if remote_approval['_account_id'] == sync.account_id and int(remote_approval['value']) != 0:
                         user_voted = True
                 for key, value in remote_label_dict.get('values', {}).items():
                     # +1: "LGTM"
@@ -430,7 +432,7 @@ class SyncChangeTask(Task):
             local_approvals = {}
             local_labels = {}
             for approval in change.approvals:
-                key = '%s~%s' % (approval.category, approval.reviewer.name)
+                key = '%s~%s' % (approval.category, approval.reviewer.id)
                 local_approvals[key] = approval
             local_approval_keys = set(local_approvals.keys())
             for label in change.labels:
@@ -758,6 +760,7 @@ class Sync(object):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.version_string(),
                                             requests.utils.default_user_agent())
         self.offline = False
+        self.account_id = None
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
