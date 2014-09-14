@@ -30,7 +30,7 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, change, project=False, owner=False, callback=None):
+    def __init__(self, change, categories, project=False, owner=False, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
         self.change_key = change.key
         self.subject = urwid.Text(u'', wrap='clip')
@@ -46,9 +46,9 @@ class ChangeRow(urwid.Button):
         self.columns = urwid.Columns(cols, dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.change_focus_map)
-        self.update(change)
+        self.update(change, categories)
 
-    def update(self, change):
+    def update(self, change, categories):
         if change.reviewed or change.hidden:
             style = 'reviewed-change'
         else:
@@ -67,7 +67,7 @@ class ChangeRow(urwid.Button):
                 owner_name = change.owner.email
         self.owner.set_text(owner_name)
         del self.columns.contents[self.num_columns:]
-        for category in change.getCategories():
+        for category in categories:
             v = change.getMaxForCategory(category)
             if v == 0:
                 v = ''
@@ -85,9 +85,9 @@ class ChangeListHeader(urwid.WidgetWrap):
         self.num_columns = len(cols)
         super(ChangeListHeader, self).__init__(urwid.Columns(cols, dividechars=1))
 
-    def update(self, change):
+    def update(self, categories):
         del self._w.contents[self.num_columns:]
-        for category in change.getCategories():
+        for category in categories:
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 2)))
 
 class ChangeListView(urwid.WidgetWrap):
@@ -116,6 +116,7 @@ class ChangeListView(urwid.WidgetWrap):
         if '_project_key' in query:
             self.display_project = False
         self.header = ChangeListHeader(self.display_project, self.display_owner)
+        self.categories = []
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
         self._w.contents.append((urwid.Divider(), ('pack', 1)))
@@ -132,20 +133,24 @@ class ChangeListView(urwid.WidgetWrap):
             else:
                 self.title = u'All changes in %s' % self.query_desc
             self.app.status.update(title=self.title)
+            categories = set()
+            for change in lst:
+                categories |= set(change.getCategories())
+            self.categories = sorted(categories)
             i = 0
             for change in lst:
                 row = self.change_rows.get(change.key)
                 if not row:
-                    row = ChangeRow(change, self.display_project,
+                    row = ChangeRow(change, self.categories, self.display_project,
                                     self.display_owner, callback=self.onSelect)
                     self.listbox.body.insert(i, row)
                     self.change_rows[change.key] = row
                 else:
-                    row.update(change)
+                    row.update(change, self.categories)
                     unseen_keys.remove(change.key)
                 i += 1
             if lst:
-                self.header.update(lst[0])
+                self.header.update(self.categories)
         for key in unseen_keys:
             row = self.change_rows[key]
             self.listbox.body.remove(row)

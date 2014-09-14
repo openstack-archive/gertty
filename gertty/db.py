@@ -203,12 +203,8 @@ class Change(object):
         self.pending_status_message = pending_status_message
 
     def getCategories(self):
-        categories = []
-        for label in self.labels:
-            if label.category in categories:
-                continue
-            categories.append(label.category)
-        return categories
+        categories = set([label.category for label in self.labels])
+        return sorted(categories)
 
     def getMaxForCategory(self, category):
         if not hasattr(self, '_approval_cache'):
