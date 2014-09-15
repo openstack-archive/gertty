@@ -327,7 +327,10 @@ class ChangeMessageBox(mywid.HyperText):
         if message.draft:
             lines.insert(0, '')
             lines.insert(0, 'Patch Set %s:' % (message.revision.number,))
-        text = [('change-message-name', message.author.name),
+        author_name = 'Anonymous Coward'
+        if message.author:
+            author_name = message.author.name
+        text = [('change-message-name', author_name),
                 ('change-message-header', ': '+lines.pop(0)),
                 ('change-message-header',
                  message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
@@ -495,13 +498,21 @@ class ChangeView(urwid.WidgetWrap):
                 hidden = ' (hidden)'
             else:
                 hidden = ''
+            owner_name = 'Anonymous Coward'
+            if change.owner:
+                if change.owner.name:
+                    owner_name = change.owner.name
+                elif change.owner.username:
+                    owner_name = change.owner.username
+                elif change.owner.email:
+                    owner_name = change.owner.email
             self.title = 'Change %s%s%s' % (change.number, reviewed, hidden)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
             self.change_rest_id = change.id
 
             self.change_id_label.set_text(('change-data', change.change_id))
-            self.owner_label.set_text(('change-data', change.owner.name))
+            self.owner_label.set_text(('change-data', owner_name))
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', self.topic))
@@ -588,17 +599,20 @@ class ChangeView(urwid.WidgetWrap):
             display_messages = []
             result_systems = {}
             for message in change.messages:
+                author_name = 'Anonymous Coward'
+                if message.author:
+                    author_name = message.author.name
                 if message.revision == change.revisions[-1]:
                     for commentlink in self.app.config.commentlinks:
                         results = commentlink.getTestResults(self.app, message.message)
                         if results:
-                            result_system = result_systems.get(message.author.name, {})
-                            result_systems[message.author.name] = result_system
+                            result_system = result_systems.get(author_name, {})
+                            result_systems[author_name] = result_system
                             result_system.update(results)
                 skip = False
                 if self.hide_comments:
                     for regex in self.app.config.hide_comments:
-                        if regex.match(message.author.name):
+                        if regex.match(author_name):
                             skip = True
                             break
                 if not skip:
