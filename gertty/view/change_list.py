@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import datetime
 import urwid
 
 from gertty import keymap
@@ -30,11 +31,13 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, change, categories, project=False, owner=False, callback=None):
+    def __init__(self, change, categories, project=False, owner=False,
+                 updated=False, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
         self.change_key = change.key
         self.subject = urwid.Text(u'', wrap='clip')
         self.number = urwid.Text(u'')
+        self.updated = urwid.Text(u'')
         self.project = urwid.Text(u'', wrap='clip')
         self.owner = urwid.Text(u'', wrap='clip')
         cols = [(6, self.number), ('weight', 4, self.subject)]
@@ -42,6 +45,8 @@ class ChangeRow(urwid.Button):
             cols.append(('weight', 1, self.project))
         if owner:
             cols.append(('weight', 2, self.owner))
+        if updated:
+            cols.append(('weight', 1, self.updated))
         self.num_columns = len(cols)
         self.columns = urwid.Columns(cols, dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
@@ -66,6 +71,12 @@ class ChangeRow(urwid.Button):
             elif change.owner.email:
                 owner_name = change.owner.email
         self.owner.set_text(owner_name)
+        if datetime.date.today() == change.updated.date():
+            self.updated.set_text(change.updated.strftime("%I:%M %p").upper())
+        elif datetime.date.today().year == change.updated.date().year:
+            self.updated.set_text(change.updated.strftime("%b %d"))
+        else:
+            self.updated.set_text(change.updated.strftime("%Y"))
         del self.columns.contents[self.num_columns:]
         for category in categories:
             v = change.getMaxForCategory(category)
@@ -76,12 +87,14 @@ class ChangeRow(urwid.Button):
             self.columns.contents.append((urwid.Text(v), self.columns.options('given', 2)))
 
 class ChangeListHeader(urwid.WidgetWrap):
-    def __init__(self, project=False, owner=False):
+    def __init__(self, project=False, owner=False, updated=False):
         cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u'Subject'))]
         if project:
             cols.append(('weight', 1, urwid.Text(u'Project')))
         if owner:
             cols.append(('weight', 2, urwid.Text(u'Owner')))
+        if updated:
+            cols.append(('weight', 1, urwid.Text(u'Updated')))
         self.num_columns = len(cols)
         super(ChangeListHeader, self).__init__(urwid.Columns(cols, dividechars=1))
 
@@ -112,10 +125,11 @@ class ChangeListView(urwid.WidgetWrap):
         self.unreviewed = unreviewed
         self.change_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-        self.display_owner = self.display_project = True
+        self.display_owner = self.display_project = self.display_updated = True
         if '_project_key' in query:
             self.display_project = False
-        self.header = ChangeListHeader(self.display_project, self.display_owner)
+        self.header = ChangeListHeader(self.display_project, self.display_owner,
+                                       self.display_updated)
         self.categories = []
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
@@ -142,7 +156,8 @@ class ChangeListView(urwid.WidgetWrap):
                 row = self.change_rows.get(change.key)
                 if not row:
                     row = ChangeRow(change, self.categories, self.display_project,
-                                    self.display_owner, callback=self.onSelect)
+                            self.display_owner, self.display_updated,
+                            callback=self.onSelect)
                     self.listbox.body.insert(i, row)
                     self.change_rows[change.key] = row
                 else:
