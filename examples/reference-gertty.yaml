@@ -12,7 +12,7 @@ servers:
     # Your HTTP Password for gerrit. Go to the "HTTP Password" section in your
     # account settings to generate/retrieve this password.
     password: CHANGEME
-    git_root: ~/git/
+    git-root: ~/git/
 
 # Each server section can have the following fields:
 # A name that describes the server, to reference on the command line. [required]
