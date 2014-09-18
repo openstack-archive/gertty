@@ -550,12 +550,15 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
-    def getChanges(self, query, unreviewed=False):
+    def getChanges(self, query, unreviewed=False, sort_by='number'):
         self.database.log.debug("Search query: %s" % query)
         q = self.session().query(Change).filter(self.search.parse(query))
         if unreviewed:
             q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
-        q = q.order_by(change_table.c.number)
+        if sort_by is 'updated':
+            q = q.order_by(change_table.c.updated)
+        else:
+            q = q.order_by(change_table.c.number)
         self.database.log.debug("Search SQL: %s" % q)
         try:
             return q.all()
