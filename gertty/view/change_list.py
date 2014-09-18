@@ -106,7 +106,13 @@ class ChangeListView(urwid.WidgetWrap):
             (key(keymap.TOGGLE_REVIEWED),
              "Toggle the reviewed flag for the currently selected change"),
             (key(keymap.REFRESH),
-             "Sync all projects")
+             "Sync all projects"),
+            (key(keymap.SORT_BY_NUMBER),
+             "Sort changes by number"),
+            (key(keymap.SORT_BY_UPDATED),
+             "Sort changes by how recently the change was updated"),
+            (key(keymap.SORT_BY_REVERSE),
+             "Reverse the sort")
             ]
 
     def __init__(self, app, query, query_desc=None, unreviewed=False):
@@ -120,6 +126,8 @@ class ChangeListView(urwid.WidgetWrap):
         self.display_owner = self.display_project = self.display_updated = True
         if '_project_key' in query:
             self.display_project = False
+        self.sort_by = 'number'
+        self.reverse = False
         self.header = ChangeListHeader(self.display_project, self.display_owner,
                                        self.display_updated)
         self.categories = []
@@ -133,7 +141,8 @@ class ChangeListView(urwid.WidgetWrap):
     def refresh(self):
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
-            lst = session.getChanges(self.query, self.unreviewed)
+            lst = session.getChanges(self.query, self.unreviewed,
+                                     sort_by=self.sort_by)
             if self.unreviewed:
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
@@ -144,7 +153,11 @@ class ChangeListView(urwid.WidgetWrap):
                 categories |= set(change.getCategories())
             self.categories = sorted(categories)
             i = 0
-            for change in lst:
+            if self.reverse:
+                change_list = reversed(lst)
+            else:
+                change_list = lst
+            for change in change_list:
                 row = self.change_rows.get(change.key)
                 if not row:
                     row = ChangeRow(change, self.categories, self.display_project,
@@ -162,6 +175,11 @@ class ChangeListView(urwid.WidgetWrap):
             row = self.change_rows[key]
             self.listbox.body.remove(row)
             del self.change_rows[key]
+
+    def clearChangeList(self):
+        for key, value in self.change_rows.iteritems():
+            self.listbox.body.remove(value)
+        self.change_rows = {}
 
     def getNextChangeKey(self, change_key):
         row = self.change_rows.get(change_key)
@@ -224,6 +242,30 @@ class ChangeListView(urwid.WidgetWrap):
             self.app.sync.submitTask(
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
+            return None
+        if keymap.SORT_BY_NUMBER in commands:
+            if not len(self.listbox.body):
+                return None
+            self.sort_by = 'number'
+            self.clearChangeList()
+            self.refresh()
+            return None
+        if keymap.SORT_BY_UPDATED in commands:
+            if not len(self.listbox.body):
+                return None
+            self.sort_by = 'updated'
+            self.clearChangeList()
+            self.refresh()
+            return None
+        if keymap.SORT_BY_REVERSE in commands:
+            if not len(self.listbox.body):
+                return None
+            if self.reverse:
+                self.reverse = False
+            else:
+                self.reverse = True
+            self.clearChangeList()
+            self.refresh()
             return None
         return key
 
