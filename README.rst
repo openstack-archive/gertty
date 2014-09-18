@@ -41,7 +41,7 @@ To install from a git checkout::
 
 Gertty uses a YAML based configuration file that it looks for at
 ``~/.gertty.yaml``.  Several sample configuration files are included.
-You can find them in the examples/ directory of the 
+You can find them in the examples/ directory of the
 `source distribution <https://git.openstack.org/cgit/stackforge/gertty/tree/examples>`_
 or the share/gertty/examples directory after installation.
 
@@ -57,6 +57,10 @@ need to be supplied.  The sample config files are as follows:
 
 **openstack-gertty.yaml**
   A configuration designed for use with OpenStack's installation of
+  Gerrit.
+
+**gerrit-gertty.yaml**
+  A configuration designed for use with Gerrit's own installation of
   Gerrit.
 
 You will need your Gerrit password which you can generate or retrieve
