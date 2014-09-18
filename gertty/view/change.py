@@ -327,7 +327,7 @@ class ChangeMessageBox(mywid.HyperText):
         if message.draft:
             lines.insert(0, '')
             lines.insert(0, 'Patch Set %s:' % (message.revision.number,))
-        text = [('change-message-name', message.author.name),
+        text = [('change-message-name', message.author_name),
                 ('change-message-header', ': '+lines.pop(0)),
                 ('change-message-header',
                  message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
@@ -501,7 +501,7 @@ class ChangeView(urwid.WidgetWrap):
             self.change_rest_id = change.id
 
             self.change_id_label.set_text(('change-data', change.change_id))
-            self.owner_label.set_text(('change-data', change.owner.name))
+            self.owner_label.set_text(('change-data', change.owner_name))
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', self.topic))
@@ -588,7 +588,8 @@ class ChangeView(urwid.WidgetWrap):
             display_messages = []
             result_systems = {}
             for message in change.messages:
-                if message.revision == change.revisions[-1]:
+                if (message.revision == change.revisions[-1] and
+                    message.author and message.author.name):
                     for commentlink in self.app.config.commentlinks:
                         results = commentlink.getTestResults(self.app, message.message)
                         if results:
@@ -596,7 +597,7 @@ class ChangeView(urwid.WidgetWrap):
                             result_systems[message.author.name] = result_system
                             result_system.update(results)
                 skip = False
-                if self.hide_comments:
+                if self.hide_comments and message.author and message.author.name:
                     for regex in self.app.config.hide_comments:
                         if regex.match(message.author.name):
                             skip = True
