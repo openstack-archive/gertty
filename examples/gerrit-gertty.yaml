@@ -47,8 +47,10 @@ dashboards:
 # change screen.  Any pending comments or review messages will be
 # attached to the review; otherwise an empty review will be left.  The
 # approvals list is exhaustive, so if you specify an empty list,
-# Gertty will submit a review that clears any previous approvals.
-# They will appear in the help text for the change screen.
+# Gertty will submit a review that clears any previous approvals.  To
+# submit the change with the review, include 'submit: True' with the
+# reviewkey.  Reviewkeys appear in the help text for the change
+# screen.
 reviewkeys:
   - key: 'meta 0'
     approvals: []
@@ -60,3 +62,8 @@ reviewkeys:
     approvals:
       - category: 'Code-Review'
         value: 2
+  - key: 'meta 3'
+    approvals:
+      - category: 'Code-Review'
+        value: 2
+    submit: True

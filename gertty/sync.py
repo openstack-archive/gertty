@@ -306,7 +306,7 @@ class SyncChangeTask(Task):
 
     def run(self, sync):
         app = sync.app
-        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS' % self.change_id)
+        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS' % self.change_id)
         # Perform subqueries this task will need outside of the db session
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
@@ -360,6 +360,8 @@ class SyncChangeTask(Task):
                 revision.message = remote_revision['commit']['message']
                 # TODO: handle multiple parents
                 parent_revision = session.getRevisionByCommit(revision.parent)
+                actions = remote_revision.get('actions', {})
+                revision.can_submit = 'submit' in actions
                 # TODO: use a singleton list of closed states
                 if not parent_revision and change.status not in ['MERGED', 'ABANDONED']:
                     sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
@@ -667,6 +669,8 @@ class ChangeStatusTask(Task):
             elif change.status == 'NEW':
                 sync.post('changes/%s/restore' % (change.id,),
                           data)
+            elif change.status == 'SUBMITTED':
+                sync.post('changes/%s/submit' % (change.id,), {})
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class SendCherryPickTask(Task):
@@ -722,11 +726,16 @@ class UploadReviewTask(Task):
 
     def run(self, sync):
         app = sync.app
+        submit = False
+        change_id = None
         with app.db.getSession() as session:
             message = session.getMessage(self.message_key)
             revision = message.revision
             change = message.revision.change
+            change_id = change.id
             current_revision = change.revisions[-1]
+            if change.pending_status and change.status == 'SUBMITTED':
+                submit = True
             data = dict(message=message.message,
                         strict_labels=False)
             if revision == current_revision:
@@ -753,7 +762,15 @@ class UploadReviewTask(Task):
             # Inside db session for rollback
             sync.post('changes/%s/revisions/%s/review' % (change.id, revision.commit),
                       data)
-            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
+        if submit:
+            # In another db session in case submit fails after posting
+            # the message succeeds
+            with app.db.getSession() as session:
+                change = session.getChangeByID(change_id)
+                change.pending_status = False
+                change.pending_status_message = None
+                sync.post('changes/%s/submit' % (change_id,), {})
+        sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
 class Sync(object):
     def __init__(self, app):

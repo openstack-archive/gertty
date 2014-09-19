@@ -74,6 +74,7 @@ revision_table = Table(
     Column('fetch_auth', Boolean, nullable=False),
     Column('fetch_ref', String(255), nullable=False),
     Column('pending_message', Boolean, index=True, nullable=False),
+    Column('can_submit', Boolean, nullable=False),
     )
 message_table = Table(
     'message', metadata,
