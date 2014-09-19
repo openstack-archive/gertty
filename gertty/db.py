@@ -74,6 +74,7 @@ revision_table = Table(
     Column('fetch_auth', Boolean, nullable=False),
     Column('fetch_ref', String(255), nullable=False),
     Column('pending_message', Boolean, index=True, nullable=False),
+    Column('can_submit', Boolean, nullable=False),
     )
 message_table = Table(
     'message', metadata,
@@ -268,7 +269,8 @@ class Change(object):
 
 class Revision(object):
     def __init__(self, change, number, message, commit, parent,
-                 fetch_auth, fetch_ref, pending_message=False):
+                 fetch_auth, fetch_ref, pending_message=False,
+                 can_submit=False):
         self.change_key = change.key
         self.number = number
         self.message = message
@@ -277,6 +279,7 @@ class Revision(object):
         self.fetch_auth = fetch_auth
         self.fetch_ref = fetch_ref
         self.pending_message = pending_message
+        self.can_submit = can_submit
 
     def createMessage(self, *args, **kw):
         session = Session.object_session(self)

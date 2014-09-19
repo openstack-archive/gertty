@@ -81,19 +81,26 @@ class CherryPickDialog(urwid.WidgetWrap):
                                                              'Propose Change to Branch'))
 
 class ReviewDialog(urwid.WidgetWrap):
-    signals = ['save', 'cancel']
+    signals = ['submit', 'save', 'cancel']
     def __init__(self, revision_row):
         self.revision_row = revision_row
         self.change_view = revision_row.change_view
         self.app = self.change_view.app
         save_button = mywid.FixedButton(u'Save')
+        submit_button = mywid.FixedButton(u'Save and Submit')
         cancel_button = mywid.FixedButton(u'Cancel')
         urwid.connect_signal(save_button, 'click',
             lambda button:self._emit('save'))
+        urwid.connect_signal(submit_button, 'click',
+            lambda button:self._emit('submit'))
         urwid.connect_signal(cancel_button, 'click',
             lambda button:self._emit('cancel'))
-        buttons = urwid.Columns([('pack', save_button), ('pack', cancel_button)],
-                                dividechars=2)
+
+        buttons = [('pack', save_button)]
+        if revision_row.can_submit:
+            buttons.append(('pack', submit_button))
+        buttons.append(('pack', cancel_button))
+        buttons = urwid.Columns(buttons, dividechars=2)
         rows = []
         categories = []
         values = {}
@@ -143,7 +150,7 @@ class ReviewDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(ReviewDialog, self).__init__(urwid.LineBox(fill, 'Review'))
 
-    def save(self, upload=False):
+    def save(self, upload=False, submit=False):
         approvals = {}
         for category, group in self.button_groups.items():
             for button in group:
@@ -151,7 +158,7 @@ class ReviewDialog(urwid.WidgetWrap):
                     approvals[category] = int(button.get_label())
         message = self.message.edit_text.strip()
         self.change_view.saveReview(self.revision_row.revision_key, approvals,
-                                    message, upload)
+                                    message, upload, submit)
 
     def keypress(self, size, key):
         r = super(ReviewDialog, self).keypress(size, key)
@@ -172,15 +179,17 @@ class ReviewButton(mywid.FixedButton):
     def openReview(self):
         self.dialog = ReviewDialog(self.revision_row)
         urwid.connect_signal(self.dialog, 'save',
-            lambda button: self.closeReview(True))
+            lambda button: self.closeReview(True, False))
+        urwid.connect_signal(self.dialog, 'submit',
+            lambda button: self.closeReview(True, True))
         urwid.connect_signal(self.dialog, 'cancel',
-            lambda button: self.closeReview(False))
+            lambda button: self.closeReview(False, False))
         self.change_view.app.popup(self.dialog,
                                    relative_width=50, relative_height=75,
                                    min_width=60, min_height=20)
 
-    def closeReview(self, upload):
-        self.dialog.save(upload)
+    def closeReview(self, upload, submit):
+        self.dialog.save(upload, submit)
         self.change_view.app.backScreen()
 
 class RevisionRow(urwid.WidgetWrap):
@@ -198,6 +207,7 @@ class RevisionRow(urwid.WidgetWrap):
         self.revision_key = revision.key
         self.project_name = revision.change.project.name
         self.commit_sha = revision.commit
+        self.can_submit = revision.can_submit
         self.title = mywid.TextButton(u'', on_press = self.expandContract)
         stats = repo.diffstat(revision.parent, revision.commit)
         table = mywid.Table(columns=3)
@@ -233,6 +243,10 @@ class RevisionRow(urwid.WidgetWrap):
                                      on_press=self.checkout),
                    mywid.FixedButton(('revision-button', "Local Cherry-Pick"),
                                      on_press=self.cherryPick)]
+        if self.can_submit:
+            buttons.append(mywid.FixedButton(('revision-button', "Submit"),
+                                             on_press=lambda x: self.change_view.doSubmitChange()))
+
         buttons = [('pack', urwid.AttrMap(b, None, focus_map=focus_map)) for b in buttons]
         buttons = urwid.Columns(buttons + [urwid.Text('')], dividechars=2)
         buttons = urwid.AttrMap(buttons, 'revision-button')
@@ -387,6 +401,8 @@ class ChangeView(urwid.WidgetWrap):
              "Refresh this change"),
             (key(keymap.EDIT_TOPIC),
              "Edit the topic of this change"),
+            (key(keymap.SUBMIT_CHANGE),
+             "Submit this change"),
             (key(keymap.CHERRY_PICK_CHANGE),
              "Propose this change to another branch"),
             ]
@@ -774,6 +790,9 @@ class ChangeView(urwid.WidgetWrap):
                 sync.SyncChangeTask(self.change_rest_id, priority=sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
+        if keymap.SUBMIT_CHANGE in commands:
+            self.doSubmitChange()
+            return None
         if keymap.EDIT_TOPIC in commands:
             self.editTopic()
             return None
@@ -896,6 +915,18 @@ class ChangeView(urwid.WidgetWrap):
         self.app.backScreen()
         self.refresh()
 
+    def doSubmitChange(self):
+        change_key = None
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.status = 'SUBMITTED'
+            change.pending_status = True
+            change.pending_status_message = None
+            change_key = change.key
+        self.app.sync.submitTask(
+            sync.ChangeStatusTask(change_key, sync.HIGH_PRIORITY))
+        self.refresh()
+
     def editTopic(self):
         dialog = EditTopicDialog(self.app, self.topic)
         urwid.connect_signal(dialog, 'save',
@@ -924,9 +955,10 @@ class ChangeView(urwid.WidgetWrap):
         self.app.log.debug("Reviewkey %s with approvals %s" %
                            (reviewkey['key'], approvals))
         row = self.revision_rows[self.last_revision_key]
-        self.saveReview(row.revision_key, approvals, '', True)
+        submit = reviewkey.get('submit', False)
+        self.saveReview(row.revision_key, approvals, '', True, submit)
 
-    def saveReview(self, revision_key, approvals, message, upload):
+    def saveReview(self, revision_key, approvals, message, upload, submit):
         message_key = None
         with self.app.db.getSession() as session:
             account = session.getAccountByUsername(self.app.config.username)
@@ -961,6 +993,10 @@ class ChangeView(urwid.WidgetWrap):
                 message_key = draft_message.key
             if upload:
                 change.reviewed = True
+            if submit:
+                change.status = 'SUBMITTED'
+                change.pending_status = True
+                change.pending_status_message = None
         # Outside of db session
         if upload:
             self.app.sync.submitTask(

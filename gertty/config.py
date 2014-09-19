@@ -83,6 +83,7 @@ class ConfigSchema(object):
                           v.Required('value'): int}
 
     reviewkey = {v.Required('approvals'): [reviewkey_approval],
+                 'submit': bool,
                  v.Required('key'): str}
 
     reviewkeys = [reviewkey]
