@@ -267,6 +267,19 @@ class Change(object):
         session.flush()
         return l
 
+    @property
+    def owner_name(self):
+        owner_name = 'Anonymous Coward'
+        if self.owner:
+            if self.owner.name:
+                owner_name = self.owner.name
+            elif self.owner.username:
+                owner_name = self.owner.username
+            elif self.owner.email:
+                owner_name = self.owner.email
+        return owner_name
+
+
 class Revision(object):
     def __init__(self, change, number, message, commit, parent,
                  fetch_auth, fetch_ref, pending_message=False,
@@ -330,6 +343,18 @@ class Message(object):
         self.message = message
         self.draft = draft
         self.pending = pending
+
+    @property
+    def author_name(self):
+        author_name = 'Anonymous Coward'
+        if self.author:
+            if self.author.name:
+                author_name = self.author.name
+            elif self.author.username:
+                author_name = self.author.username
+            elif self.author.email:
+                author_name = self.author.email
+        return author_name
 
 class Comment(object):
     def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, draft=False):
