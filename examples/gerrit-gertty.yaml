@@ -12,6 +12,7 @@ servers:
     # Set password at https://gerrit-review.googlesource.com/#/settings/http-password
     # Note this is not your Google password.
     password: CHANGEME
+    auth-type: basic
     git-root: ~/git/
 
 # Uncomment the next line if your terminal has a white background
