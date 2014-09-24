@@ -59,9 +59,9 @@ need to be supplied.  The sample config files are as follows:
   A configuration designed for use with OpenStack's installation of
   Gerrit.
 
-**gerrit-gertty.yaml**
-  A configuration designed for use with Gerrit's own installation of
-  Gerrit.
+**googlesource-gertty.yaml**
+  A configuration designed for use with installations of Gerrit
+  running on googlesource.com.
 
 You will need your Gerrit password which you can generate or retrieve
 by navigating to ``Settings``, then ``HTTP Password``.

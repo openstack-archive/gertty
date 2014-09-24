@@ -1,15 +1,15 @@
-# This is an example ~/.gertty.yaml file for use with Gerrit's own
-# installation of Gerrit.  Most of these options are not required,
-# rather, they customize Gertty to better deal with the particulars of
-# Gerrit's Gerrit configuration.  See the reference-gertty.yaml file
-# for more options.
+# This is an example ~/.gertty.yaml file for use with installations of
+# Gerrit running on googlesource.com. Most of these options are not
+# required, rather, they customize Gertty to better deal with the
+# particulars of Google's Gerrit configuration.
+# See the reference-gertty.yaml file for more options.
 
 servers:
-  - name: gerrit-review
-    url: https://gerrit-review.googlesource.com/
+  - name: CHANGEME-review
+    url: https://CHANGEME-review.googlesource.com/
     # Your gerrit username.
     username: CHANGEME
-    # Set password at https://gerrit-review.googlesource.com/#/settings/http-password
+    # Set password at https://{name}-review.googlesource.com/#/settings/http-password
     # Note this is not your Google password.
     password: CHANGEME
     auth-type: basic
