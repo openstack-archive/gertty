@@ -341,6 +341,9 @@ class SyncChangeTask(Task):
                 if 'anonymous http' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['anonymous http']['ref']
                     auth = False
+                elif 'ssh' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['ssh']['ref']
+                    auth = False
                 else:
                     auth = True
                     ref = remote_revision['fetch']['http']['ref']
