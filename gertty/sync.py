@@ -341,7 +341,7 @@ class SyncChangeTask(Task):
                 if 'anonymous http' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['anonymous http']['ref']
                     auth = False
-                else:
+                elif 'http' in remote_revision['fetch']:
                     auth = True
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(url))
@@ -349,6 +349,17 @@ class SyncChangeTask(Task):
                         urllib.quote_plus(sync.app.config.username),
                         urllib.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
+                elif 'ssh' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['ssh']['ref']
+                    auth = False
+                else:
+                    if len(remote_revision['fetch']):
+                        errMessage = 'Don\'t know how to download changes, server offered these schemes: %s' \
+                                % ','.join(remote_revision['fetch'].keys())
+                    else:
+                        errMessage = 'The server is missing the download-commands plugin. ' \
+                                'Don\'t know how to download revisions.'
+                    raise Exception(errMessage)
                 if (not revision) or self.force_fetch:
                     fetches[url].append('+%(ref)s:%(ref)s' % dict(ref=ref))
                 if not revision:
