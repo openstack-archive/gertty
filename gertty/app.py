@@ -149,6 +149,8 @@ class App(object):
         self.db = db.Database(self)
         self.sync = sync.Sync(self)
 
+        urwid.set_encoding('utf8')
+
         self.screens = []
         self.status = StatusHeader(self)
         self.header = urwid.AttrMap(self.status, 'header')
