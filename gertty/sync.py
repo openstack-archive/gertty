@@ -208,8 +208,6 @@ class SyncProjectTask(Task):
                 if project.updated:
                     # Allow 4 seconds for request time, etc.
                     query += ' -age:%ss' % (int(math.ceil((now-project.updated).total_seconds())) + 4,)
-                else:
-                    query += ' status:open'
                 queries.append(query)
         changes = []
         sortkey = ''
