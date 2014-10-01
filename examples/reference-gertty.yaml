@@ -34,7 +34,8 @@ servers:
 #    git-root: ~/git/
 # The location of Gertty's sqlite database.  If you have more than one
 # server, you should specify a dburi for any additional servers.
-#    dburi: ~/.gertty.db
+# By default a SQLite database called ~/.gertty.db is used.
+#    dburi: sqlite:////home/user/.gertty.db
 # If your Gerrit server uses a non-standard certificate chain (e.g. on a test
 # server), you can pass a full path to a bundle of CA certificates here:
 #    ssl-ca-path: ~/.pki/ca-chain.pem
