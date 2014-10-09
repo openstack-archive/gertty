@@ -15,6 +15,7 @@
 
 import datetime
 import urwid
+from dateutil import tz
 
 from gertty import keymap
 from gertty import mywid
@@ -63,12 +64,16 @@ class ChangeRow(urwid.Button):
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
         self.owner.set_text(change.owner_name)
-        if datetime.date.today() == change.updated.date():
-            self.updated.set_text(change.updated.strftime("%I:%M %p").upper())
-        elif datetime.date.today().year == change.updated.date().year:
-            self.updated.set_text(change.updated.strftime("%b %d"))
+
+        # show time in local timezone
+        utc = change.updated.replace(tzinfo=tz.tzutc())
+        time = utc.astimezone(tz.tzlocal())
+        if datetime.date.today() == time.date():
+            self.updated.set_text(time.strftime("%I:%M %p").upper())
+        elif datetime.date.today().year == time.date().year:
+            self.updated.set_text(time.strftime("%b %d"))
         else:
-            self.updated.set_text(change.updated.strftime("%Y"))
+            self.updated.set_text(time.strftime("%Y"))
         del self.columns.contents[self.num_columns:]
         for category in categories:
             v = change.getMaxForCategory(category)
