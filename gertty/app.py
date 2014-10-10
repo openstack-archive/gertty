@@ -422,7 +422,7 @@ def main():
                         help='print the palette attribute names to stdout')
     parser.add_argument('--version', dest='version', action='version',
                         version=version(),
-                        help='show zuul version')
+                        help='show Gertty\'s version')
     parser.add_argument('-p', dest='palette', default='default',
                         help='Color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
