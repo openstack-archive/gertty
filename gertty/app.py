@@ -424,9 +424,9 @@ def main():
                         version=version(),
                         help='show Gertty\'s version')
     parser.add_argument('-p', dest='palette', default='default',
-                        help='Color palette to use')
+                        help='color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
-                        help='Keymap to use')
+                        help='keymap to use')
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
