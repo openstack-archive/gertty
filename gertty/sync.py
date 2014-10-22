@@ -337,18 +337,35 @@ class SyncChangeTask(Task):
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
                 revision = session.getRevisionByCommit(remote_commit)
                 # TODO: handle multiple parents
-                url = sync.app.config.url + change.project.name
-                if 'anonymous http' in remote_revision['fetch']:
-                    ref = remote_revision['fetch']['anonymous http']['ref']
+                if 'git' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['git']['ref']
+                    url = remote_revision['fetch']['git']['url']
                     auth = False
-                else:
+                elif 'anonymous http' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['anonymous http']['ref']
+                    url = remote_revision['fetch']['anonymous http']['url']
+                    auth = False
+                elif 'http' in remote_revision['fetch']:
                     auth = True
                     ref = remote_revision['fetch']['http']['ref']
-                    url = list(urlparse.urlsplit(url))
+                    url = list(urlparse.urlsplit(sync.app.config.url + change.project.name))
                     url[1] = '%s:%s@%s' % (
                         urllib.quote_plus(sync.app.config.username),
                         urllib.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
+                elif 'ssh' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['ssh']['ref']
+                    url = remote_revision['fetch']['ssh']['url']
+                    auth = False
+                else:
+                    if len(remote_revision['fetch']):
+                        errMessage = 'Don\'t know how to download changes. ' \
+                        'Server offered these schemes, but Gertty doesn\'t support any of them: %s' \
+                                % ', '.join(remote_revision['fetch'].keys())
+                    else:
+                        errMessage = 'The server is missing the download-commands plugin. ' \
+                                'Don\'t know how to download revisions.'
+                    raise Exception(errMessage)
                 if (not revision) or self.force_fetch:
                     fetches[url].append('+%(ref)s:%(ref)s' % dict(ref=ref))
                 if not revision:
