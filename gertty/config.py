@@ -42,6 +42,7 @@ class ConfigSchema(object):
               v.Required('username'): str,
               'password': str,
               'verify-ssl': bool,
+              'ssl-ca-path': str,
               'dburi': str,
               v.Required('git-root'): str,
               'log-file': str,
@@ -142,6 +143,11 @@ class Config(object):
         self.verify_ssl = server.get('verify-ssl', True)
         if not self.verify_ssl:
             os.environ['GIT_SSL_NO_VERIFY']='true'
+        self.ssl_ca_path = server.get('ssl-ca-path', None)
+        if self.ssl_ca_path is not None:
+            self.ssl_ca_path = os.path.expanduser(self.ssl_ca_path)
+            os.environ['REQUESTS_CA_BUNDLE'] = self.ssl_ca_path
+            os.environ['GIT_SSL_CAINFO'] = self.ssl_ca_path
         self.git_root = os.path.expanduser(server['git-root'])
         self.dburi = server.get('dburi',
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
