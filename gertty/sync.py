@@ -114,7 +114,7 @@ class SyncProjectListTask(Task):
 
     def run(self, sync):
         app = sync.app
-        remote = sync.get('projects/?d')
+        remote = sync.get('projects/?d&type=all')
         remote_keys = set(remote.keys())
         with app.db.getSession() as session:
             local = {}
