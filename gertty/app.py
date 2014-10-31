@@ -16,6 +16,7 @@
 import argparse
 import logging
 import os
+import Queue
 import sys
 import threading
 import webbrowser
@@ -227,7 +228,12 @@ class App(object):
         widget = self.loop.widget
         while isinstance(widget, urwid.Overlay):
             widget = widget.contents[0][0]
-        widget.refresh()
+        try:
+            while True:
+                event = self.sync.result_queue.get(0)
+                widget.refresh(event)
+        except Queue.Empty:
+            pass
 
     def popup(self, widget,
               relative_width=50, relative_height=25,

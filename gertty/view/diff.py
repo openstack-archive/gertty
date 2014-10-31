@@ -20,6 +20,7 @@ import urwid
 from gertty import keymap
 from gertty import mywid
 from gertty import gitrepo
+from gertty import sync
 
 class PatchsetDialog(urwid.WidgetWrap):
     signals = ['ok', 'cancel']
@@ -340,9 +341,17 @@ class BaseDiffView(urwid.WidgetWrap):
     def makeFileHeader(self, diff, comment_lists):
         raise NotImplementedError
 
-    def refresh(self):
+    def refresh(self, event=None):
+        if event and not ((isinstance(event, sync.ChangeAddedEvent) and
+                           self.change_key in event.related_change_keys)
+                          or
+                          (isinstance(event, sync.ChangeUpdatedEvent) and
+                           self.change_key in event.related_change_keys)):
+            #self.log.debug("Ignoring refresh diff due to event %s" % (event,))
+            return
+        #self.log.debug("Refreshing diff due to event %s" % (event,))
         #TODO
-        pass
+        return
 
     def keypress(self, size, key):
         old_focus = self.listbox.focus

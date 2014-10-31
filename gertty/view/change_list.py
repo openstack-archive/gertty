@@ -14,6 +14,7 @@
 # under the License.
 
 import datetime
+import logging
 import urwid
 
 from gertty import keymap
@@ -115,8 +116,10 @@ class ChangeListView(urwid.WidgetWrap):
              "Reverse the sort")
             ]
 
-    def __init__(self, app, query, query_desc=None, unreviewed=False):
+    def __init__(self, app, query, query_desc=None, project_key=None,
+                 unreviewed=False):
         super(ChangeListView, self).__init__(urwid.Pile([]))
+        self.log = logging.getLogger('gertty.view.change_list')
         self.app = app
         self.query = query
         self.query_desc = query_desc or query
@@ -124,7 +127,8 @@ class ChangeListView(urwid.WidgetWrap):
         self.change_rows = {}
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.display_owner = self.display_project = self.display_updated = True
-        if '_project_key' in query:
+        self.project_key = project_key
+        if project_key is not None:
             self.display_project = False
         self.sort_by = 'number'
         self.reverse = False
@@ -138,7 +142,20 @@ class ChangeListView(urwid.WidgetWrap):
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(3)
 
-    def refresh(self):
+    def refresh(self, event=None):
+        if event and not (('_project_key' in self.query and
+                           isinstance(event, sync.ChangeAddedEvent) and
+                           self.project_key == event.project_key)
+                          or
+                          ('_project_key' not in self.query and
+                           isinstance(event, sync.ChangeAddedEvent))
+                          or
+                          (isinstance(event, sync.ChangeUpdatedEvent) and
+                           event.change_key in self.change_rows.keys())):
+            self.log.debug("Ignoring refresh change list due to event %s" % (event,))
+            return
+        self.log.debug("Refreshing change list due to event %s" % (event,))
+
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
             lst = session.getChanges(self.query, self.unreviewed,
