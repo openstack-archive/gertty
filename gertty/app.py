@@ -177,7 +177,10 @@ class App(object):
             self.status.update(offline=True)
 
     def run(self):
-        self.loop.run()
+        try:
+            self.loop.run()
+        except KeyboardInterrupt:
+            pass
 
     def _quit(self, widget=None):
         raise urwid.ExitMainLoop()
