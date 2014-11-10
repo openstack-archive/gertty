@@ -372,7 +372,7 @@ class ChangeView(urwid.WidgetWrap):
             (key(keymap.LOCAL_CHECKOUT),
              "Checkout the most recent revision into the local repo"),
             (key(keymap.DIFF),
-             "Show the diff of the mont recent revision"),
+             "Show the diff of the most recent revision"),
             (key(keymap.TOGGLE_HIDDEN),
              "Toggle the hidden flag for the current change"),
             (key(keymap.NEXT_CHANGE),
