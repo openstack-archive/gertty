@@ -24,6 +24,7 @@ from gertty import mywid
 from gertty import sync
 from gertty.view import side_diff as view_side_diff
 from gertty.view import unified_diff as view_unified_diff
+from gertty.view import mouse_scroll_decorator
 import gertty.view
 
 class EditTopicDialog(mywid.ButtonDialog):
@@ -389,6 +390,7 @@ class CommitMessageBox(mywid.HyperText):
             text = commentlink.run(self.app, text)
         super(CommitMessageBox, self).set_text(text)
 
+@mouse_scroll_decorator.ScrollByWheel
 class ChangeView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys
