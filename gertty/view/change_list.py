@@ -102,8 +102,11 @@ class ChangeRow(urwid.Button):
             v = change.getMaxForCategory(category)
             if v == 0:
                 v = ''
-            else:
-                v = '%2i' % v
+            elif v < 0:
+                v = ('min-label', '%2i' % v)
+            elif v > 0:
+                v = ('max-label', '%2i' % v)
+
             self.columns.contents.append((urwid.Text(v), self.columns.options('given', 2)))
 
 class ChangeListHeader(urwid.WidgetWrap):
