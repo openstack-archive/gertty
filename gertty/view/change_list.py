@@ -20,6 +20,7 @@ from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty.view import change as view_change
+from gertty.view import mouse_scroll_decorator
 import gertty.view
 
 class ChangeRow(urwid.Button):
@@ -95,6 +96,7 @@ class ChangeListHeader(urwid.WidgetWrap):
         for category in categories:
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 2)))
 
+@mouse_scroll_decorator.ScrollByWheel
 class ChangeListView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys

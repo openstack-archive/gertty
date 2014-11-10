@@ -19,6 +19,7 @@ from gertty import keymap
 from gertty import mywid
 from gertty import sync
 from gertty.view import change_list as view_change_list
+from gertty.view import mouse_scroll_decorator
 
 class ProjectRow(urwid.Button):
     project_focus_map = {None: 'focused',
@@ -66,6 +67,7 @@ class ProjectListHeader(urwid.WidgetWrap):
                 (5, urwid.Text(u'Open'))]
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
+@mouse_scroll_decorator.ScrollByWheel
 class ProjectListView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys

@@ -20,6 +20,7 @@ import urwid
 from gertty import keymap
 from gertty import mywid
 from gertty import gitrepo
+from gertty.view import mouse_scroll_decorator
 
 class PatchsetDialog(urwid.WidgetWrap):
     signals = ['ok', 'cancel']
@@ -144,6 +145,7 @@ class DiffContextButton(urwid.WidgetWrap):
     def next(self, button):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
+@mouse_scroll_decorator.ScrollByWheel
 class BaseDiffView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys
