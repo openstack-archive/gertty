@@ -143,11 +143,11 @@ class ChangeListView(urwid.WidgetWrap):
         self._w.set_focus(3)
 
     def refresh(self, event=None):
-        if event and not (('_project_key' in self.query and
+        if event and not ((self.project_key is not None and
                            isinstance(event, sync.ChangeAddedEvent) and
                            self.project_key == event.project_key)
                           or
-                          ('_project_key' not in self.query and
+                          (self.project_key is None and
                            isinstance(event, sync.ChangeAddedEvent))
                           or
                           (isinstance(event, sync.ChangeUpdatedEvent) and

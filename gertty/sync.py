@@ -91,10 +91,18 @@ class UpdateEvent(object):
         self.related_change_keys = related_change_keys
 
 class ProjectAddedEvent(UpdateEvent):
+    def __repr__(self):
+        return '<ProjectAddedEvent project_key:%s>' % (
+            self.project_key,)
+
     def __init__(self, project):
         self.project_key = project.key
 
 class ChangeAddedEvent(UpdateEvent):
+    def __repr__(self):
+        return '<ChangeAddedEvent project_key:%s change_key:%s>' % (
+            self.project_key, self.change_key)
+
     def __init__(self, change):
         self.project_key = change.project.key
         self.change_key = change.key
@@ -103,6 +111,10 @@ class ChangeAddedEvent(UpdateEvent):
         self.status_changed = True
 
 class ChangeUpdatedEvent(UpdateEvent):
+    def __repr__(self):
+        return '<ChangeUpdatedEvent project_key:%s change_key:%s review_flag_changed:%s status_changed:%s>' % (
+            self.project_key, self.change_key, self.review_flag_changed, self.status_changed)
+
     def __init__(self, change):
         self.project_key = change.project.key
         self.change_key = change.key
