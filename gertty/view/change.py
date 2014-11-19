@@ -127,7 +127,7 @@ class ReviewDialog(urwid.WidgetWrap):
                         current = 0
                     else:
                         current = current.value
-                    for value in values[category]:
+                    for value in sorted(values[category], reverse=True):
                         if value > 0:
                             strvalue = '+%s' % value
                         elif value == 0:
