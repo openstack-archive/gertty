@@ -78,6 +78,38 @@ class MultiQueue(object):
         finally:
             self.condition.release()
 
+class UpdateEvent(object):
+    def updateRelatedChanges(self, session, change):
+        related_change_keys = set()
+        related_change_keys.add(change.key)
+        for revision in change.revisions:
+            parent = session.getRevisionByCommit(revision.parent)
+            if parent:
+                related_change_keys.add(parent.change.key)
+            for child in session.getRevisionsByParent(revision.commit):
+                related_change_keys.add(child.change.key)
+        self.related_change_keys = related_change_keys
+
+class ProjectAddedEvent(UpdateEvent):
+    def __init__(self, project):
+        self.project_key = project.key
+
+class ChangeAddedEvent(UpdateEvent):
+    def __init__(self, change):
+        self.project_key = change.project.key
+        self.change_key = change.key
+        self.related_change_keys = set()
+        self.review_flag_changed = True
+        self.status_changed = True
+
+class ChangeUpdatedEvent(UpdateEvent):
+    def __init__(self, change):
+        self.project_key = change.project.key
+        self.change_key = change.key
+        self.related_change_keys = set()
+        self.review_flag_changed = False
+        self.status_changed = False
+
 class Task(object):
     def __init__(self, priority=NORMAL_PRIORITY):
         self.log = logging.getLogger('gertty.sync')
@@ -85,6 +117,7 @@ class Task(object):
         self.succeeded = None
         self.event = threading.Event()
         self.tasks = []
+        self.results = []
 
     def complete(self, success):
         self.succeeded = success
@@ -127,7 +160,9 @@ class SyncProjectListTask(Task):
 
             for name in remote_keys-local_keys:
                 p = remote[name]
-                session.createProject(name, description=p.get('description', ''))
+                project = session.createProject(name,
+                                                description=p.get('description', ''))
+                self.results.append(ProjectAddedEvent(project))
 
 class SyncSubscribedProjectBranchesTask(Task):
     def __repr__(self):
@@ -327,8 +362,14 @@ class SyncChangeTask(Task):
                                               remote_change['subject'], created,
                                               updated, remote_change['status'],
                                               topic=remote_change.get('topic'))
+                result = ChangeAddedEvent(change)
+            else:
+                result = ChangeUpdatedEvent(change)
+            self.results.append(result)
             change.owner = account
-            change.status = remote_change['status']
+            if change.status != remote_change['status']:
+                change.status = remote_change['status']
+                result.status_changed = True
             change.subject = remote_change['subject']
             change.updated = dateutil.parser.parse(remote_change['updated'])
             change.topic = remote_change.get('topic')
@@ -367,6 +408,7 @@ class SyncChangeTask(Task):
                     sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
                     self.log.debug("Change %s revision %s needs parent commit %s synced" %
                                    (change.id, remote_revision['_number'], revision.parent))
+                result.updateRelatedChanges(session, change)
                 remote_comments_data = remote_revision['_gertty_remote_comments_data']
                 for remote_file, remote_comments in remote_comments_data.items():
                     for remote_comment in remote_comments:
@@ -499,7 +541,9 @@ class SyncChangeTask(Task):
             if not user_voted:
                 # Only consider changing the reviewed state if we don't have a vote
                 if new_revision or new_message:
-                    change.reviewed = False
+                    if not change.reviewed:
+                        change.reviewed = False
+                        result.review_flag_changed = True
         for url, refs in fetches.items():
             self.log.debug("Fetching from %s with refs %s", url, refs)
             try:
@@ -781,6 +825,7 @@ class Sync(object):
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
+        self.result_queue = Queue.Queue()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
@@ -838,6 +883,8 @@ class Sync(object):
             self.app.status.update(error=True, refresh=False)
         self.offline = False
         self.app.status.update(offline=False, refresh=False)
+        for r in task.results:
+            self.result_queue.put(r)
         os.write(pipe, 'refresh\n')
         return None
 

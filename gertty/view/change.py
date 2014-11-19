@@ -14,6 +14,7 @@
 # under the License.
 
 import datetime
+import logging
 
 import urwid
 
@@ -415,6 +416,7 @@ class ChangeView(urwid.WidgetWrap):
 
     def __init__(self, app, change_key):
         super(ChangeView, self).__init__(urwid.Pile([]))
+        self.log = logging.getLogger('gertty.view.change')
         self.app = app
         self.change_key = change_key
         self.revision_rows = {}
@@ -497,7 +499,15 @@ class ChangeView(urwid.WidgetWrap):
             if not succeeded:
                 raise gertty.view.DisplayError("Git commits not present in local repository")
 
-    def refresh(self):
+    def refresh(self, event=None):
+        if event and not ((isinstance(event, sync.ChangeAddedEvent) and
+                           self.change_key in event.related_change_keys)
+                          or
+                          (isinstance(event, sync.ChangeUpdatedEvent) and
+                           self.change_key in event.related_change_keys)):
+            self.log.debug("Ignoring refresh change due to event %s" % (event,))
+            return
+        self.log.debug("Refreshing change due to event %s" % (event,))
         change_info = []
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)

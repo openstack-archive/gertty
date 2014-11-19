@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import urwid
 
 from gertty import keymap
@@ -82,6 +83,7 @@ class ProjectListView(urwid.WidgetWrap):
 
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))
+        self.log = logging.getLogger('gertty.view.project_list')
         self.app = app
         self.unreviewed = True
         self.subscribed = True
@@ -95,7 +97,17 @@ class ProjectListView(urwid.WidgetWrap):
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(3)
 
-    def refresh(self):
+    def refresh(self, event=None):
+        if event and not (isinstance(event, sync.ProjectAddedEvent)
+                          or
+                          isinstance(event, sync.ChangeAddedEvent)
+                          or
+                          (isinstance(event, sync.ChangeUpdatedEvent) and
+                           (event.status_changed or event.review_flag_changed))):
+            self.log.debug("Ignoring refresh project list due to event %s" % (event,))
+            return
+        self.log.debug("Refreshing project list due to event %s" % (event,))
+
         if self.subscribed:
             self.title = u'Subscribed projects'
             if self.unreviewed:
@@ -134,7 +146,7 @@ class ProjectListView(urwid.WidgetWrap):
         self.app.changeScreen(view_change_list.ChangeListView(
                 self.app,
                 "_project_key:%s %s" % (project_key, self.app.config.project_change_list_query),
-                project_name, unreviewed=True))
+                project_name, project_key=None, unreviewed=True))
 
     def keypress(self, size, key):
         r = super(ProjectListView, self).keypress(size, key)
