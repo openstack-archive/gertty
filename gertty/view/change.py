@@ -424,7 +424,7 @@ class ChangeView(urwid.WidgetWrap):
         self.last_revision_key = None
         self.hide_comments = True
         self.change_id_label = urwid.Text(u'', wrap='clip')
-        self.owner_label = urwid.Text(u'', wrap='clip')
+        self.owner_label = mywid.TextButton(u'', on_press=self.searchOwner)
         self.project_label = urwid.Text(u'', wrap='clip')
         self.branch_label = urwid.Text(u'', wrap='clip')
         self.topic_label = urwid.Text(u'', wrap='clip')
@@ -432,8 +432,11 @@ class ChangeView(urwid.WidgetWrap):
         self.updated_label = urwid.Text(u'', wrap='clip')
         self.status_label = urwid.Text(u'', wrap='clip')
         change_info = []
+        change_info_map={'change-data': 'focused-change-data'}
         for l, v in [("Change-Id", self.change_id_label),
-                     ("Owner", self.owner_label),
+                     ("Owner", urwid.Padding(urwid.AttrMap(self.owner_label, None,
+                                                           focus_map=change_info_map),
+                                             width='pack')),
                      ("Project", self.project_label),
                      ("Branch", self.branch_label),
                      ("Topic", self.topic_label),
@@ -525,9 +528,10 @@ class ChangeView(urwid.WidgetWrap):
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
             self.change_rest_id = change.id
+            self.owner_email = change.owner.email
 
             self.change_id_label.set_text(('change-data', change.change_id))
-            self.owner_label.set_text(('change-data', change.owner_name))
+            self.owner_label.text.set_text(('change-data', change.owner_name))
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', self.topic))
@@ -958,6 +962,9 @@ class ChangeView(urwid.WidgetWrap):
                 sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
         self.app.backScreen()
         self.refresh()
+
+    def searchOwner(self, widget):
+        self.app.doSearch("status:open owner:%s" % (self.owner_email,))
 
     def reviewKey(self, reviewkey):
         approvals = {}

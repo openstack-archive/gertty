@@ -44,7 +44,8 @@ DEFAULT_PALETTE={
     'line-number': ['dark gray', ''],
     'focused-line-number': ['dark gray,standout', ''],
     # Change view
-    'change-data': ['light cyan', ''],
+    'change-data': ['dark cyan', ''],
+    'focused-change-data': ['light cyan', ''],
     'change-header': ['light blue', ''],
     'revision-name': ['light blue', ''],
     'revision-commit': ['dark blue', ''],
@@ -86,6 +87,7 @@ LIGHT_PALETTE = {
     'focused-subscribed-project': ['dark gray,standout', ''],
     'focused-unsubscribed-project': ['dark gray,standout', ''],
     'change-data': ['dark blue,bold', ''],
+    'focused-change-data': ['dark blue,standout', ''],
     'reviewer-name': ['brown', ''],
     'change-message-name': ['brown', ''],
     'change-message-header': ['black', ''],
