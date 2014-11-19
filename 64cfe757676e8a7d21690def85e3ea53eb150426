@@ -1,0 +1,11 @@
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Jenkins
+Code-Review+1: Robbie Harwood <rharwood@redhat.com>
+Code-Review+1: David Pursehouse <david.pursehouse@sonymobile.com>
+Code-Review+1: Jan Kundrát <jkt@kde.org>
+Submitted-by: Jenkins
+Submitted-at: Wed, 19 Nov 2014 23:37:01 +0000
+Reviewed-on: https://review.openstack.org/122383
+Project: stackforge/gertty
+Branch: refs/heads/master
