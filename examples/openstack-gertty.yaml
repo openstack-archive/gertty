@@ -20,6 +20,9 @@ palettes:
   - name: default
     test-SUCCESS: ['light green', '']
     test-FAILURE: ['light red', '']
+    comment-name: ['light blue,standout', '']
+    comment: ['light gray,standout', '']
+    draft-comment: ['light gray,standout', '']
 
 # Uncomment the next line if your terminal has a white background
 # palette: light
