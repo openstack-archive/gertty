@@ -1,0 +1,6 @@
+include gertty/alembic.ini
+
+exclude .gitreview
+exclude .gitignore
+
+global-exclude *.pyc
