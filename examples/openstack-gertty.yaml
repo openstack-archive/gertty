@@ -58,12 +58,15 @@ commentlinks:
           query: "change:{id}"
 
 # This is the query used for the list of changes when a project is
-# selected.  The default is "status:open"; if you don't want to see
-# WIP changes, use a query like this: 
-# change-list-query: "status:open not label:Workflow=-1"
+# selected.  The default is "status:open". If you don't want to see
+# changes which are WIP or have verification failures, use a query like this:
+# change-list-query: "status:open and not label:Workflow=-1"
 
-# Uncomment the following line to use a unified diff view instead
-# of the default side-by-side:
+# If you also want to exclude reviews with failed tests, the query is slightly more complex:
+# "status:open not (label:Workflow=-1 or label:Verified=-1)"
+
+# Uncomment the following line to use a unified diff view instead of the
+# default side-by-side:
 # diff-view: unified
 
 # Hide comments by default that match the following criteria.
@@ -78,8 +81,11 @@ hide-comments:
 # the query.
 dashboards:
   - name: "My changes"
-    query: "owner:self status:open"
+    query: "owner:self and status:open"
     key: "f2"
+  - name: "Incoming reviews"
+    query: "is:open and is:reviewer"
+    key: "f3"
 
 # Reviewkeys are hotkeys that perform immediate reviews within the
 # change screen.  Any pending comments or review messages will be
