@@ -488,7 +488,14 @@ class Database(object):
         self.engine = create_engine(self.app.config.dburi)
         #metadata.create_all(self.engine)
         self.migrate()
-        self.session_factory = sessionmaker(bind=self.engine)
+        # If we want the objects returned from query() to be usable
+        # outside of the session, we need to expunge them from the session,
+        # and since the DatabaseSession always calls commit() on the session
+        # when the context manager exits, we need to inform the session to
+        # expire objects when it does so.
+        self.session_factory = sessionmaker(bind=self.engine,
+                                            expire_on_commit=False,
+                                            autoflush=False)
         self.session = scoped_session(self.session_factory)
         self.lock = threading.Lock()
 
@@ -580,6 +587,14 @@ class DatabaseSession(object):
             return self.session().query(Change).filter_by(id=id).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
+
+    def getChangeIDs(self, ids):
+        # Returns a set of IDs that exist in the local database matching
+        # the set of supplied IDs. This is used when sync'ing the changesets
+        # locally with the remote changes.
+        if not ids:
+            return set([])
+        return set([r[0] for r in self.session().query(Change.id).filter(Change.id.in_(ids)).all()])
 
     def getChangeByChangeID(self, change_id):
         try:
