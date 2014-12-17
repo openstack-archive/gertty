@@ -225,6 +225,8 @@ class ChangeListView(urwid.WidgetWrap):
             change = session.getChange(change_key)
             change.reviewed = not change.reviewed
             ret = change.reviewed
+            reviewed_str = 'reviewed' if change.reviewed else 'unreviewed'
+            self.log.debug("Set change %s to %s", change_key, reviewed_str)
         return ret
 
     def toggleHidden(self, change_key):
@@ -232,6 +234,8 @@ class ChangeListView(urwid.WidgetWrap):
             change = session.getChange(change_key)
             change.hidden = not change.hidden
             ret = change.hidden
+            hidden_str = 'hidden' if change.hidden else 'visible'
+            self.log.debug("Set change %s to %s", change_key, hidden_str)
         return ret
 
     def keypress(self, size, key):
@@ -245,15 +249,37 @@ class ChangeListView(urwid.WidgetWrap):
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position
-            reviewed = self.toggleReviewed(self.listbox.body[pos].change_key)
-            self.refresh()
+            change_key = self.listbox.body[pos].change_key
+            reviewed = self.toggleReviewed(change_key)
+            if self.unreviewed and reviewed:
+                # Here we can avoid a full refresh by just removing the particular
+                # row from the change list if the view is for the unreviewed changes
+                # only.
+                row = self.change_rows[change_key]
+                self.listbox.body.remove(row)
+                del self.change_rows[change_key]
+            else:
+                # Just fall back on doing a full refresh if we're in a situation
+                # where we're not just popping a row from the list of unreviewed
+                # changes.
+                self.refresh()
             return None
         if keymap.TOGGLE_HIDDEN in commands:
             if not len(self.listbox.body):
                 return None
             pos = self.listbox.focus_position
-            hidden = self.toggleHidden(self.listbox.body[pos].change_key)
-            self.refresh()
+            change_key = self.listbox.body[pos].change_key
+            hidden = self.toggleHidden(change_key)
+            if hidden:
+                # Here we can avoid a full refresh by just removing the particular
+                # row from the change list
+                row = self.change_rows[change_key]
+                self.listbox.body.remove(row)
+                del self.change_rows[change_key]
+            else:
+                # Just fall back on doing a full refresh if we're in a situation
+                # where we're not just popping a row from the list of changes.
+                self.refresh()
             return None
         if keymap.REFRESH in commands:
             self.app.sync.submitTask(
