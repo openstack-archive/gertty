@@ -130,17 +130,30 @@ class SearchDialog(mywid.ButtonDialog):
 
 class App(object):
     def __init__(self, server=None, palette='default', keymap='default',
-                 debug=False, disable_sync=False, fetch_missing_refs=False,
-                 path=config.DEFAULT_CONFIG_PATH):
+                 debug=False, verbose=False, disable_sync=False,
+                 fetch_missing_refs=False, path=config.DEFAULT_CONFIG_PATH):
         self.server = server
         self.config = config.Config(server, palette, keymap, path)
         if debug:
             level = logging.DEBUG
+        elif verbose:
+            level = logging.INFO
         else:
             level = logging.WARNING
         logging.basicConfig(filename=self.config.log_file, filemode='w',
                             format='%(asctime)s %(message)s',
                             level=level)
+        # Python2.6 Logger.setLevel doesn't convert string name
+        # to integer code. Here, we set the requests logger level to
+        # be less verbose, since our logging output duplicates some
+        # requests logging content in places.
+        req_level_name = 'WARN'
+        req_logger = logging.getLogger('requests')
+        if sys.version_info < (2, 7):
+            level = logging.getLevelName(req_level_name)
+            req_logger.setLevel(level)
+        else:
+            req_logger.setLevel(req_level_name)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
 
@@ -418,6 +431,8 @@ def main():
     parser.add_argument('-c', dest='path',
                         default=config.DEFAULT_CONFIG_PATH,
                         help='path to config file')
+    parser.add_argument('-v', dest='verbose', action='store_true',
+                        help='enable more verbose logging')
     parser.add_argument('-d', dest='debug', action='store_true',
                         help='enable debug logging')
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
@@ -439,8 +454,8 @@ def main():
     parser.add_argument('server', nargs='?',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
-    g = App(args.server, args.palette, args.keymap, args.debug, args.no_sync,
-            args.fetch_missing_refs, args.path)
+    g = App(args.server, args.palette, args.keymap, args.debug, args.verbose,
+            args.no_sync, args.fetch_missing_refs, args.path)
     g.run()
 
 

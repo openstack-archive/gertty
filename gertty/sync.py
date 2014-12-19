@@ -915,9 +915,15 @@ class Sync(object):
                          headers = {'Accept': 'application/json',
                                     'Accept-Encoding': 'gzip',
                                     'User-Agent': self.user_agent})
-        self.log.debug('Received: %s' % (r.text,))
-        ret = json.loads(r.text[4:])
-        return ret
+        if r.status_code == 200:
+            ret = json.loads(r.text[4:])
+            if len(ret):
+                self.log.debug('200 OK, Received: %s' % (ret,))
+            else:
+                self.log.debug('200 OK, No body.')
+            return ret
+        else:
+            self.log.warn('HTTP response: %d', r.status_code)
 
     def post(self, path, data):
         url = self.url(path)
