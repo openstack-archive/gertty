@@ -174,6 +174,7 @@ class SyncProjectListTask(Task):
                 p = remote[name]
                 project = session.createProject(name,
                                                 description=p.get('description', ''))
+                self.log.info("Created project %s", project.name)
                 self.results.append(ProjectAddedEvent(project))
 
 class SyncSubscribedProjectBranchesTask(Task):
@@ -213,12 +214,12 @@ class SyncProjectBranchesTask(Task):
             local_branches = set(local.keys())
 
             for name in local_branches-remote_branches:
-                self.log.debug("Delete branch %s from project %s" % (name, project.name))
                 session.delete(local[name])
+                self.log.info("Deleted branch %s from project %s in local DB.", name, project.name)
 
             for name in remote_branches-local_branches:
-                self.log.debug("Add branch %s to project %s" % (name, project.name))
                 project.createBranch(name)
+                self.log.info("Added branch %s to project %s in local DB.", name, project.name)
 
 class SyncSubscribedProjectsTask(Task):
     def __repr__(self):
@@ -287,7 +288,6 @@ class SyncProjectTask(Task):
             # in the db optionally we could sync all changes ever
             if c['id'] in change_ids or (c['status'] not in self._closed_statuses):
                 sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
-                self.log.debug("Change %s update %s" % (c['id'], c['updated']))
         for key in self.project_keys:
             sync.submitTask(SetProjectUpdatedTask(key, now, priority=self.priority))
 
@@ -354,6 +354,7 @@ class SyncChangeTask(Task):
         return '<SyncChangeTask %s>' % (self.change_id,)
 
     def run(self, sync):
+        start_time = time.time()
         app = sync.app
         remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS' % self.change_id)
         # Perform subqueries this task will need outside of the db session
@@ -376,6 +377,7 @@ class SyncChangeTask(Task):
                                               remote_change['subject'], created,
                                               updated, remote_change['status'],
                                               topic=remote_change.get('topic'))
+                self.log.info("Created new change %s in local DB.", change.id)
                 result = ChangeAddedEvent(change)
             else:
                 result = ChangeUpdatedEvent(change)
@@ -411,6 +413,7 @@ class SyncChangeTask(Task):
                                                      remote_revision['commit']['message'], remote_commit,
                                                      remote_revision['commit']['parents'][0]['commit'],
                                                      auth, ref)
+                    self.log.info("Created new revision %s for change %s in local DB.", revision.key, self.change_id)
                     new_revision = True
                 revision.message = remote_revision['commit']['message']
                 # TODO: handle multiple parents
@@ -442,6 +445,7 @@ class SyncChangeTask(Task):
                                                              created,
                                                              remote_file, parent, remote_comment.get('line'),
                                                              remote_comment['message'])
+                            self.log.info("Created new comment %s for revision %s in local DB.", comment.key, revision.key)
                         else:
                             if comment.author != account:
                                 comment.author = account
@@ -463,6 +467,7 @@ class SyncChangeTask(Task):
                     created = dateutil.parser.parse(remote_message['date'])
                     message = revision.createMessage(remote_message['id'], account, created,
                                                      remote_message['message'])
+                    self.log.info("Created new review message %s for revision %s in local DB.", message.key, revision.key)
                 else:
                     if message.author != account:
                         message.author = account
@@ -513,6 +518,7 @@ class SyncChangeTask(Task):
                 change.createApproval(account,
                                       remote_approval['category'],
                                       remote_approval['value'])
+                self.log.info("Created approval for change %s in local DB.", change.id)
 
             for key in remote_label_keys-local_label_keys:
                 remote_label = remote_label_entries[key]
@@ -569,6 +575,9 @@ class SyncChangeTask(Task):
                 for ref in refs:
                     self.log.debug("git fetch %s %s" % (url, ref))
                     repo.fetch(url, ref)
+        end_time = time.time()
+        total_time = end_time - start_time
+        self.log.info("Synced change %s in %0.5f seconds.", self.change_id, total_time)
 
 class CheckReposTask(Task):
     # on startup, check all projects
