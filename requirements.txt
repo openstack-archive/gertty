@@ -4,7 +4,7 @@ urwid
 SQLAlchemy>=0.9.4
 GitPython>=0.3.2.RC1
 python-dateutil
-requests
+requests!=2.5.0
 ordereddict
 alembic>=0.6.4
 PyYAML>=3.1.0
