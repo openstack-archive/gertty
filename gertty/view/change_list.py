@@ -66,10 +66,8 @@ class ChangeRow(urwid.Button):
         self.owner.set_text(change.owner_name)
         if datetime.date.today() == change.updated.date():
             self.updated.set_text(change.updated.strftime("%I:%M %p").upper())
-        elif datetime.date.today().year == change.updated.date().year:
-            self.updated.set_text(change.updated.strftime("%b %d"))
         else:
-            self.updated.set_text(change.updated.strftime("%Y"))
+            self.updated.set_text(change.updated.strftime("%Y-%b-%d"))
         del self.columns.contents[self.num_columns:]
         for category in categories:
             v = change.getMaxForCategory(category)
