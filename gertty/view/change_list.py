@@ -67,7 +67,11 @@ class ChangeRow(urwid.Button):
         if datetime.date.today() == change.updated.date():
             self.updated.set_text(change.updated.strftime("%I:%M %p").upper())
         elif datetime.date.today().year == change.updated.date().year:
+<<<<<<< Updated upstream
             self.updated.set_text(change.updated.strftime("%b %d"))
+=======
+            self.updated.set_text(change.updated.strftime("%Y-%b-%d"))
+>>>>>>> Stashed changes
         else:
             self.updated.set_text(change.updated.strftime("%Y"))
         del self.columns.contents[self.num_columns:]
