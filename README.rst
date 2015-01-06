@@ -25,8 +25,25 @@ As compared to the web interface, the main advantages are:
 Installation
 ------------
 
-It is recommended (but not required) to install Gertty in a
-virtualenv.  To set one up::
+Debian
+~~~~~~
+
+Gertty is packaged in Debian sid/testing.  You can install it with::
+
+  apt-get install gertty
+
+Fedora
+~~~~~~
+
+Gertty is packaged starting in Fedora 21.  You can install it with::
+
+  yum install python-gertty
+
+Source
+~~~~~~
+
+When installing from source, it is recommended (but not required) to
+install Gertty in a virtualenv.  To set one up::
 
   virtualenv gertty-env
   source gertty-env/bin/activate
