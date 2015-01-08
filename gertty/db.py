@@ -606,8 +606,10 @@ class DatabaseSession(object):
             return None
 
     def getRevisionsByParent(self, parent):
+        if isinstance(parent, basestring):
+            parent = (parent,)
         try:
-            return self.session().query(Revision).filter_by(parent=parent).all()
+            return self.session().query(Revision).filter(Revision.parent.in_(parent)).all()
         except sqlalchemy.orm.exc.NoResultFound:
             return []
 
