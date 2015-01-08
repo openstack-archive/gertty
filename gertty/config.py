@@ -110,6 +110,7 @@ class ConfigSchema(object):
                            'change-list-query': str,
                            'diff-view': str,
                            'hide-comments': self.hide_comments,
+                           'thread-changes': bool,
                            })
         return schema
 
@@ -199,6 +200,8 @@ class Config(object):
         self.hide_comments = []
         for h in self.config.get('hide-comments', []):
             self.hide_comments.append(re.compile(h['author']))
+
+        self.thread_changes = self.config.get('thread-changes', True)
 
     def getServer(self, name=None):
         for server in self.config['servers']:
