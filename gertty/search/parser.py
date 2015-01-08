@@ -179,7 +179,7 @@ def SearchParser():
 
     label_re = re.compile(r'(?P<label>[a-zA-Z0-9_-]+([a-zA-Z]|((?<![-+])[0-9])))'
                           r'(?P<operator>[<>]?=?)(?P<value>[-+]?[0-9]+)'
-                          r'($|,user=(?P<user>\S+))')
+                          r'($|,(user=)?(?P<user>\S+))')
 
     def p_label_term(p):
         '''label_term : OP_LABEL string'''
@@ -200,10 +200,13 @@ def SearchParser():
             filters.append(gertty.db.approval_table.c.value <= value)
         if user is not None:
             filters.append(gertty.db.approval_table.c.account_key == gertty.db.account_table.c.key)
-            filters.append(
-                or_(gertty.db.account_table.c.username == user,
-                    gertty.db.account_table.c.email == user,
-                    gertty.db.account_table.c.name == user))
+            if user == 'self':
+                filters.append(gertty.db.account_table.c.username == p.parser.username)
+            else:
+                filters.append(
+                    or_(gertty.db.account_table.c.username == user,
+                        gertty.db.account_table.c.email == user,
+                        gertty.db.account_table.c.name == user))
         s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
         p[0] = gertty.db.change_table.c.key.in_(s)
 
