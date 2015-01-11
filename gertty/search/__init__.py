@@ -13,6 +13,7 @@
 # under the License.
 
 import sqlalchemy.sql.expression
+from sqlalchemy.sql.expression import and_
 
 from gertty.search import tokenizer, parser
 import gertty.db
@@ -28,6 +29,42 @@ class SearchCompiler(object):
         self.lexer = tokenizer.SearchTokenizer()
         self.parser = parser.SearchParser()
 
+    def findTables(self, expression):
+        tables = set()
+        stack = [expression]
+        while stack:
+            x = stack.pop()
+            if hasattr(x, 'table'):
+                if (x.table != gertty.db.change_table
+                    and hasattr(x.table, 'name')):
+                    tables.add(x.table)
+            for child in x.get_children():
+                if not isinstance(child, sqlalchemy.sql.selectable.Select):
+                    stack.append(child)
+        return tables
+
     def parse(self, data):
         self.parser.username = self.app.config.username
-        return self.parser.parse(data, lexer=self.lexer)
+        result = self.parser.parse(data, lexer=self.lexer)
+        tables = self.findTables(result)
+        if gertty.db.project_table in tables:
+            result = and_(gertty.db.change_table.c.project_key == gertty.db.project_table.c.key,
+                          result)
+            tables.remove(gertty.db.project_table)
+        if gertty.db.account_table in tables:
+            result = and_(gertty.db.change_table.c.account_key == gertty.db.account_table.c.key,
+                          result)
+            tables.remove(gertty.db.account_table)
+        if tables:
+            raise Exception("Unknown table in search: %s" % tables)
+        return result
+
+if __name__ == '__main__':
+    class Dummy(object):
+        pass
+    app = Dummy()
+    app.config = Dummy()
+    app.config.username = 'bob'
+    search = SearchCompiler(app)
+    x = search.parse('owner:self')
+    print x
