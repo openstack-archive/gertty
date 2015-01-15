@@ -553,7 +553,7 @@ class SyncChangeTask(Task):
             if not user_voted:
                 # Only consider changing the reviewed state if we don't have a vote
                 if new_revision or new_message:
-                    if not change.reviewed:
+                    if change.reviewed:
                         change.reviewed = False
                         result.review_flag_changed = True
         for url, refs in fetches.items():
