@@ -83,12 +83,18 @@ class CommitContext(object):
             commit.authored_date, commit.author_tz_offset)
         commit_date = self.decorateGitTime(
             commit.committed_date, commit.committer_tz_offset)
+        if type(author.email) is unicode:
+            author_email = author.email
+        else:
+            author_email = unicode(author.email, 'utf8')
+        if type(committer.email) is unicode:
+            committer_email = committer.email
+        else:
+            committer_email = unicode(committer.email, 'utf8')
         return [u"Parent: %s\n" % parentsha,
-                u"Author: %s <%s>\n" % (author.name,
-                                        unicode(author.email, 'utf8')),
+                u"Author: %s <%s>\n" % (author.name, author_email),
                 u"AuthorDate: %s\n" % author_date,
-                u"Commit: %s <%s>\n" % (committer.name,
-                                        unicode(committer.email, 'utf')),
+                u"Commit: %s <%s>\n" % (committer.name, committer_email),
                 u"CommitDate: %s\n" % commit_date,
                 u"\n"] + commit.message.splitlines(True)
 
