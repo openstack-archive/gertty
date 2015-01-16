@@ -115,6 +115,12 @@ class ReviewDialog(urwid.WidgetWrap):
                 for label in change.labels:
                     d = descriptions.setdefault(label.category, {})
                     d[label.value] = label.description
+                    vmin = d.setdefault('min', label.value)
+                    if label.value < vmin:
+                        d['min'] = label.value
+                    vmax = d.setdefault('max', label.value)
+                    if label.value > vmax:
+                        d['max'] = label.value
                 for label in change.permitted_labels:
                     if label.category not in categories:
                         categories.append(label.category)
@@ -142,6 +148,16 @@ class ReviewDialog(urwid.WidgetWrap):
                         strvalue += '  ' + descriptions[category][value]
                         b = urwid.RadioButton(group, strvalue, state=(value == current))
                         b._value = value
+                        if value > 0:
+                            if value == descriptions[category]['max']:
+                                b = urwid.AttrMap(b, 'max-label')
+                            else:
+                                b = urwid.AttrMap(b, 'positive-label')
+                        elif value < 0:
+                            if value == descriptions[category]['min']:
+                                b = urwid.AttrMap(b, 'min-label')
+                            else:
+                                b = urwid.AttrMap(b, 'negative-label')
                         rows.append(b)
                     rows.append(urwid.Divider())
             m = revision.getPendingMessage()
