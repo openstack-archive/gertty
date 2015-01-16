@@ -553,7 +553,10 @@ class ChangeView(urwid.WidgetWrap):
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
             self.change_rest_id = change.id
-            self.owner_email = change.owner.email
+            if change.owner:
+                self.owner_email = change.owner.email
+            else:
+                self.owner_email = None
 
             self.change_id_label.set_text(('change-data', change.change_id))
             self.owner_label.text.set_text(('change-data', change.owner_name))
@@ -989,7 +992,8 @@ class ChangeView(urwid.WidgetWrap):
         self.refresh()
 
     def searchOwner(self, widget):
-        self.app.doSearch("status:open owner:%s" % (self.owner_email,))
+        if self.owner_email:
+            self.app.doSearch("status:open owner:%s" % (self.owner_email,))
 
     def reviewKey(self, reviewkey):
         approvals = {}
