@@ -105,12 +105,16 @@ class ReviewDialog(urwid.WidgetWrap):
         rows = []
         categories = []
         values = {}
+        descriptions = {}
         self.button_groups = {}
         message = ''
         with self.app.db.getSession() as session:
             revision = session.getRevision(self.revision_row.revision_key)
             change = revision.change
             if revision == change.revisions[-1]:
+                for label in change.labels:
+                    d = descriptions.setdefault(label.category, {})
+                    d[label.value] = label.description
                 for label in change.permitted_labels:
                     if label.category not in categories:
                         categories.append(label.category)
@@ -135,7 +139,9 @@ class ReviewDialog(urwid.WidgetWrap):
                             strvalue = ' 0'
                         else:
                             strvalue = str(value)
+                        strvalue += '  ' + descriptions[category][value]
                         b = urwid.RadioButton(group, strvalue, state=(value == current))
+                        b._value = value
                         rows.append(b)
                     rows.append(urwid.Divider())
             m = revision.getPendingMessage()
@@ -156,7 +162,7 @@ class ReviewDialog(urwid.WidgetWrap):
         for category, group in self.button_groups.items():
             for button in group:
                 if button.state:
-                    approvals[category] = int(button.get_label())
+                    approvals[category] = button._value
         message = self.message.edit_text.strip()
         self.change_view.saveReview(self.revision_row.revision_key, approvals,
                                     message, upload, submit)
