@@ -24,6 +24,10 @@ import gertty.search
 from tokenizer import tokens
 
 def SearchParser():
+    precedence = (
+        ('left', 'NOT', 'NEG'),
+    )
+
     def p_terms(p):
         '''expression : list_expr
                       | paren_expr
