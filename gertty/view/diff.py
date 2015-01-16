@@ -341,17 +341,20 @@ class BaseDiffView(urwid.WidgetWrap):
     def makeFileHeader(self, diff, comment_lists):
         raise NotImplementedError
 
-    def refresh(self, event=None):
-        if event and not ((isinstance(event, sync.ChangeAddedEvent) and
-                           self.change_key in event.related_change_keys)
-                          or
-                          (isinstance(event, sync.ChangeUpdatedEvent) and
-                           self.change_key in event.related_change_keys)):
+    def interested(self, event):
+        if not ((isinstance(event, sync.ChangeAddedEvent) and
+                 self.change_key in event.related_change_keys)
+                or
+                (isinstance(event, sync.ChangeUpdatedEvent) and
+                 self.change_key in event.related_change_keys)):
             #self.log.debug("Ignoring refresh diff due to event %s" % (event,))
-            return
+            return False
         #self.log.debug("Refreshing diff due to event %s" % (event,))
+        return True
+
+    def refresh(self, event=None):
         #TODO
-        return
+        pass
 
     def keypress(self, size, key):
         old_focus = self.listbox.focus

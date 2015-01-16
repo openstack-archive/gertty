@@ -212,7 +212,7 @@ class App(object):
         if hasattr(widget, 'title'):
             self.status.update(title=widget.title)
         self.loop.widget = widget
-        self.refresh()
+        self.refresh(force=True)
 
     def findChangeList(self):
         for widget in reversed(self.screens):
@@ -226,17 +226,21 @@ class App(object):
             widget = self.screens.pop()
             self.loop.widget = widget
 
-    def refresh(self, data=None):
+    def refresh(self, data=None, force=False):
         self.status.refresh()
         widget = self.loop.widget
         while isinstance(widget, urwid.Overlay):
             widget = widget.contents[0][0]
+        interested = force
         try:
             while True:
                 event = self.sync.result_queue.get(0)
-                widget.refresh(event)
+                if widget.interested(event):
+                    interested = True
         except Queue.Empty:
             pass
+        if interested:
+            widget.refresh()
 
     def popup(self, widget,
               relative_width=50, relative_height=25,

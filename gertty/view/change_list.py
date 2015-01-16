@@ -142,20 +142,22 @@ class ChangeListView(urwid.WidgetWrap):
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(3)
 
-    def refresh(self, event=None):
-        if event and not ((self.project_key is not None and
-                           isinstance(event, sync.ChangeAddedEvent) and
-                           self.project_key == event.project_key)
-                          or
-                          (self.project_key is None and
-                           isinstance(event, sync.ChangeAddedEvent))
-                          or
-                          (isinstance(event, sync.ChangeUpdatedEvent) and
-                           event.change_key in self.change_rows.keys())):
+    def interested(self, event):
+        if not ((self.project_key is not None and
+                 isinstance(event, sync.ChangeAddedEvent) and
+                 self.project_key == event.project_key)
+                or
+                (self.project_key is None and
+                 isinstance(event, sync.ChangeAddedEvent))
+                or
+                (isinstance(event, sync.ChangeUpdatedEvent) and
+                 event.change_key in self.change_rows.keys())):
             self.log.debug("Ignoring refresh change list due to event %s" % (event,))
-            return
+            return False
         self.log.debug("Refreshing change list due to event %s" % (event,))
+        return True
 
+    def refresh(self):
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
             lst = session.getChanges(self.query, self.unreviewed,

@@ -97,17 +97,19 @@ class ProjectListView(urwid.WidgetWrap):
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(3)
 
-    def refresh(self, event=None):
-        if event and not (isinstance(event, sync.ProjectAddedEvent)
-                          or
-                          isinstance(event, sync.ChangeAddedEvent)
-                          or
-                          (isinstance(event, sync.ChangeUpdatedEvent) and
-                           (event.status_changed or event.review_flag_changed))):
+    def interested(self, event):
+        if not (isinstance(event, sync.ProjectAddedEvent)
+                or
+                isinstance(event, sync.ChangeAddedEvent)
+                or
+                (isinstance(event, sync.ChangeUpdatedEvent) and
+                 (event.status_changed or event.review_flag_changed))):
             self.log.debug("Ignoring refresh project list due to event %s" % (event,))
-            return
+            return False
         self.log.debug("Refreshing project list due to event %s" % (event,))
+        return True
 
+    def refresh(self):
         if self.subscribed:
             self.title = u'Subscribed projects'
             if self.unreviewed:

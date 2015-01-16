@@ -524,15 +524,18 @@ class ChangeView(urwid.WidgetWrap):
             if not succeeded:
                 raise gertty.view.DisplayError("Git commits not present in local repository")
 
-    def refresh(self, event=None):
-        if event and not ((isinstance(event, sync.ChangeAddedEvent) and
-                           self.change_key in event.related_change_keys)
-                          or
-                          (isinstance(event, sync.ChangeUpdatedEvent) and
-                           self.change_key in event.related_change_keys)):
+    def interested(self, event):
+        if not ((isinstance(event, sync.ChangeAddedEvent) and
+                 self.change_key in event.related_change_keys)
+                or
+                (isinstance(event, sync.ChangeUpdatedEvent) and
+                 self.change_key in event.related_change_keys)):
             self.log.debug("Ignoring refresh change due to event %s" % (event,))
-            return
+            return False
         self.log.debug("Refreshing change due to event %s" % (event,))
+        return True
+
+    def refresh(self):
         change_info = []
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
