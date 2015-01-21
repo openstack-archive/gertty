@@ -231,6 +231,22 @@ class Change(object):
             cat_value[approval.category] = cur_value
         self._approval_cache = cat_value
 
+    def getMinMaxPermittedForCategory(self, category):
+        if not hasattr(self, '_permitted_cache'):
+            self._updatePermittedCache()
+        return self._permitted_cache.get(category, (0,0))
+
+    def _updatePermittedCache(self):
+        cache = {}
+        for label in self.labels:
+            if label.category not in cache:
+                cache[label.category] = [0, 0]
+            if label.value > cache[label.category][1]:
+                cache[label.category][1] = label.value
+            if label.value < cache[label.category][0]:
+                cache[label.category][0] = label.value
+        self._permitted_cache = cache
+
     def createRevision(self, *args, **kw):
         session = Session.object_session(self)
         args = [self] + list(args)
