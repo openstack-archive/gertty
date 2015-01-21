@@ -23,6 +23,10 @@ DEFAULT_PALETTE={
     'negative-label': ['dark red', ''],
     'max-label': ['light green', ''],
     'min-label': ['light red', ''],
+    'focused-positive-label': ['dark green,standout', ''],
+    'focused-negative-label': ['dark red,standout', ''],
+    'focused-max-label': ['light green,standout', ''],
+    'focused-min-label': ['light red,standout', ''],
     'link': ['dark blue', ''],
     'focused-link': ['light blue', ''],
     # Diff
