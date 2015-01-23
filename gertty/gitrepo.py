@@ -454,6 +454,8 @@ class Repo(object):
                     continue
                 if line.startswith("index"):
                     continue
+                if line.startswith("Binary files"):
+                    continue
                 if not last_line:
                     raise Exception("Unhandled line: %s" % line)
             f.finalize()
