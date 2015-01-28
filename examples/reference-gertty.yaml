@@ -142,6 +142,10 @@ commentlinks:
 # of the default side-by-side:
 # diff-view: unified
 
+# Dependent changes are displayed as "threads" in the change list by
+# default.  To disable this behavior, uncomment the following line:
+# thread-changes: false
+
 # Uncomment the following lines to Hide comments by default that match
 # certain criteria.  You can toggle their display with 't'.  Currently
 # the only supported criterion is "author".

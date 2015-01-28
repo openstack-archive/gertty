@@ -23,6 +23,29 @@ from gertty import sync
 from gertty.view import change as view_change
 import gertty.view
 
+
+class ThreadStack(object):
+    def __init__(self):
+        self.stack = []
+
+    def push(self, change, children):
+        self.stack.append([change, children])
+
+    def pop(self):
+        change = None
+        while self.stack:
+            if self.stack[-1][1]:
+                # handle children at the tip
+                return self.stack[-1][1].pop(0)
+            else:
+                # current tip has no children, walk up
+                self.stack.pop()
+                continue
+        return None
+
+    def countChildren(self):
+        return [len(x[1]) for x in self.stack]
+
 class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
                         'unreviewed-change': 'focused-unreviewed-change',
@@ -60,7 +83,11 @@ class ChangeRow(urwid.Button):
         else:
             style = 'unreviewed-change'
         self.row_style.set_attr_map({None: style})
-        self.subject.set_text(change.subject)
+        if hasattr(change, '_subject'):
+            subject = change._subject
+        else:
+            subject = change.subject
+        self.subject.set_text(subject)
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
         self.owner.set_text(change.owner_name)
@@ -176,6 +203,15 @@ class ChangeListView(urwid.WidgetWrap):
                 change_list = reversed(lst)
             else:
                 change_list = lst
+            if self.app.config.thread_changes:
+                change_list = self._threadChanges(change_list)
+            new_rows = []
+            if len(self.listbox.body):
+                focus_pos = self.listbox.focus_position
+                focus_row = self.listbox.body[focus_pos]
+            else:
+                focus_pos = 0
+                focus_row = None
             for change in change_list:
                 row = self.change_rows.get(change.key)
                 if not row:
@@ -187,13 +223,77 @@ class ChangeListView(urwid.WidgetWrap):
                 else:
                     row.update(change, self.categories)
                     unseen_keys.remove(change.key)
+                new_rows.append(row)
                 i += 1
+            self.listbox.body[:] = new_rows
+            if focus_row in self.listbox.body:
+                pos = self.listbox.body.index(focus_row)
+            else:
+                pos = min(focus_pos, len(self.listbox.body)-1)
+            self.listbox.body.set_focus(pos)
             if lst:
                 self.header.update(self.categories)
         for key in unseen_keys:
             row = self.change_rows[key]
-            self.listbox.body.remove(row)
             del self.change_rows[key]
+
+    def _threadChanges(self, changes):
+        ret = []
+        stack = ThreadStack()
+        children = {}
+        commits = {}
+        orphans = changes[:]
+        for change in changes:
+            for revision in change.revisions:
+                commits[revision.commit] = change
+        for change in changes:
+            revision = change.revisions[-1]
+            parent = commits.get(revision.parent, None)
+            if parent:
+                if parent.revisions[-1].commit != revision.parent:
+                    # Our parent is an outdated revision.  This could
+                    # cause a cycle, so skip.  This change will not
+                    # appear in the thread, but will still appear in
+                    # the list.  TODO: use color to indicate it
+                    # depends on an outdated change.
+                    continue
+                if change in orphans:
+                    orphans.remove(change)
+                v = children.get(parent, [])
+                v.append(change)
+                children[parent] = v
+        if orphans:
+            change = orphans.pop(0)
+        else:
+            change = None
+        while change:
+            prefix = ''
+            stack_children = stack.countChildren()
+            for i, nchildren in enumerate(stack_children):
+                if nchildren:
+                    if i+1 == len(stack_children):
+                        prefix += u'\u251c'
+                    else:
+                        prefix += u'\u2502'
+                else:
+                    if i+1 == len(stack_children):
+                        prefix += u'\u2514'
+                    else:
+                        prefix += u' '
+                if i+1 == len(stack_children):
+                    prefix += u'\u2500'
+                else:
+                    prefix += u' '
+            subject = '%s%s' % (prefix, change.subject)
+            change._subject = subject
+            ret.append(change)
+            if change in children:
+                stack.push(change, children[change])
+            change = stack.pop()
+            if (not change) and orphans:
+                change = orphans.pop(0)
+        assert len(ret) == len(changes)
+        return ret
 
     def clearChangeList(self):
         for key, value in self.change_rows.iteritems():
