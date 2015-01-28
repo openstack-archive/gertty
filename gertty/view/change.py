@@ -569,14 +569,8 @@ class ChangeView(urwid.WidgetWrap):
             self.commit_message.set_text(change.revisions[-1].message)
 
             categories = []
-            max_values = {}
-            min_values = {}
             approval_headers = [urwid.Text(('table-header', 'Name'))]
             for label in change.labels:
-                if label.value > max_values.get(label.category, 0):
-                    max_values[label.category] = label.value
-                if label.value < min_values.get(label.category, 0):
-                    min_values[label.category] = label.value
                 if label.category in categories:
                     continue
                 approval_headers.append(urwid.Text(('table-header', label.category)))
@@ -600,15 +594,16 @@ class ChangeView(urwid.WidgetWrap):
                     approvals_for_name[approval.reviewer.name] = approvals
                     votes.addRow(row)
                 if str(approval.value) != '0':
+                    cat_min, cat_max = change.getMinMaxPermittedForCategory(approval.category)
                     if approval.value > 0:
                         val = '+%i' % approval.value
-                        if approval.value == max_values.get(approval.category):
+                        if approval.value == cat_max:
                             val = ('max-label', val)
                         else:
                             val = ('positive-label', val)
                     else:
                         val = '%i' % approval.value
-                        if approval.value == min_values.get(approval.category):
+                        if approval.value == cat_min:
                             val = ('min-label', val)
                         else:
                             val = ('negative-label', val)

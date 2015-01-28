@@ -50,6 +50,10 @@ class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
                         'unreviewed-change': 'focused-unreviewed-change',
                         'reviewed-change': 'focused-reviewed-change',
+                        'positive-label': 'focused-positive-label',
+                        'negative-label': 'focused-negative-label',
+                        'min-label': 'focused-min-label',
+                        'max-label': 'focused-max-label',
                         }
 
     def selectable(self):
@@ -100,14 +104,22 @@ class ChangeRow(urwid.Button):
         del self.columns.contents[self.num_columns:]
         for category in categories:
             v = change.getMaxForCategory(category)
+            cat_min, cat_max = change.getMinMaxPermittedForCategory(category)
             if v == 0:
-                v = ''
-            elif v < 0:
-                v = ('min-label', '%2i' % v)
+                val = ''
             elif v > 0:
-                v = ('max-label', '%2i' % v)
-
-            self.columns.contents.append((urwid.Text(v), self.columns.options('given', 2)))
+                val = '%2i' % v
+                if v == cat_max:
+                    val = ('max-label', val)
+                else:
+                    val = ('positive-label', val)
+            else:
+                val = '%i' % v
+                if v == cat_min:
+                    val = ('min-label', val)
+                else:
+                    val = ('negative-label', val)
+            self.columns.contents.append((urwid.Text(val), self.columns.options('given', 2)))
 
 class ChangeListHeader(urwid.WidgetWrap):
     def __init__(self, project=False, owner=False, updated=False):
