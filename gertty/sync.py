@@ -489,7 +489,10 @@ class SyncChangeTask(Task):
             local_labels = {}
             for approval in change.approvals:
                 key = '%s~%s' % (approval.category, approval.reviewer.id)
-                local_approvals[key] = approval
+                if key in local_approvals:
+                    session.delete(approval)
+                else:
+                    local_approvals[key] = approval
             local_approval_keys = set(local_approvals.keys())
             for label in change.labels:
                 key = '%s~%s~%s' % (label.category, label.value, label.description)
