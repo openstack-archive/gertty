@@ -249,7 +249,7 @@ def SearchParser():
 
     def p_is_term(p):
         '''is_term : OP_IS string'''
-        #TODO: implement starred, watched, owner, reviewer, draft
+        #TODO: implement watched, draft
         username = p.parser.username
         if p[2] == 'reviewed':
             filters = []
@@ -269,6 +269,8 @@ def SearchParser():
             p[0] = gertty.db.change_table.c.status == 'ABANDONED'
         elif p[2] == 'owner':
             p[0] = gertty.db.account_table.c.username == username
+        elif p[2] == 'starred':
+            p[0] = gertty.db.change_table.c.starred == True
         elif p[2] == 'reviewer':
             filters = []
             filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
@@ -277,7 +279,7 @@ def SearchParser():
             s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
             p[0] = gertty.db.change_table.c.key.in_(s)
         else:
-            raise gertty.search.SearchSyntaxError('Syntax error: has:%s is not supported' % p[2])
+            raise gertty.search.SearchSyntaxError('Syntax error: is:%s is not supported' % p[2])
 
     def p_status_term(p):
         '''status_term : OP_STATUS string'''

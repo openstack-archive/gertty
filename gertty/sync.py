@@ -382,6 +382,10 @@ class SyncChangeTask(Task):
             if change.status != remote_change['status']:
                 change.status = remote_change['status']
                 result.status_changed = True
+            if remote_change.get('starred'):
+                change.starred = True
+            else:
+                change.starred = False
             change.subject = remote_change['subject']
             change.updated = dateutil.parser.parse(remote_change['updated'])
             change.topic = remote_change.get('topic')
@@ -657,6 +661,8 @@ class UploadReviewsTask(Task):
                 sync.submitTask(RebaseChangeTask(c.key, self.priority))
             for c in session.getPendingStatusChanges():
                 sync.submitTask(ChangeStatusTask(c.key, self.priority))
+            for c in session.getPendingStarred():
+                sync.submitTask(ChangeStarredTask(c.key, self.priority))
             for c in session.getPendingCherryPicks():
                 sync.submitTask(SendCherryPickTask(c.key, self.priority))
             for r in session.getPendingCommitMessages():
@@ -698,6 +704,27 @@ class RebaseChangeTask(Task):
             change.pending_rebase = False
             # Inside db session for rollback
             sync.post('changes/%s/rebase' % (change.id,), {})
+            sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
+
+class ChangeStarredTask(Task):
+    def __init__(self, change_key, priority=NORMAL_PRIORITY):
+        super(ChangeStarredTask, self).__init__(priority)
+        self.change_key = change_key
+
+    def __repr__(self):
+        return '<ChangeStarredTask %s>' % (self.change_key,)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            if change.starred:
+                sync.put('accounts/self/starred.changes/%s' % (change.id,),
+                         data={})
+            else:
+                sync.delete('accounts/self/starred.changes/%s' % (change.id,),
+                            data={})
+            change.pending_starred = False
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
 class ChangeStatusTask(Task):
@@ -944,6 +971,17 @@ class Sync(object):
                              auth=self.auth,
                              headers = {'Content-Type': 'application/json;charset=UTF-8',
                                         'User-Agent': self.user_agent})
+        self.log.debug('Received: %s' % (r.text,))
+
+    def delete(self, path, data):
+        url = self.url(path)
+        self.log.debug('DELETE: %s' % (url,))
+        self.log.debug('data: %s' % (data,))
+        r = self.session.delete(url, data=json.dumps(data).encode('utf8'),
+                                verify=self.app.config.verify_ssl,
+                                auth=self.auth,
+                                headers = {'Content-Type': 'application/json;charset=UTF-8',
+                                           'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):
