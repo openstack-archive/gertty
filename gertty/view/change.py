@@ -410,6 +410,8 @@ class ChangeView(urwid.WidgetWrap):
              "Back to the list of changes"),
             (key(keymap.TOGGLE_REVIEWED),
              "Toggle the reviewed flag for the current change"),
+            (key(keymap.TOGGLE_STARRED),
+             "Toggle the starred flag for the current change"),
             (key(keymap.LOCAL_CHERRY_PICK),
              "Cherry-pick the most recent revision onto the local repo"),
             (key(keymap.ABANDON_CHANGE),
@@ -549,7 +551,12 @@ class ChangeView(urwid.WidgetWrap):
                 hidden = ' (hidden)'
             else:
                 hidden = ''
-            self.title = 'Change %s%s%s' % (change.number, reviewed, hidden)
+            if change.starred:
+                starred = '* '
+            else:
+                starred = ''
+            self.title = '%sChange %s%s%s' % (starred, change.number,
+                                              reviewed, hidden)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
             self.change_rest_id = change.id
@@ -759,6 +766,14 @@ class ChangeView(urwid.WidgetWrap):
             change = session.getChange(self.change_key)
             change.hidden = not change.hidden
 
+    def toggleStarred(self):
+        with self.app.db.getSession() as session:
+            change = session.getChange(self.change_key)
+            change.starred = not change.starred
+            change.pending_starred = True
+        self.app.sync.submitTask(
+            sync.ChangeStarredTask(self.change_key, sync.HIGH_PRIORITY))
+
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
         commands = self.app.config.keymap.getCommands(r)
@@ -768,6 +783,10 @@ class ChangeView(urwid.WidgetWrap):
             return None
         if keymap.TOGGLE_HIDDEN in commands:
             self.toggleHidden()
+            self.refresh()
+            return None
+        if keymap.TOGGLE_STARRED in commands:
+            self.toggleStarred()
             self.refresh()
             return None
         if keymap.REVIEW in commands:
