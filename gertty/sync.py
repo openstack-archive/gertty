@@ -876,7 +876,7 @@ class Sync(object):
         self.submitTask(CheckReposTask(HIGH_PRIORITY))
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
-        self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
+        self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
         self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
         self.periodic_thread.daemon = True
