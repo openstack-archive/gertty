@@ -97,6 +97,8 @@ keymaps:
     diff: 'd'
   - name: custom
     review: ['r', 'R']
+  - name: osx #OS X blocks ctrl+o
+    change search: 'ctrl s'
 
 # The default keymap may be selected with the '-k KEYMAP' command line
 # option, or with the following line:
