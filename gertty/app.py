@@ -407,7 +407,7 @@ def version():
 class PrintKeymapAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         for cmd in sorted(keymap.DEFAULT_KEYMAP.keys()):
-            print cmd.replace(' ', '-')
+            print cmd
         sys.exit(0)
 
 class PrintPaletteAction(argparse.Action):
