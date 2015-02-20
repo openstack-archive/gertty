@@ -122,6 +122,12 @@ class Config(object):
         if not os.path.exists(self.path):
             self.printSample()
             exit(1)
+        # Ensure file is only readable by user as password is stored in file.
+        mode = os.stat(self.path).st_mode & 0o0777
+        if not mode == 0o600:
+            print ("Error: Config file '{}' does not have permissions set to "
+                   "0600.  Permissions are: {}".format(self.path, oct(mode)))
+            exit(1)
 
         self.config = yaml.load(open(self.path))
         schema = ConfigSchema().getSchema(self.config)
@@ -212,6 +218,7 @@ class Config(object):
     def printSample(self):
         filename = 'share/gertty/examples'
         print """Gertty requires a configuration file at ~/.gertty.yaml
+with permissions set to 0600.
 
 Several sample configuration files were installed with Gertty and are
 available in %s in the root of the installation.
