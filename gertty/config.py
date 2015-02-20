@@ -137,6 +137,16 @@ class Config(object):
         if self.password is None:
             self.password = getpass.getpass("Password for %s (%s): "
                                             % (self.url, self.username))
+        else:
+            # Ensure file is only readable by user as password is stored in
+            # file.
+            mode = os.stat(self.path).st_mode & 0o0777
+            if not mode == 0o600:
+                print (
+                    "Error: Config file '{}' contains a password and does "
+                    "not have permissions set to 0600.\n"
+                    "Permissions are: {}".format(self.path, oct(mode)))
+                exit(1)
         self.auth_type = server.get('auth-type', 'digest')
         auth_types = ['digest', 'basic']
         if self.auth_type not in auth_types:
@@ -212,6 +222,7 @@ class Config(object):
     def printSample(self):
         filename = 'share/gertty/examples'
         print """Gertty requires a configuration file at ~/.gertty.yaml
+If the file contains a password then permissions must be set to 0600.
 
 Several sample configuration files were installed with Gertty and are
 available in %s in the root of the installation.
