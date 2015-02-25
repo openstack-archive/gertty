@@ -213,7 +213,7 @@ class ChangeListView(urwid.WidgetWrap):
             self.categories = sorted(categories)
             i = 0
             if self.reverse:
-                change_list = reversed(lst)
+                change_list = [x for x in reversed(lst)]
             else:
                 change_list = lst
             if self.app.config.thread_changes:
