@@ -58,8 +58,10 @@ change_table = Table(
     Column('status', String(16), index=True, nullable=False),
     Column('hidden', Boolean, index=True, nullable=False),
     Column('reviewed', Boolean, index=True, nullable=False),
+    Column('starred', Boolean, index=True, nullable=False),
     Column('pending_rebase', Boolean, index=True, nullable=False),
     Column('pending_topic', Boolean, index=True, nullable=False),
+    Column('pending_starred', Boolean, index=True, nullable=False),
     Column('pending_status', Boolean, index=True, nullable=False),
     Column('pending_status_message', Text),
     )
@@ -180,11 +182,12 @@ class Branch(object):
         self.name = name
 
 class Change(object):
-    def __init__(self, project, id, owner, number, branch,
-                 change_id, subject, created, updated, status,
-                 topic=None, hidden=False, reviewed=False,
+    def __init__(self, project, id, owner, number, branch, change_id,
+                 subject, created, updated, status, topic=None,
+                 hidden=False, reviewed=False, starred=False,
                  pending_rebase=False, pending_topic=False,
-                 pending_status=False, pending_status_message=None):
+                 pending_starred=False, pending_status=False,
+                 pending_status_message=None):
         self.project_key = project.key
         self.account_key = owner.key
         self.id = id
@@ -198,8 +201,10 @@ class Change(object):
         self.status = status
         self.hidden = hidden
         self.reviewed = reviewed
+        self.starred = starred
         self.pending_rebase = pending_rebase
         self.pending_topic = pending_topic
+        self.pending_starred = pending_starred
         self.pending_status = pending_status
         self.pending_status_message = pending_status_message
 
@@ -667,6 +672,9 @@ class DatabaseSession(object):
 
     def getPendingRebases(self):
         return self.session().query(Change).filter_by(pending_rebase=True).all()
+
+    def getPendingStarred(self):
+        return self.session().query(Change).filter_by(pending_starred=True).all()
 
     def getPendingStatusChanges(self):
         return self.session().query(Change).filter_by(pending_status=True).all()
