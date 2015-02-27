@@ -200,22 +200,20 @@ class ChangeListView(urwid.WidgetWrap):
     def refresh(self):
         unseen_keys = set(self.change_rows.keys())
         with self.app.db.getSession() as session:
-            lst = session.getChanges(self.query, self.unreviewed,
-                                     sort_by=self.sort_by)
+            change_list = session.getChanges(self.query, self.unreviewed,
+                                             sort_by=self.sort_by)
             if self.unreviewed:
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
                 self.title = u'All changes in %s' % self.query_desc
             self.app.status.update(title=self.title)
             categories = set()
-            for change in lst:
+            for change in change_list:
                 categories |= set(change.getCategories())
             self.categories = sorted(categories)
             i = 0
             if self.reverse:
-                change_list = reversed(lst)
-            else:
-                change_list = lst
+                change_list.reverse()
             if self.app.config.thread_changes:
                 change_list = self._threadChanges(change_list)
             new_rows = []
@@ -244,7 +242,7 @@ class ChangeListView(urwid.WidgetWrap):
             else:
                 pos = min(focus_pos, len(self.listbox.body)-1)
             self.listbox.body.set_focus(pos)
-            if lst:
+            if change_list:
                 self.header.update(self.categories)
         for key in unseen_keys:
             row = self.change_rows[key]
