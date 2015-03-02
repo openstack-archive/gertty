@@ -112,6 +112,8 @@ class CommitContext(object):
         self.deleted_file = False
         self.a_blob = CommitBlob()
         self.b_blob = CommitBlob()
+        self.a_path = self.a_blob.path
+        self.b_path = self.b_blob.path
         self.diff = ''.join(difflib.unified_diff(
             self.decorateMessage(old), self.decorateMessage(new),
             fromfile="/a/COMMIT_MSG", tofile="/b/COMMIT_MSG"))
@@ -166,8 +168,8 @@ class DiffChangedChunk(DiffChunk):
 
 class DiffFile(object):
     def __init__(self):
-        self.newname = None
-        self.oldname = None
+        self.newname = 'Unknown File'
+        self.oldname = 'Unknown File'
         self.chunks = []
         self.current_chunk = None
         self.old_lineno = 0
@@ -377,6 +379,10 @@ class Repo(object):
                 f.oldname = diff_context.a_blob.path
             if diff_context.b_blob:
                 f.newname = diff_context.b_blob.path
+            # TODO(jeblair): if/when https://github.com/gitpython-developers/GitPython/pull/266 merges,
+            # remove above 4 lines and replace with these two:
+            # f.oldname = diff_context.a_path
+            # f.newname = diff_context.b_path
             if diff_context.new_file:
                 f.oldname = 'Empty file'
             if diff_context.deleted_file:
