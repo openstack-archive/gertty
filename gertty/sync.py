@@ -417,7 +417,7 @@ class SyncChangeTask(Task):
                                                      remote_revision['commit']['message'], remote_commit,
                                                      remote_revision['commit']['parents'][0]['commit'],
                                                      auth, ref)
-                    self.log.info("Created new revision %s for change %s in local DB.", revision.key, self.change_id)
+                    self.log.info("Created new revision %s for change %s revision %s in local DB.", revision.key, self.change_id, remote_revision['_number'])
                     new_revision = True
                 revision.message = remote_revision['commit']['message']
                 # TODO: handle multiple parents
@@ -467,11 +467,14 @@ class SyncChangeTask(Task):
                 message = session.getMessageByID(remote_message['id'])
                 if not message:
                     revision = session.getRevisionByNumber(change, remote_message.get('_revision_number', 1))
-                    # Normalize date -> created
-                    created = dateutil.parser.parse(remote_message['date'])
-                    message = revision.createMessage(remote_message['id'], account, created,
+                    if revision:
+                        # Normalize date -> created
+                        created = dateutil.parser.parse(remote_message['date'])
+                        message = revision.createMessage(remote_message['id'], account, created,
                                                      remote_message['message'])
-                    self.log.info("Created new review message %s for revision %s in local DB.", message.key, revision.key)
+                        self.log.info("Created new review message %s for revision %s in local DB.", message.key, revision.key)
+                    else:
+                        self.log.info("Unable to create new review message for revision %s because it is not in local DB (draft?).", remote_message.get('_revision_number'))
                 else:
                     if message.author != account:
                         message.author = account
