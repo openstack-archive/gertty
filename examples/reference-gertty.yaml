@@ -138,6 +138,13 @@ commentlinks:
 # selected.  The default is "status:open".
 # change-list-query: "status:open"
 
+# This section defines default sorting options for the change list. The
+# "sort-by" key specifies the sort order, which can be 'number' or 'updated'.
+# The 'reverse' key specifies ascending (true) or descending (false) order.
+# change-list-options:
+#   sort-by: 'number'
+#   reverse: false
+
 # Uncomment the following line to use a unified diff view instead
 # of the default side-by-side:
 # diff-view: unified
