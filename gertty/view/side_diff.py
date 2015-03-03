@@ -78,7 +78,6 @@ class SideDiffLine(BaseDiffLine):
             ln_col = urwid.Text(('line-number', ln))
             ln_col.set_wrap_mode('clip')
             line_col = urwid.Text(line)
-            line_col.set_wrap_mode('clip')
             if action == '':
                 line_col = urwid.AttrMap(line_col, 'nonexistent')
             columns += [(4, ln_col), line_col]
