@@ -93,6 +93,9 @@ class ConfigSchema(object):
 
     hide_comments = [hide_comment]
 
+    change_list_options = {'sort-by': v.Any('number', 'updated'),
+                           'reverse': bool}
+
     keymap = {v.Required('name'): str,
               v.Match('(?!name)'): v.Any([str], str)}
 
@@ -111,7 +114,8 @@ class ConfigSchema(object):
                            'diff-view': str,
                            'hide-comments': self.hide_comments,
                            'thread-changes': bool,
-                           'display-times-in-utc': bool
+                           'display-times-in-utc': bool,
+                           'change-list-options': self.change_list_options,
                            })
         return schema
 
@@ -214,6 +218,11 @@ class Config(object):
 
         self.thread_changes = self.config.get('thread-changes', True)
         self.utc = self.config.get('display-times-in-utc', False)
+
+        change_list_options = self.config.get('change-list-options', {})
+        self.change_list_options = {
+            'sort-by': change_list_options.get('sort-by', 'number'),
+            'reverse': change_list_options.get('reverse', False)}
 
     def getServer(self, name=None):
         for server in self.config['servers']:
