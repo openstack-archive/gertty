@@ -75,6 +75,13 @@ commentlinks:
 hide-comments:
   - author: "^(.*CI|Jenkins)$"
 
+# This section defines default sorting options for the change list. The
+# "sort-by" key specifies the sort order, which can be 'number' or 'updated'.
+# The 'reverse' key specifies ascending (true) or descending (false) order.
+change-list-options:
+  sort-by: 'number'
+  reverse: false
+
 # This section defines customized dashboards.  You can supply any
 # Gertty search string and bind them to any key.  They will appear in
 # the global help text, and pressing the key anywhere in Gertty will
