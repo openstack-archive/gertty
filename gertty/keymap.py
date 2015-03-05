@@ -153,6 +153,7 @@ class KeyMap(object):
         for command, keys in config.items():
             if command == 'name':
                 continue
+            command = command.replace('-', ' ')
             if type(keys) != type([]):
                 keys = [keys]
             self.commandmap[command] = keys
@@ -174,7 +175,6 @@ class KeyMap(object):
         "Update the urwid command map with this keymap"
         for key, commands in self.keymap.items():
             for command in commands:
-                command = command.replace('-', ' ')
                 if command in URWID_COMMANDS:
                     urwid.command_map[key]=command
 
