@@ -62,9 +62,18 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
+    query = 'status:open AND topic:enable_swift'
+    lexer = tokenizer.SearchTokenizer()
+    lexer.input(query)
+    while True:
+        token = lexer.token()
+        if not token:
+            break
+        print token
+
     app = Dummy()
     app.config = Dummy()
     app.config.username = 'bob'
     search = SearchCompiler(app)
-    x = search.parse('owner:self')
+    x = search.parse(query)
     print x

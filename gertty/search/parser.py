@@ -47,12 +47,12 @@ def SearchParser():
     def p_boolean_expr(p):
         '''boolean_expr : expression AND expression
                         | expression OR expression'''
-        if p[2] == 'and':
+        if p[2].lower() == 'and':
             p[0] = and_(p[1], p[3])
-        elif p[2] == 'or':
+        elif p[2].lower() == 'or':
             p[0] = or_(p[1], p[3])
         else:
-            raise SyntaxError()
+            raise gertty.search.SearchSyntaxError("Boolean %s not recognized" % p[2])
 
     def p_negative_expr(p):
         '''negative_expr : NOT expression
