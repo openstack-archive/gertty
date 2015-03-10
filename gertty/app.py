@@ -17,6 +17,7 @@ import argparse
 import logging
 import os
 import Queue
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -128,6 +129,30 @@ class SearchDialog(mywid.ButtonDialog):
             return None
         return r
 
+# From: cpython/file/2.7/Lib/webbrowser.py with modification to
+# redirect stdin/out/err.
+class BackgroundBrowser(webbrowser.GenericBrowser):
+    """Class for all browsers which are to be started in the
+       background."""
+
+    def open(self, url, new=0, autoraise=True):
+        cmdline = [self.name] + [arg.replace("%s", url)
+                                 for arg in self.args]
+        inout = file(os.devnull, "r+")
+        try:
+            if sys.platform[:3] == 'win':
+                p = subprocess.Popen(cmdline)
+            else:
+                setsid = getattr(os, 'setsid', None)
+                if not setsid:
+                    setsid = getattr(os, 'setpgrp', None)
+                p = subprocess.Popen(cmdline, close_fds=True,
+                                     stdin=inout, stdout=inout,
+                                     stderr=inout, preexec_fn=setsid)
+            return (p.poll() is None)
+        except OSError:
+            return False
+
 class App(object):
     def __init__(self, server=None, palette='default', keymap='default',
                  debug=False, verbose=False, disable_sync=False,
@@ -156,6 +181,8 @@ class App(object):
             req_logger.setLevel(req_level_name)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
+
+        webbrowser.register('xdg-open', None, BackgroundBrowser("xdg-open"))
 
         self.fetch_missing_refs = fetch_missing_refs
         self.config.keymap.updateCommandMap()
