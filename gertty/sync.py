@@ -40,6 +40,8 @@ HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
 LOW_PRIORITY=2
 
+TIMEOUT=30
+
 class MultiQueue(object):
     def __init__(self, priorities):
         try:
@@ -957,11 +959,11 @@ class Sync(object):
         url = self.url(path)
         self.log.debug('GET: %s' % (url,))
         r = self.session.get(url,
-                         verify=self.app.config.verify_ssl,
-                         auth=self.auth,
-                         headers = {'Accept': 'application/json',
-                                    'Accept-Encoding': 'gzip',
-                                    'User-Agent': self.user_agent})
+                             verify=self.app.config.verify_ssl,
+                             auth=self.auth, timeout=TIMEOUT,
+                             headers = {'Accept': 'application/json',
+                                        'Accept-Encoding': 'gzip',
+                                        'User-Agent': self.user_agent})
         if r.status_code == 200:
             ret = json.loads(r.text[4:])
             if len(ret):
@@ -977,10 +979,10 @@ class Sync(object):
         self.log.debug('POST: %s' % (url,))
         self.log.debug('data: %s' % (data,))
         r = self.session.post(url, data=json.dumps(data).encode('utf8'),
-                          verify=self.app.config.verify_ssl,
-                          auth=self.auth,
-                          headers = {'Content-Type': 'application/json;charset=UTF-8',
-                                     'User-Agent': self.user_agent})
+                              verify=self.app.config.verify_ssl,
+                              auth=self.auth, timeout=TIMEOUT,
+                              headers = {'Content-Type': 'application/json;charset=UTF-8',
+                                         'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
         ret = None
         if r.text and len(r.text)>4:
@@ -997,7 +999,7 @@ class Sync(object):
         self.log.debug('data: %s' % (data,))
         r = self.session.put(url, data=json.dumps(data).encode('utf8'),
                              verify=self.app.config.verify_ssl,
-                             auth=self.auth,
+                             auth=self.auth, timeout=TIMEOUT,
                              headers = {'Content-Type': 'application/json;charset=UTF-8',
                                         'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
@@ -1008,7 +1010,7 @@ class Sync(object):
         self.log.debug('data: %s' % (data,))
         r = self.session.delete(url, data=json.dumps(data).encode('utf8'),
                                 verify=self.app.config.verify_ssl,
-                                auth=self.auth,
+                                auth=self.auth, timeout=TIMEOUT,
                                 headers = {'Content-Type': 'application/json;charset=UTF-8',
                                            'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
