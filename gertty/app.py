@@ -440,6 +440,7 @@ class App(object):
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)
         webbrowser.open_new_tab(url)
+        self.log.debug("Done")
 
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()
