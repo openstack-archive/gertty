@@ -111,6 +111,7 @@ class ConfigSchema(object):
                            'diff-view': str,
                            'hide-comments': self.hide_comments,
                            'thread-changes': bool,
+                           'display-times-in-utc': bool
                            })
         return schema
 
@@ -212,6 +213,7 @@ class Config(object):
             self.hide_comments.append(re.compile(h['author']))
 
         self.thread_changes = self.config.get('thread-changes', True)
+        self.utc = self.config.get('display-times-in-utc', False)
 
     def getServer(self, name=None):
         for server in self.config['servers']:
