@@ -362,6 +362,7 @@ class SyncChangeTask(Task):
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
         fetches = collections.defaultdict(list)
+        parent_commits = set()
         with app.db.getSession() as session:
             change = session.getChangeByID(self.change_id)
             account = session.getAccountByID(remote_change['owner']['_account_id'],
@@ -420,15 +421,17 @@ class SyncChangeTask(Task):
                     self.log.info("Created new revision %s for change %s revision %s in local DB.", revision.key, self.change_id, remote_revision['_number'])
                     new_revision = True
                 revision.message = remote_revision['commit']['message']
-                # TODO: handle multiple parents
-                parent_revision = session.getRevisionByCommit(revision.parent)
                 actions = remote_revision.get('actions', {})
                 revision.can_submit = 'submit' in actions
-                # TODO: use a singleton list of closed states
-                if not parent_revision and change.status not in ['MERGED', 'ABANDONED']:
-                    sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
-                    self.log.debug("Change %s revision %s needs parent commit %s synced" %
-                                   (change.id, remote_revision['_number'], revision.parent))
+                # TODO: handle multiple parents
+                if revision.parent not in parent_commits:
+                    parent_revision = session.getRevisionByCommit(revision.parent)
+                    # TODO: use a singleton list of closed states
+                    if not parent_revision and change.status not in ['MERGED', 'ABANDONED']:
+                        sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
+                        self.log.debug("Change %s revision %s needs parent commit %s synced" %
+                                       (change.id, remote_revision['_number'], revision.parent))
+                    parent_commits.add(revision.parent)
                 result.updateRelatedChanges(session, change)
                 remote_comments_data = remote_revision['_gertty_remote_comments_data']
                 for remote_file, remote_comments in remote_comments_data.items():
