@@ -957,6 +957,7 @@ class Sync(object):
         url = self.url(path)
         self.log.debug('GET: %s' % (url,))
         r = self.session.get(url,
+                         timeout=30,
                          verify=self.app.config.verify_ssl,
                          auth=self.auth,
                          headers = {'Accept': 'application/json',
@@ -977,6 +978,7 @@ class Sync(object):
         self.log.debug('POST: %s' % (url,))
         self.log.debug('data: %s' % (data,))
         r = self.session.post(url, data=json.dumps(data).encode('utf8'),
+                          timeout=30,
                           verify=self.app.config.verify_ssl,
                           auth=self.auth,
                           headers = {'Content-Type': 'application/json;charset=UTF-8',
@@ -996,6 +998,7 @@ class Sync(object):
         self.log.debug('PUT: %s' % (url,))
         self.log.debug('data: %s' % (data,))
         r = self.session.put(url, data=json.dumps(data).encode('utf8'),
+                             timeout=30,
                              verify=self.app.config.verify_ssl,
                              auth=self.auth,
                              headers = {'Content-Type': 'application/json;charset=UTF-8',
@@ -1007,6 +1010,7 @@ class Sync(object):
         self.log.debug('DELETE: %s' % (url,))
         self.log.debug('data: %s' % (data,))
         r = self.session.delete(url, data=json.dumps(data).encode('utf8'),
+                                timeout=30,
                                 verify=self.app.config.verify_ssl,
                                 auth=self.auth,
                                 headers = {'Content-Type': 'application/json;charset=UTF-8',
