@@ -360,6 +360,7 @@ class ChangeMessageBox(mywid.HyperText):
 
     def refresh(self, message):
         self.message_created = message.created
+        created = self.app.time(message.created)
         lines = message.message.split('\n')
         if message.draft:
             lines.insert(0, '')
@@ -367,7 +368,7 @@ class ChangeMessageBox(mywid.HyperText):
         text = [('change-message-name', message.author_name),
                 ('change-message-header', ': '+lines.pop(0)),
                 ('change-message-header',
-                 message.created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
+                 created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
         if message.draft and not message.pending:
             text.append(('change-message-draft', ' (draft)'))
         if lines and lines[-1]:
@@ -570,8 +571,8 @@ class ChangeView(urwid.WidgetWrap):
             self.project_label.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', self.topic))
-            self.created_label.set_text(('change-data', str(change.created)))
-            self.updated_label.set_text(('change-data', str(change.updated)))
+            self.created_label.set_text(('change-data', str(self.app.time(change.created))))
+            self.updated_label.set_text(('change-data', str(self.app.time(change.updated))))
             self.status_label.set_text(('change-data', change.status))
             self.commit_message.set_text(change.revisions[-1].message)
 
