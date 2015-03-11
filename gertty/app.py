@@ -14,6 +14,7 @@
 # under the License.
 
 import argparse
+import dateutil
 import logging
 import os
 import Queue
@@ -440,6 +441,13 @@ class App(object):
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)
         webbrowser.open_new_tab(url)
+
+    def time(self, dt):
+        utc = dt.replace(tzinfo=dateutil.tz.tzutc())
+        if self.config.utc:
+            return utc
+        local = utc.astimezone(dateutil.tz.tzlocal())
+        return local
 
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()

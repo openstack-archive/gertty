@@ -59,9 +59,10 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, change, categories, project=False, owner=False,
+    def __init__(self, app, change, categories, project=False, owner=False,
                  updated=False, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
+        self.app = app
         self.change_key = change.key
         self.subject = urwid.Text(u'', wrap='clip')
         self.number = urwid.Text(u'')
@@ -95,10 +96,12 @@ class ChangeRow(urwid.Button):
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
         self.owner.set_text(change.owner_name)
-        if datetime.date.today() == change.updated.date():
-            self.updated.set_text(change.updated.strftime("%I:%M %p").upper())
+        today = self.app.time(datetime.datetime.utcnow()).date()
+        updated_time = self.app.time(change.updated)
+        if today == updated_time.date():
+            self.updated.set_text(updated_time.strftime("%I:%M %p").upper())
         else:
-            self.updated.set_text(change.updated.strftime("%Y-%m-%d"))
+            self.updated.set_text(updated_time.strftime("%Y-%m-%d"))
         del self.columns.contents[self.num_columns:]
         for category in categories:
             v = change.getMaxForCategory(category)
@@ -226,9 +229,11 @@ class ChangeListView(urwid.WidgetWrap):
             for change in change_list:
                 row = self.change_rows.get(change.key)
                 if not row:
-                    row = ChangeRow(change, self.categories, self.display_project,
-                            self.display_owner, self.display_updated,
-                            callback=self.onSelect)
+                    row = ChangeRow(self.app, change, self.categories,
+                                    self.display_project,
+                                    self.display_owner,
+                                    self.display_updated,
+                                    callback=self.onSelect)
                     self.listbox.body.insert(i, row)
                     self.change_rows[change.key] = row
                 else:

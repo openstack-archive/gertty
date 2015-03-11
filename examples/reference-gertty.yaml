@@ -146,6 +146,10 @@ commentlinks:
 # default.  To disable this behavior, uncomment the following line:
 # thread-changes: false
 
+# Times are displayed in the local timezone by default.  To display
+# them in UTC instead, uncomment the following line:
+# display-times-in-utc: true
+
 # Uncomment the following lines to Hide comments by default that match
 # certain criteria.  You can toggle their display with 't'.  Currently
 # the only supported criterion is "author".
