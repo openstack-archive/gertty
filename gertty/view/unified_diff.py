@@ -22,6 +22,8 @@ from gertty import mywid
 from gertty import gitrepo
 from gertty.view.diff import *
 
+LN_COL_WIDTH = 5
+
 class UnifiedDiffCommentEdit(BaseDiffCommentEdit):
     def __init__(self, context, oldnew, key=None, comment=u''):
         super(UnifiedDiffCommentEdit, self).__init__([])
@@ -53,11 +55,11 @@ class UnifiedDiffLine(BaseDiffLine):
         if old_ln is None:
             old_ln = ''
         else:
-            old_ln = str(old_ln)
+            old_ln = '%*i' % (LN_COL_WIDTH-1, old_ln)
         if new_ln is None:
             new_ln = ''
         else:
-            new_ln = str(new_ln)
+            new_ln = '%*i' % (LN_COL_WIDTH-1, new_ln)
         old_ln_col = urwid.Text(('line-number', old_ln))
         old_ln_col.set_wrap_mode('clip')
         new_ln_col = urwid.Text(('line-number', new_ln))
@@ -65,13 +67,13 @@ class UnifiedDiffLine(BaseDiffLine):
         if oldnew == gitrepo.OLD:
             action = old_action
             line = old_line
-            columns = [(4, old_ln_col), (4, urwid.Text(u''))]
+            columns = [(LN_COL_WIDTH, old_ln_col), (LN_COL_WIDTH, urwid.Text(u''))]
         elif oldnew == gitrepo.NEW:
             action = new_action
             line = new_line
-            columns = [(4, urwid.Text(u'')), (4, new_ln_col)]
+            columns = [(LN_COL_WIDTH, urwid.Text(u'')), (LN_COL_WIDTH, new_ln_col)]
         if new_action == ' ':
-            columns = [(4, old_ln_col), (4, new_ln_col)]
+            columns = [(LN_COL_WIDTH, old_ln_col), (LN_COL_WIDTH, new_ln_col)]
         line_col = urwid.Text(line)
         if action == '':
             line_col = urwid.AttrMap(line_col, 'nonexistent')
@@ -97,7 +99,7 @@ class UnifiedFileHeader(BaseFileHeader):
                     urwid.Text(('filename', old))])
         elif oldnew == gitrepo.NEW:
             col = urwid.Columns([
-                    (4, urwid.Text(u'')),
+                    (LN_COL_WIDTH, urwid.Text(u'')),
                     urwid.Text(('filename', new))])
         map = {None: 'focused-filename',
                'filename': 'focused-filename'}
