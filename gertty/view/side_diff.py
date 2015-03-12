@@ -22,6 +22,8 @@ from gertty import mywid
 from gertty import gitrepo
 from gertty.view.diff import *
 
+LN_COL_WIDTH = 5
+
 class SideDiffCommentEdit(BaseDiffCommentEdit):
     def __init__(self, app, context, old_key=None, new_key=None, old=u'', new=u''):
         super(SideDiffCommentEdit, self).__init__([])
@@ -32,9 +34,9 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
         self.new_key = new_key
         self.old = urwid.Edit(edit_text=old, multiline=True)
         self.new = urwid.Edit(edit_text=new, multiline=True)
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
+        self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
+        self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         self.contents.append((urwid.AttrMap(self.new, 'draft-comment'), ('weight', 1, False)))
         self.focus_position = 3
 
@@ -60,9 +62,9 @@ class SideDiffComment(BaseDiffComment):
             oldt = urwid.AttrMap(oldt, 'comment')
         if new:
             newt = urwid.AttrMap(newt, 'comment')
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
+        self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         self.contents.append((oldt, ('weight', 1, False)))
-        self.contents.append((urwid.Text(u''), ('given', 4, False)))
+        self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         self.contents.append((newt, ('weight', 1, False)))
 
 class SideDiffLine(BaseDiffLine):
@@ -74,13 +76,13 @@ class SideDiffLine(BaseDiffLine):
             if ln is None:
                 ln = ''
             else:
-                ln = str(ln)
+                ln = '%*i' % (LN_COL_WIDTH-1, ln)
             ln_col = urwid.Text(('line-number', ln))
             ln_col.set_wrap_mode('clip')
             line_col = urwid.Text(line)
             if action == '':
                 line_col = urwid.AttrMap(line_col, 'nonexistent')
-            columns += [(4, ln_col), line_col]
+            columns += [(LN_COL_WIDTH, ln_col), line_col]
         col = urwid.Columns(columns)
         map = {None: 'focused',
                'added-line': 'focused-added-line',
