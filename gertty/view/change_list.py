@@ -75,7 +75,7 @@ class ChangeRow(urwid.Button):
         if owner:
             cols.append(('weight', 2, self.owner))
         if updated:
-            cols.append(('weight', 1, self.updated))
+            cols.append(('fixed', 10, self.updated))
         self.num_columns = len(cols)
         self.columns = urwid.Columns(cols, dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
@@ -130,7 +130,7 @@ class ChangeListHeader(urwid.WidgetWrap):
         if owner:
             cols.append(('weight', 2, urwid.Text(u'Owner')))
         if updated:
-            cols.append(('weight', 1, urwid.Text(u'Updated')))
+            cols.append(('fixed', 10, urwid.Text(u'Updated')))
         self.num_columns = len(cols)
         super(ChangeListHeader, self).__init__(urwid.Columns(cols, dividechars=1))
 
