@@ -18,6 +18,7 @@ import dateutil
 import logging
 import os
 import Queue
+import re
 import subprocess
 import sys
 import threading
@@ -155,6 +156,8 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
             return False
 
 class App(object):
+    simple_change_search= re.compile('^(\d+|I[a-fA-F0-9]{40})$')
+
     def __init__(self, server=None, palette='default', keymap='default',
                  debug=False, verbose=False, disable_sync=False,
                  fetch_missing_refs=False, path=config.DEFAULT_CONFIG_PATH):
@@ -401,11 +404,9 @@ class App(object):
 
     def _searchDialog(self, dialog):
         self.backScreen()
-        query = dialog.entry.edit_text
-        try:
-            query = 'change:%s' % int(query)
-        except ValueError:
-            pass
+        query = dialog.entry.edit_text.strip()
+        if self.simple_change_search.match(query):
+            query = 'change:%s' % query
         self.doSearch(query)
 
     def error(self, message):
