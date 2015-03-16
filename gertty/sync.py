@@ -33,6 +33,14 @@ except:
     pass
 import requests
 import requests.utils
+# Fix https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning
+# note that we use the urllib3 path relative to requests since requests
+# vendors urllib3 for us.
+try:
+    import requests.packages.urllib3.contrib.pyopenssl
+    requests.packages.urllib3.contrib.pyopenssl.inject_into_urllib3()
+except ImportError:
+    pass
 
 import gertty.version
 

@@ -10,3 +10,7 @@ alembic>=0.6.4
 PyYAML>=3.1.0
 voluptuous>=0.7
 ply>=3.4
+# To make urllib3 warnings go away we use pyOpenSSL and friends
+pyOpenSSL
+ndg-httpsclient
+pyasn1
