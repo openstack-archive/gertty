@@ -21,7 +21,9 @@ import Queue
 import re
 import subprocess
 import sys
+import textwrap
 import threading
+import warnings
 import webbrowser
 
 import urwid
@@ -202,6 +204,12 @@ class App(object):
         self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
                                    unhandled_input=self.unhandledInput)
 
+        self.sync_pipe = self.loop.watch_pipe(self.refresh)
+        self.error_queue = Queue.Queue()
+        self.error_pipe = self.loop.watch_pipe(self._errorPipeInput)
+
+        warnings.showwarning = self._showWarning
+
         has_subscribed_projects = False
         with self.db.getSession() as session:
             if session.getProjects(subscribed=True):
@@ -209,7 +217,6 @@ class App(object):
         if not has_subscribed_projects:
             self.welcome()
 
-        self.sync_pipe = self.loop.watch_pipe(self.refresh)
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
         if not disable_sync:
@@ -409,11 +416,17 @@ class App(object):
             query = 'change:%s' % query
         self.doSearch(query)
 
-    def error(self, message):
-        dialog = mywid.MessageDialog('Error', message)
+    def error(self, message, title='Error'):
+        dialog = mywid.MessageDialog(title, message)
         urwid.connect_signal(dialog, 'close',
                              lambda button: self.backScreen())
-        self.popup(dialog, min_height=4)
+
+        cols, rows = self.loop.screen.get_cols_rows()
+        cols = int(cols*.5)
+        lines = textwrap.wrap(message, cols)
+        min_height = max(4, len(lines)+4)
+
+        self.popup(dialog, min_height=min_height)
         return None
 
     def unhandledInput(self, key):
@@ -449,6 +462,16 @@ class App(object):
             return utc
         local = utc.astimezone(dateutil.tz.tzlocal())
         return local
+
+    def _errorPipeInput(self, data=None):
+        (title, message) = self.error_queue.get()
+        self.error(message, title=title)
+
+    def _showWarning(self, message, category, filename, lineno,
+                     file=None, line=None):
+        m = warnings.formatwarning(message, category, filename, lineno, line)
+        self.error_queue.put(('Warning', m))
+        os.write(self.error_pipe, 'error\n')
 
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()
