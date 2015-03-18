@@ -36,6 +36,7 @@ from gertty import mywid
 from gertty import palette
 from gertty import sync
 from gertty import search
+from gertty import requestsexceptions
 from gertty.view import change_list as view_change_list
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
@@ -207,6 +208,7 @@ class App(object):
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
         self.error_queue = Queue.Queue()
         self.error_pipe = self.loop.watch_pipe(self._errorPipeInput)
+        self.logged_warnings = set()
 
         warnings.showwarning = self._showWarning
 
@@ -469,7 +471,20 @@ class App(object):
 
     def _showWarning(self, message, category, filename, lineno,
                      file=None, line=None):
+        # Don't display repeat warnings
+        if str(message) in self.logged_warnings:
+            return
         m = warnings.formatwarning(message, category, filename, lineno, line)
+        self.log.warning(m)
+        self.logged_warnings.add(str(message))
+        # Log this warning, but never display it to the user; it is
+        # nearly un-actionable.
+        if category == requestsexceptions.InsecurePlatformWarning:
+            return
+        # Disable InsecureRequestWarning when certificate validation is disabled
+        if not self.config.verify_ssl:
+            if category == requestsexceptions.InsecureRequestWarning:
+                return
         self.error_queue.put(('Warning', m))
         os.write(self.error_pipe, 'error\n')
 
