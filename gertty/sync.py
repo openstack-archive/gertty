@@ -887,9 +887,6 @@ class Sync(object):
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
         self.result_queue = Queue.Queue()
-        # Disable InsecureRequestWarning when certificate validation is disabled
-        if not self.app.config.verify_ssl:
-            requests.packages.urllib3.disable_warnings()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
