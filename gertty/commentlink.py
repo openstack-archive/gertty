@@ -112,4 +112,3 @@ class CommentLink(object):
                 ret += [r.replace(app, m.groupdict()) for r in self.replacements]
                 chunk = after
         return ret
-
