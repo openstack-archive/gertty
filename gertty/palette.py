@@ -79,6 +79,8 @@ DEFAULT_PALETTE={
     'reviewed-change': ['dark gray', ''],
     'focused-unreviewed-change': ['default,standout', ''],
     'focused-reviewed-change': ['dark gray,standout', ''],
+    'starred-change': ['light cyan', ''],
+    'focused-starred-change': ['light cyan,standout', ''],
     }
 
 # A delta from the default palette
