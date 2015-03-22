@@ -50,6 +50,7 @@ class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
                         'unreviewed-change': 'focused-unreviewed-change',
                         'reviewed-change': 'focused-reviewed-change',
+                        'starred-change': 'focused-starred-change',
                         'positive-label': 'focused-positive-label',
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
@@ -87,11 +88,17 @@ class ChangeRow(urwid.Button):
             style = 'reviewed-change'
         else:
             style = 'unreviewed-change'
-        self.row_style.set_attr_map({None: style})
         if hasattr(change, '_subject'):
             subject = change._subject
         else:
             subject = change.subject
+        flag = ' '
+        color = None
+        if change.starred:
+            flag = '*'
+            style = 'starred-change'
+        subject = flag + subject
+        self.row_style.set_attr_map({None: style})
         self.subject.set_text(subject)
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
@@ -124,7 +131,7 @@ class ChangeRow(urwid.Button):
 
 class ChangeListHeader(urwid.WidgetWrap):
     def __init__(self, project=False, owner=False, updated=False):
-        cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u'Subject'))]
+        cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u' Subject'))]
         if project:
             cols.append(('weight', 1, urwid.Text(u'Project')))
         if owner:
@@ -149,6 +156,8 @@ class ChangeListView(urwid.WidgetWrap):
              "Toggle whether only unreviewed or all changes are displayed"),
             (key(keymap.TOGGLE_REVIEWED),
              "Toggle the reviewed flag for the currently selected change"),
+            (key(keymap.TOGGLE_STARRED),
+             "Toggle the starred flag for the currently selected change"),
             (key(keymap.REFRESH),
              "Sync all projects"),
             (key(keymap.SORT_BY_NUMBER),
@@ -347,6 +356,16 @@ class ChangeListView(urwid.WidgetWrap):
             self.log.debug("Set change %s to %s", change_key, reviewed_str)
         return ret
 
+    def toggleStarred(self, change_key):
+        with self.app.db.getSession() as session:
+            change = session.getChange(change_key)
+            change.starred = not change.starred
+            ret = change.starred
+            change.pending_starred = True
+        self.app.sync.submitTask(
+            sync.ChangeStarredTask(change_key, sync.HIGH_PRIORITY))
+        return ret
+
     def toggleHidden(self, change_key):
         with self.app.db.getSession() as session:
             change = session.getChange(change_key)
@@ -398,6 +417,17 @@ class ChangeListView(urwid.WidgetWrap):
                 # Just fall back on doing a full refresh if we're in a situation
                 # where we're not just popping a row from the list of changes.
                 self.refresh()
+            return None
+        if keymap.TOGGLE_STARRED in commands:
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            change_key = self.listbox.body[pos].change_key
+            starred = self.toggleStarred(change_key)
+            row = self.change_rows[change_key]
+            with self.app.db.getSession() as session:
+                change = session.getChange(change_key)
+                row.update(change, self.categories)
             return None
         if keymap.REFRESH in commands:
             self.app.sync.submitTask(
