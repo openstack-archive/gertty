@@ -133,12 +133,13 @@ mode automatically.
 
 If Gertty encounters an error, this will also be indicated in the
 status bar.  You may wish to examine ~/.gertty.log to see what the
-error was.  In may cases, Gertty can continue after encountering an
+error was.  In many cases, Gertty can continue after encountering an
 error.  The error flag will be cleared when you leave the current
 screen.
 
 To select text (e.g., to copy to the clipboard), hold Shift while
 selecting the text.
+
 
 Contributing
 ------------
