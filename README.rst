@@ -95,6 +95,25 @@ The config file is designed to support multiple Gerrit instances.  The
 first one is used by default, but others can be specified by supplying
 the name on the command line.
 
+Fixing urllib3 InsecurePlatformWarning
+``````````````````````````````````````
+
+As described in `the urllib3 docs
+<https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning>`_,
+versions of Python earlier than 2.7.9 have restrictions in their ssl
+module that limit the configuration that urllib3 can apply. If urllib3
+detects one of these platforms it will give an InsecurePlatformWarning
+message.
+
+If it's not possible to upgrade your version of Python, you can fix
+the underlying problem by upgrading the Requests package - inside your
+virtualenv if appropriate - with ``pip install requests[security]``
+
+However, this will require that your system have various headers and
+development packages installed. Finding and installing these packages
+is left as an exercise for the reader - but as a guide, libssl-dev,
+libffi-dev, and python-dev are required on Debian/Ubuntu systems.
+
 Usage
 -----
 
@@ -139,7 +158,6 @@ screen.
 
 To select text (e.g., to copy to the clipboard), hold Shift while
 selecting the text.
-
 
 Contributing
 ------------
