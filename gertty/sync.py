@@ -111,6 +111,7 @@ class ChangeAddedEvent(UpdateEvent):
         self.related_change_keys = set()
         self.review_flag_changed = True
         self.status_changed = True
+        self.held_changed = False
 
 class ChangeUpdatedEvent(UpdateEvent):
     def __repr__(self):
@@ -123,6 +124,7 @@ class ChangeUpdatedEvent(UpdateEvent):
         self.related_change_keys = set()
         self.review_flag_changed = False
         self.status_changed = False
+        self.held_changed = False
 
 class Task(object):
     def __init__(self, priority=NORMAL_PRIORITY):
@@ -420,7 +422,8 @@ class SyncChangeTask(Task):
                                                      remote_revision['commit']['message'], remote_commit,
                                                      remote_revision['commit']['parents'][0]['commit'],
                                                      auth, ref)
-                    self.log.info("Created new revision %s for change %s revision %s in local DB.", revision.key, self.change_id, remote_revision['_number'])
+                    self.log.info("Created new revision %s for change %s revision %s in local DB.",
+                                  revision.key, self.change_id, remote_revision['_number'])
                     new_revision = True
                 revision.message = remote_revision['commit']['message']
                 actions = remote_revision.get('actions', {})
@@ -454,7 +457,8 @@ class SyncChangeTask(Task):
                                                              created,
                                                              remote_file, parent, remote_comment.get('line'),
                                                              remote_comment['message'])
-                            self.log.info("Created new comment %s for revision %s in local DB.", comment.key, revision.key)
+                            self.log.info("Created new comment %s for revision %s in local DB.",
+                                          comment.key, revision.key)
                         else:
                             if comment.author != account:
                                 comment.author = account
@@ -506,9 +510,26 @@ class SyncChangeTask(Task):
             remote_label_keys = set(remote_label_entries.keys())
             local_approvals = {}
             local_labels = {}
+            user_votes = {}
             for approval in change.approvals:
+                if approval.draft and not new_revision:
+                    # If we have a new revision, we need to delete
+                    # draft local approvals because they can no longer
+                    # be uploaded.  Otherwise, keep them because we
+                    # may be about to upload a review.  Ignoring an
+                    # approval here means it will not be deleted.
+                    # Also keep track of these approvals so we can
+                    # determine whether we should hold the change
+                    # later.
+                    user_votes[approval.category] = approval.value
+                    # Count draft votes as having voted for the
+                    # purposes of deciding whether to clear the
+                    # reviewed flag later.
+                    user_voted = True
+                    continue
                 key = '%s~%s' % (approval.category, approval.reviewer.id)
                 if key in local_approvals:
+                    # Delete duplicate approvals.
                     session.delete(approval)
                 else:
                     local_approvals[key] = approval
@@ -534,6 +555,16 @@ class SyncChangeTask(Task):
                                       remote_approval['category'],
                                       remote_approval['value'])
                 self.log.info("Created approval for change %s in local DB.", change.id)
+                user_value = user_votes.get(remote_approval['category'], 0)
+                if user_value > 0 and remote_approval['value'] < 0:
+                    # Someone left a negative vote after the local
+                    # user created a draft positive vote.  Hold the
+                    # change so that it doesn't look like the local
+                    # user is ignoring negative feedback.
+                    if not change.held:
+                        change.held = True
+                        result.held_changed = True
+                        self.log.info("Setting change %s to held due to negative review after positive", change.id)
 
             for key in remote_label_keys-local_label_keys:
                 remote_label = remote_label_entries[key]
@@ -831,12 +862,25 @@ class UploadReviewTask(Task):
 
     def run(self, sync):
         app = sync.app
+
+        with app.db.getSession() as session:
+            message = session.getMessage(self.message_key)
+            change = message.revision.change
+        if not change.held:
+            self.log.debug("Syncing %s to find out if it should be held" % (change.id,))
+            t = SyncChangeTask(change.id)
+            t.run(sync)
+            self.results += t.results
         submit = False
         change_id = None
         with app.db.getSession() as session:
             message = session.getMessage(self.message_key)
             revision = message.revision
             change = message.revision.change
+            if change.held:
+                self.log.debug("Not uploading review to %s because it is held" %
+                               (change.id,))
+                return
             change_id = change.id
             current_revision = change.revisions[-1]
             if change.pending_status and change.status == 'SUBMITTED':

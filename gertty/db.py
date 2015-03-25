@@ -59,6 +59,7 @@ change_table = Table(
     Column('hidden', Boolean, index=True, nullable=False),
     Column('reviewed', Boolean, index=True, nullable=False),
     Column('starred', Boolean, index=True, nullable=False),
+    Column('held', Boolean, index=True, nullable=False),
     Column('pending_rebase', Boolean, index=True, nullable=False),
     Column('pending_topic', Boolean, index=True, nullable=False),
     Column('pending_starred', Boolean, index=True, nullable=False),
@@ -184,7 +185,7 @@ class Branch(object):
 class Change(object):
     def __init__(self, project, id, owner, number, branch, change_id,
                  subject, created, updated, status, topic=None,
-                 hidden=False, reviewed=False, starred=False,
+                 hidden=False, reviewed=False, starred=False, held=False,
                  pending_rebase=False, pending_topic=False,
                  pending_starred=False, pending_status=False,
                  pending_status_message=None):
@@ -202,6 +203,7 @@ class Change(object):
         self.hidden = hidden
         self.reviewed = reviewed
         self.starred = starred
+        self.held = held
         self.pending_rebase = pending_rebase
         self.pending_topic = pending_topic
         self.pending_starred = pending_starred
@@ -678,6 +680,9 @@ class DatabaseSession(object):
             return self.session().query(Message).filter_by(id=id).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
+
+    def getHeld(self):
+        return self.session().query(Change).filter_by(held=True).all()
 
     def getPendingMessages(self):
         return self.session().query(Message).filter_by(pending=True).all()
