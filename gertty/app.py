@@ -64,8 +64,10 @@ class StatusHeader(urwid.WidgetWrap):
         self.error_widget = urwid.Text('')
         self.offline_widget = urwid.Text('')
         self.sync_widget = urwid.Text(u'Sync: 0')
+        self.held_widget = urwid.Text(u'')
         self._w.contents.append((self.title_widget, ('pack', None, False)))
         self._w.contents.append((urwid.Text(u''), ('weight', 1, False)))
+        self._w.contents.append((self.held_widget, ('pack', None, False)))
         self._w.contents.append((self.error_widget, ('pack', None, False)))
         self._w.contents.append((self.offline_widget, ('pack', None, False)))
         self._w.contents.append((self.sync_widget, ('pack', None, False)))
@@ -73,18 +75,23 @@ class StatusHeader(urwid.WidgetWrap):
         self.offline = None
         self.title = None
         self.sync = None
+        self.held = None
         self._error = False
         self._offline = False
         self._title = ''
         self._sync = 0
+        self._held = 0
+        self.held_key = self.app.config.keymap.formatKeys(keymap.LIST_HELD)
 
-    def update(self, title=None, error=None, offline=None, refresh=True):
+    def update(self, title=None, error=None, offline=None, refresh=True, held=None):
         if title is not None:
             self.title = title
         if error is not None:
             self.error = error
         if offline is not None:
             self.offline = offline
+        if held is not None:
+            self.held = held
         self.sync = self.app.sync.queue.qsize()
         if refresh:
             self.refresh()
@@ -93,6 +100,12 @@ class StatusHeader(urwid.WidgetWrap):
         if self._title != self.title:
             self._title = self.title
             self.title_widget.set_text(self._title)
+        if self._held != self.held:
+            self._held = self.held
+            if self._held:
+                self.held_widget.set_text(('error', u'Held: %s (%s)' % (self._held, self.held_key)))
+            else:
+                self.held_widget.set_text(u'')
         if self._error != self.error:
             self._error = self.error
             if self._error:
@@ -202,6 +215,7 @@ class App(object):
         self.header = urwid.AttrMap(self.status, 'header')
         screen = view_project_list.ProjectListView(self)
         self.status.update(title=screen.title)
+        self.updateStatusQueries()
         self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
                                    unhandled_input=self.unhandledInput)
 
@@ -280,20 +294,30 @@ class App(object):
             self.loop.widget = widget
 
     def refresh(self, data=None, force=False):
-        self.status.refresh()
         widget = self.loop.widget
         while isinstance(widget, urwid.Overlay):
             widget = widget.contents[0][0]
         interested = force
+        invalidate = False
         try:
             while True:
                 event = self.sync.result_queue.get(0)
                 if widget.interested(event):
                     interested = True
+                if hasattr(event, 'held_changed') and event.held_changed:
+                    invalidate = True
         except Queue.Empty:
             pass
         if interested:
             widget.refresh()
+        if invalidate:
+            self.updateStatusQueries()
+        self.status.refresh()
+
+    def updateStatusQueries(self):
+        with self.db.getSession() as session:
+            held = len(session.getHeld())
+            self.status.update(held=held)
 
     def popup(self, widget,
               relative_width=50, relative_height=25,
@@ -441,6 +465,8 @@ class App(object):
             self.quit()
         elif keymap.CHANGE_SEARCH in commands:
             self.searchDialog()
+        elif keymap.LIST_HELD in commands:
+            self.doSearch("status:open is:held")
         elif key in self.config.dashboards:
             d = self.config.dashboards[key]
             self.clearHistory()
@@ -487,6 +513,21 @@ class App(object):
                 return
         self.error_queue.put(('Warning', m))
         os.write(self.error_pipe, 'error\n')
+
+    def toggleHeldChange(self, change_key):
+        with self.db.getSession() as session:
+            change = session.getChange(change_key)
+            change.held = not change.held
+            ret = change.held
+            if not change.held:
+                for r in change.revisions:
+                    for m in change.messages:
+                        if m.pending:
+                            self.sync.submitTask(
+                                sync.UploadReviewTask(m.key, sync.HIGH_PRIORITY))
+        self.updateStatusQueries()
+        return ret
+
 
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()

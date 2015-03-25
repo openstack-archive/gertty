@@ -52,6 +52,7 @@ class ChangeRow(urwid.Button):
                         'unreviewed-change': 'focused-unreviewed-change',
                         'reviewed-change': 'focused-reviewed-change',
                         'starred-change': 'focused-starred-change',
+                        'held-change': 'focused-held-change',
                         'positive-label': 'focused-positive-label',
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
@@ -98,6 +99,9 @@ class ChangeRow(urwid.Button):
         if change.starred:
             flag = '*'
             style = 'starred-change'
+        if change.held:
+            flag = '!'
+            style = 'held-change'
         subject = flag + subject
         self.row_style.set_attr_map({None: style})
         self.subject.set_text(subject)
@@ -152,6 +156,8 @@ class ChangeListView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys
         return [
+            (key(keymap.TOGGLE_HELD),
+             "Toggle the held flag for the currently selected change"),
             (key(keymap.TOGGLE_HIDDEN),
              "Toggle the hidden flag for the currently selected change"),
             (key(keymap.TOGGLE_LIST_REVIEWED),
@@ -368,6 +374,9 @@ class ChangeListView(urwid.WidgetWrap):
             sync.ChangeStarredTask(change_key, sync.HIGH_PRIORITY))
         return ret
 
+    def toggleHeld(self, change_key):
+        return self.app.toggleHeldChange(change_key)
+
     def toggleHidden(self, change_key):
         with self.app.db.getSession() as session:
             change = session.getChange(change_key)
@@ -419,6 +428,17 @@ class ChangeListView(urwid.WidgetWrap):
                 # Just fall back on doing a full refresh if we're in a situation
                 # where we're not just popping a row from the list of changes.
                 self.refresh()
+            return None
+        if keymap.TOGGLE_HELD in commands:
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            change_key = self.listbox.body[pos].change_key
+            held = self.toggleHeld(change_key)
+            row = self.change_rows[change_key]
+            with self.app.db.getSession() as session:
+                change = session.getChange(change_key)
+                row.update(change, self.categories)
             return None
         if keymap.TOGGLE_STARRED in commands:
             if not len(self.listbox.body):

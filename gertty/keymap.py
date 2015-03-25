@@ -34,10 +34,12 @@ PREV_SCREEN = 'previous screen'
 HELP = 'help'
 QUIT = 'quit'
 CHANGE_SEARCH = 'change search'
+LIST_HELD = 'list held changes'
 # Change screen:
 TOGGLE_REVIEWED = 'toggle reviewed'
 TOGGLE_HIDDEN = 'toggle hidden'
 TOGGLE_STARRED = 'toggle starred'
+TOGGLE_HELD = 'toggle held'
 REVIEW = 'review'
 DIFF = 'diff'
 LOCAL_CHECKOUT = 'local checkout'
@@ -82,10 +84,12 @@ DEFAULT_KEYMAP = {
     HELP: ['f1', '?'],
     QUIT: 'ctrl q',
     CHANGE_SEARCH: 'ctrl o',
+    LIST_HELD: 'f12',
 
     TOGGLE_REVIEWED: 'v',
     TOGGLE_HIDDEN: 'k',
     TOGGLE_STARRED: '*',
+    TOGGLE_HELD: '!',
     REVIEW: 'r',
     DIFF: 'd',
     LOCAL_CHECKOUT: 'c',
