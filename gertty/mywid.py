@@ -25,6 +25,8 @@ GLOBAL_HELP = (
      "Quit Gertty"),
     (keymap.CHANGE_SEARCH,
      "Search for changes"),
+    (keymap.LIST_HELD,
+     "List held changes"),
     )
 
 class TextButton(urwid.Button):
