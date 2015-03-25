@@ -407,6 +407,8 @@ class ChangeView(urwid.WidgetWrap):
              "Go to the previous change in the list"),
             (key(keymap.REVIEW),
              "Leave a review for the most recent revision"),
+            (key(keymap.TOGGLE_HELD),
+             "Toggle the held flag for the current change"),
             (key(keymap.TOGGLE_HIDDEN_COMMENTS),
              "Toggle display of hidden comments"),
             (key(keymap.SEARCH_RESULTS),
@@ -546,20 +548,17 @@ class ChangeView(urwid.WidgetWrap):
             change = session.getChange(self.change_key)
             self.topic = change.topic or ''
             self.pending_status_message = change.pending_status_message or ''
+            reviewed = hidden = starred = held = ''
             if change.reviewed:
                 reviewed = ' (reviewed)'
-            else:
-                reviewed = ''
             if change.hidden:
                 hidden = ' (hidden)'
-            else:
-                hidden = ''
             if change.starred:
                 starred = '* '
-            else:
-                starred = ''
-            self.title = '%sChange %s%s%s' % (starred, change.number,
-                                              reviewed, hidden)
+            if change.held:
+                held = ' (held)'
+            self.title = '%sChange %s%s%s%s' % (starred, change.number, reviewed,
+                                                hidden, held)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
             self.change_rest_id = change.id
@@ -777,6 +776,9 @@ class ChangeView(urwid.WidgetWrap):
         self.app.sync.submitTask(
             sync.ChangeStarredTask(self.change_key, sync.HIGH_PRIORITY))
 
+    def toggleHeld(self):
+        return self.app.toggleHeldChange(self.change_key)
+
     def keypress(self, size, key):
         r = super(ChangeView, self).keypress(size, key)
         commands = self.app.config.keymap.getCommands(r)
@@ -790,6 +792,10 @@ class ChangeView(urwid.WidgetWrap):
             return None
         if keymap.TOGGLE_STARRED in commands:
             self.toggleStarred()
+            self.refresh()
+            return None
+        if keymap.TOGGLE_HELD in commands:
+            self.toggleHeld()
             self.refresh()
             return None
         if keymap.REVIEW in commands:
