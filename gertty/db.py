@@ -145,6 +145,12 @@ pending_cherry_pick_table = Table(
     Column('branch', String(255), nullable=False),
     Column('message', Text, nullable=False),
     )
+sync_query_table = Table(
+    'sync_query', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('name', String(255), index=True, unique=True, nullable=False),
+    Column('updated', DateTime, index=True),
+    )
 
 class Account(object):
     def __init__(self, id, name=None, username=None, email=None):
@@ -419,6 +425,10 @@ class PendingCherryPick(object):
         self.branch = branch
         self.message = message
 
+class SyncQuery(object):
+    def __init__(self, name):
+        self.name = name
+
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
         branches=relationship(Branch, backref='project',
@@ -482,6 +492,7 @@ mapper(PermittedLabel, permitted_label_table)
 mapper(Approval, approval_table, properties=dict(
         reviewer=relationship(Account)))
 mapper(PendingCherryPick, pending_cherry_pick_table)
+mapper(SyncQuery, sync_query_table)
 
 class Database(object):
     def __init__(self, app):
@@ -577,6 +588,12 @@ class DatabaseSession(object):
             return self.session().query(Project).filter_by(name=name).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
+
+    def getSyncQueryByName(self, name):
+        try:
+            return self.session().query(SyncQuery).filter_by(name=name).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return self.createSyncQuery(name)
 
     def getChange(self, key):
         try:
@@ -738,3 +755,9 @@ class DatabaseSession(object):
         self.session().add(a)
         self.session().flush()
         return a
+
+    def createSyncQuery(self, *args, **kw):
+        o = SyncQuery(*args, **kw)
+        self.session().add(o)
+        self.session().flush()
+        return o

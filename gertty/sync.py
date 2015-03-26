@@ -42,6 +42,9 @@ LOW_PRIORITY=2
 
 TIMEOUT=30
 
+CLOSED_STATUSES = ['MERGED', 'ABANDONED']
+
+
 class MultiQueue(object):
     def __init__(self, priorities):
         try:
@@ -237,10 +240,11 @@ class SyncSubscribedProjectsTask(Task):
             t = SyncProjectTask(keys[i:i+10], self.priority)
             self.tasks.append(t)
             sync.submitTask(t)
+        t = SyncOwnChangesTask(self.priority)
+        self.tasks.append(t)
+        sync.submitTask(t)
 
 class SyncProjectTask(Task):
-    _closed_statuses = ['MERGED', 'ABANDONED']
-
     def __init__(self, project_keys, priority=NORMAL_PRIORITY):
         super(SyncProjectTask, self).__init__(priority)
         if type(project_keys) == int:
@@ -290,7 +294,7 @@ class SyncProjectTask(Task):
         for c in changes:
             # For now, just sync open changes or changes already
             # in the db optionally we could sync all changes ever
-            if c['id'] in change_ids or (c['status'] not in self._closed_statuses):
+            if c['id'] in change_ids or (c['status'] not in CLOSED_STATUSES):
                 sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
         for key in self.project_keys:
             sync.submitTask(SetProjectUpdatedTask(key, now, priority=self.priority))
@@ -309,6 +313,67 @@ class SetProjectUpdatedTask(Task):
         with app.db.getSession() as session:
             project = session.getProject(self.project_key)
             project.updated = self.updated
+
+class SyncOwnChangesTask(Task):
+    query_name = 'owner'
+
+    def __repr__(self):
+        return '<SyncOwnChangesTask>'
+
+    def run(self, sync):
+        app = sync.app
+        now = datetime.datetime.utcnow()
+        with app.db.getSession() as session:
+            sync_query = session.getSyncQueryByName(self.query_name)
+            query = 'q=is:owner'
+            if sync_query.updated:
+                # Allow 4 seconds for request time, etc.
+                query += ' -age:%ss' % (int(math.ceil((now-sync_query.updated).total_seconds())) + 4,)
+            else:
+                query += ' status:open'
+            for project in session.getProjects(subscribed=True):
+                query += ' -project:%s' % project.name
+        changes = []
+        sortkey = ''
+        done = False
+        while not done:
+            # We don't actually want to limit to 500, but that's the server-side default, and
+            # if we don't specify this, we won't get a _more_changes flag.
+            q = 'changes/?n=500%s&%s' % (sortkey, query)
+            self.log.debug('Query: %s ' % (q,))
+            batch = sync.get(q)
+            done = True
+            if batch:
+                changes += batch
+                if '_more_changes' in batch[-1]:
+                    sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
+                    done = False
+        change_ids = [c['id'] for c in changes]
+        with app.db.getSession() as session:
+            # Winnow the list of IDs to only the ones in the local DB.
+            change_ids = session.getChangeIDs(change_ids)
+
+        for c in changes:
+            # For now, just sync open changes or changes already
+            # in the db optionally we could sync all changes ever
+            if c['id'] in change_ids or (c['status'] not in CLOSED_STATUSES):
+                sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
+        sync.submitTask(SetSyncQueryUpdatedTask(self.query_name, now, priority=self.priority))
+
+class SetSyncQueryUpdatedTask(Task):
+    def __init__(self, query_name, updated, priority=NORMAL_PRIORITY):
+        super(SetSyncQueryUpdatedTask, self).__init__(priority)
+        self.query_name = query_name
+        self.updated = updated
+
+    def __repr__(self):
+        return '<SetSyncQueryUpdatedTask %s %s>' % (self.query_name, self.updated)
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            sync_query = session.getSyncQueryByName(self.query_name)
+            sync_query.updated = self.updated
 
 class SyncChangeByCommitTask(Task):
     def __init__(self, commit, priority=NORMAL_PRIORITY):
@@ -431,8 +496,7 @@ class SyncChangeTask(Task):
                 # TODO: handle multiple parents
                 if revision.parent not in parent_commits:
                     parent_revision = session.getRevisionByCommit(revision.parent)
-                    # TODO: use a singleton list of closed states
-                    if not parent_revision and change.status not in ['MERGED', 'ABANDONED']:
+                    if not parent_revision and change.status not in CLOSED_STATUSES:
                         sync.submitTask(SyncChangeByCommitTask(revision.parent, self.priority))
                         self.log.debug("Change %s revision %s needs parent commit %s synced" %
                                        (change.id, remote_revision['_number'], revision.parent))
