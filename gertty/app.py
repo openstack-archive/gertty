@@ -528,6 +528,32 @@ class App(object):
         self.updateStatusQueries()
         return ret
 
+    def localCheckoutCommit(self, project_name, commit_sha):
+        repo = self.getRepo(project_name)
+        try:
+            repo.checkout(commit_sha)
+            dialog = mywid.MessageDialog('Checkout', 'Change checked out in %s' % repo.path)
+            min_height=8
+        except gitrepo.GitCheckoutError as e:
+            dialog = mywid.MessageDialog('Error', e.msg)
+            min_height=12
+        urwid.connect_signal(dialog, 'close',
+            lambda button: self.backScreen())
+        self.popup(dialog, min_height=min_height)
+
+    def localCherryPickCommit(self, project_name, commit_sha):
+        repo = self.getRepo(project_name)
+        try:
+            repo.cherryPick(commit_sha)
+            dialog = mywid.MessageDialog('Cherry-Pick', 'Change cherry-picked in %s' % repo.path)
+            min_height=8
+        except gitrepo.GitCheckoutError as e:
+            dialog = mywid.MessageDialog('Error', e.msg)
+            min_height=12
+        urwid.connect_signal(dialog, 'close',
+            lambda button: self.backScreen())
+        self.popup(dialog, min_height=min_height)
+
 
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()
