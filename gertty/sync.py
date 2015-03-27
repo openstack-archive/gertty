@@ -240,7 +240,10 @@ class SyncSubscribedProjectsTask(Task):
             t = SyncProjectTask(keys[i:i+10], self.priority)
             self.tasks.append(t)
             sync.submitTask(t)
-        t = SyncOwnChangesTask(self.priority)
+        t = SyncQueriedChangesTask('owner', 'is:owner', self.priority)
+        self.tasks.append(t)
+        sync.submitTask(t)
+        t = SyncQueriedChangesTask('starred', 'is:starred', self.priority)
         self.tasks.append(t)
         sync.submitTask(t)
 
@@ -314,18 +317,21 @@ class SetProjectUpdatedTask(Task):
             project = session.getProject(self.project_key)
             project.updated = self.updated
 
-class SyncOwnChangesTask(Task):
-    query_name = 'owner'
+class SyncQueriedChangesTask(Task):
+    def __init__(self, query_name, query, priority=NORMAL_PRIORITY):
+        super(SyncQueriedChangesTask, self).__init__(priority)
+        self.query_name = query_name
+        self.query = query
 
     def __repr__(self):
-        return '<SyncOwnChangesTask>'
+        return '<SyncQueriedChangesTask %s>' % self.query_name
 
     def run(self, sync):
         app = sync.app
         now = datetime.datetime.utcnow()
         with app.db.getSession() as session:
             sync_query = session.getSyncQueryByName(self.query_name)
-            query = 'q=is:owner'
+            query = 'q=%s' % self.query
             if sync_query.updated:
                 # Allow 4 seconds for request time, etc.
                 query += ' -age:%ss' % (int(math.ceil((now-sync_query.updated).total_seconds())) + 4,)
