@@ -310,30 +310,10 @@ class RevisionRow(urwid.WidgetWrap):
         self.change_view.diff(self.revision_key)
 
     def checkout(self, button):
-        repo = self.app.getRepo(self.project_name)
-        try:
-            repo.checkout(self.commit_sha)
-            dialog = mywid.MessageDialog('Checkout', 'Change checked out in %s' % repo.path)
-            min_height=8
-        except gitrepo.GitCheckoutError as e:
-            dialog = mywid.MessageDialog('Error', e.msg)
-            min_height=12
-        urwid.connect_signal(dialog, 'close',
-            lambda button: self.app.backScreen())
-        self.app.popup(dialog, min_height=min_height)
+        self.app.localCheckoutCommit(self.project_name, self.commit_sha)
 
     def cherryPick(self, button):
-        repo = self.app.getRepo(self.project_name)
-        try:
-            repo.cherryPick(self.commit_sha)
-            dialog = mywid.MessageDialog('Cherry-Pick', 'Change cherry-picked in %s' % repo.path)
-            min_height=8
-        except gitrepo.GitCheckoutError as e:
-            dialog = mywid.MessageDialog('Error', e.msg)
-            min_height=12
-        urwid.connect_signal(dialog, 'close',
-            lambda button: self.app.backScreen())
-        self.app.popup(dialog, min_height=min_height)
+        self.app.localCherryPickCommit(self.project_name, self.commit_sha)
 
 class ChangeButton(mywid.FixedButton):
     button_left = urwid.Text(u' ')

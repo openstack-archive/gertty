@@ -108,6 +108,8 @@ class ChangeRow(urwid.Button):
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
         self.owner.set_text(change.owner_name)
+        self.project_name = change.project.name
+        self.commit_sha = change.revisions[-1].commit
         today = self.app.time(datetime.datetime.utcnow()).date()
         updated_time = self.app.time(change.updated)
         if today == updated_time.date():
@@ -158,6 +160,8 @@ class ChangeListView(urwid.WidgetWrap):
         return [
             (key(keymap.TOGGLE_HELD),
              "Toggle the held flag for the currently selected change"),
+            (key(keymap.LOCAL_CHECKOUT),
+             "Checkout the most recent revision of the selected change into the local repo"),
             (key(keymap.TOGGLE_HIDDEN),
              "Toggle the hidden flag for the currently selected change"),
             (key(keymap.TOGGLE_LIST_REVIEWED),
@@ -173,7 +177,9 @@ class ChangeListView(urwid.WidgetWrap):
             (key(keymap.SORT_BY_UPDATED),
              "Sort changes by how recently the change was updated"),
             (key(keymap.SORT_BY_REVERSE),
-             "Reverse the sort")
+             "Reverse the sort"),
+            (key(keymap.LOCAL_CHERRY_PICK),
+             "Cherry-pick the most recent revision of the selected change onto the local repo"),
             ]
 
     def __init__(self, app, query, query_desc=None, project_key=None,
@@ -479,6 +485,20 @@ class ChangeListView(urwid.WidgetWrap):
                 self.reverse = True
             self.clearChangeList()
             self.refresh()
+            return None
+        if keymap.LOCAL_CHECKOUT in commands:
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            row = self.listbox.body[pos]
+            self.app.localCheckoutCommit(row.project_name, row.commit_sha)
+            return None
+        if keymap.LOCAL_CHERRY_PICK in commands:
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            row = self.listbox.body[pos]
+            self.app.localCherryPickCommit(row.project_name, row.commit_sha)
             return None
         return key
 
