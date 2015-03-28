@@ -36,6 +36,7 @@ import requests.utils
 
 import gertty.version
 import gertty.gitrepo
+from gertty.auth import FormAuth
 
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
@@ -1014,6 +1015,8 @@ class Sync(object):
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
+        elif self.app.config.auth_type == 'form':
+            authclass = FormAuth
         else:
             authclass = requests.auth.HTTPDigestAuth
         self.auth = authclass(
