@@ -164,7 +164,7 @@ class Config(object):
                     "Permissions are: {}".format(self.path, oct(mode)))
                 exit(1)
         self.auth_type = server.get('auth-type', 'digest')
-        auth_types = ['digest', 'basic']
+        auth_types = ['digest', 'basic', 'form']
         if self.auth_type not in auth_types:
             self.auth_type = 'digest'
         self.verify_ssl = server.get('verify-ssl', True)
