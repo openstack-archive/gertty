@@ -46,6 +46,7 @@ class ConfigSchema(object):
               'ssl-ca-path': str,
               'dburi': str,
               v.Required('git-root'): str,
+              'git-url': str,
               'log-file': str,
               'auth-type': str,
               }
@@ -170,6 +171,10 @@ class Config(object):
             # And this is to allow Git callouts
             os.environ['GIT_SSL_CAINFO'] = self.ssl_ca_path
         self.git_root = os.path.expanduser(server['git-root'])
+        git_url = server.get('git-url', self.url + 'p/')
+        if not git_url.endswith('/'):
+            git_url += '/'
+        self.git_url = git_url
         self.dburi = server.get('dburi',
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
         log_file = server.get('log-file', '~/.gertty.log')

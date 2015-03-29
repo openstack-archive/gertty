@@ -474,6 +474,7 @@ class SyncChangeTask(Task):
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
                 revision = session.getRevisionByCommit(remote_commit)
                 # TODO: handle multiple parents
+                url = sync.app.config.git_url + change.project.name
                 if 'git' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['git']['ref']
                     url = remote_revision['fetch']['git']['url']
