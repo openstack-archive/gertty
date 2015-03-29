@@ -32,6 +32,10 @@ servers:
 # Gertty will not modify them unless you tell it to, and even then the
 # normal git protections against losing work remain in place. [required]
 #    git-root: ~/git/
+# The URL to clone git repos. By default, <url>/p/<project> is used. For a list
+# of valid URLs, see:
+# https://www.kernel.org/pub/software/scm/git/docs/git-clone.html#URLS
+#    git-url: ssh://user@example.org:29418
 # The location of Gertty's sqlite database.  If you have more than one
 # server, you should specify a dburi for any additional servers.
 # By default a SQLite database called ~/.gertty.db is used.

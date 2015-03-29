@@ -401,11 +401,11 @@ class SyncChangeTask(Task):
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
                 revision = session.getRevisionByCommit(remote_commit)
                 # TODO: handle multiple parents
-                url = sync.app.config.url + change.project.name
+                url = sync.app.config.git_url + change.project.name
                 if 'anonymous http' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['anonymous http']['ref']
                     auth = False
-                else:
+                elif 'http' in remote_revision['fetch']:
                     auth = True
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(url))
@@ -413,6 +413,14 @@ class SyncChangeTask(Task):
                         urllib.quote_plus(sync.app.config.username),
                         urllib.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
+                elif 'ssh' in remote_revision['fetch']:
+                    ref = remote_revision['fetch']['ssh']['ref']
+                    auth = False
+                else:
+                    self.log.error("No valid git fetch method found! (%s)",
+                                   remote_revision['fetch'].keys())
+                    continue
+
                 if (not revision) or self.force_fetch:
                     fetches[url].append('+%(ref)s:%(ref)s' % dict(ref=ref))
                 if not revision:

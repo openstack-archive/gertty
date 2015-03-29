@@ -451,8 +451,7 @@ class App(object):
         local_path = os.path.join(self.config.git_root, project_name)
         local_root = os.path.abspath(self.config.git_root)
         assert os.path.commonprefix((local_root, local_path)) == local_root
-        return gitrepo.Repo(self.config.url+'p/'+project_name,
-                            local_path)
+        return gitrepo.Repo(self.config.git_url + project_name, local_path)
 
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)
