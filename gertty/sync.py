@@ -609,7 +609,7 @@ class CheckReposTask(Task):
             try:
                 repo = app.getRepo(project.name)
                 if repo.newly_cloned or app.fetch_missing_refs:
-                    sync.submitTask(CheckRevisionsTask(key,
+                    sync.submitTask(CheckRevisionsTask(project.key,
                                                        priority=LOW_PRIORITY))
             except Exception:
                 self.log.exception("Exception checking repo %s" %
