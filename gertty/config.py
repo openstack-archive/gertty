@@ -21,6 +21,7 @@ try:
     import ordereddict
 except:
     pass
+import urlparse
 import yaml
 
 import voluptuous as v
@@ -137,6 +138,8 @@ class Config(object):
         if not url.endswith('/'):
             url += '/'
         self.url = url
+        result = urlparse.urlparse(url)
+        self.hostname = result.netloc
         self.username = server['username']
         self.password = server.get('password')
         if self.password is None:
