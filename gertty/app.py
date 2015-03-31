@@ -23,6 +23,7 @@ import subprocess
 import sys
 import textwrap
 import threading
+import urlparse
 import warnings
 import webbrowser
 
@@ -172,7 +173,8 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
             return False
 
 class App(object):
-    simple_change_search= re.compile('^(\d+|I[a-fA-F0-9]{40})$')
+    simple_change_search = re.compile('^(\d+|I[a-fA-F0-9]{40})$')
+    url_change_search = re.compile('^https?://.*$')
 
     def __init__(self, server=None, palette='default', keymap='default',
                  debug=False, verbose=False, disable_sync=False,
@@ -440,7 +442,46 @@ class App(object):
         query = dialog.entry.edit_text.strip()
         if self.simple_change_search.match(query):
             query = 'change:%s' % query
+        else:
+            result = self.parseInternalURL(query)
+            if result is not None:
+                return self.openInternalURL(result)
         self.doSearch(query)
+
+    trailing_filename_re = re.compile('.*(,[a-z]+)')
+    def parseInternalURL(self, url):
+        if not self.url_change_search.match(url):
+            return None
+        result = urlparse.urlparse(url)
+        if result.netloc != self.config.hostname:
+            return None
+        change = patchset = filename = None
+        path = [x for x in result.path.split('/') if x]
+        if path:
+            change = path[0]
+        else:
+            path = [x for x in result.fragment.split('/') if x]
+            if path[0] == 'c':
+                path.pop(0)
+            while path:
+                if not change:
+                    change = path.pop(0)
+                    continue
+                if not patchset:
+                    patchset = path.pop(0)
+                    continue
+                if not filename:
+                    filename = '/'.join(path)
+                    m = trailing_filename_re.match(filename)
+                    if m:
+                        filename = filename[:0-len(m.group(1))]
+                    path = None
+        return (change, patchset, filename)
+
+    def openInternalURL(self, result):
+        (change, patchset, filename) = result
+        # TODO: support deep-linking to a filename
+        self.doSearch('change:%s' % change)
 
     def error(self, message, title='Error'):
         dialog = mywid.MessageDialog(title, message)
