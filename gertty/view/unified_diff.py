@@ -13,12 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-import logging
-
 import urwid
 
-from gertty import mywid
 from gertty import gitrepo
 from gertty.view.diff import *
 

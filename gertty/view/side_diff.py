@@ -12,14 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-import logging
-
 import urwid
 
 from gertty import keymap
-from gertty import mywid
-from gertty import gitrepo
 from gertty.view.diff import *
 
 LN_COL_WIDTH = 5
