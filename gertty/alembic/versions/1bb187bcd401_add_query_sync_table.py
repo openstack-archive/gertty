@@ -22,5 +22,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('key')
     )
 
+
 def downgrade():
     pass

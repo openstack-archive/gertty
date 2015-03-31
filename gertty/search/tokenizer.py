@@ -18,21 +18,21 @@ operators = {
     'age': 'OP_AGE',
     'change': 'OP_CHANGE',
     'owner': 'OP_OWNER',
-    #'OP_OWNERIN', # needs local group membership
+    # 'OP_OWNERIN', # needs local group membership
     'reviewer': 'OP_REVIEWER',
-    #'OP_REVIEWERIN', # needs local group membership
+    # 'OP_REVIEWERIN', # needs local group membership
     'commit': 'OP_COMMIT',
     'project': 'OP_PROJECT',
     '_project_key': 'OP_PROJECT_KEY',  # internal gertty use only
     'branch': 'OP_BRANCH',
     'topic': 'OP_TOPIC',
     'ref': 'OP_REF',
-    #'tr': 'OP_TR', # needs trackingids
-    #'bug': 'OP_BUG', # needs trackingids
+    # 'tr': 'OP_TR', # needs trackingids
+    # 'bug': 'OP_BUG', # needs trackingids
     'label': 'OP_LABEL',
     'message': 'OP_MESSAGE',
     'comment': 'OP_COMMENT',
-    #'file': 'OP_FILE', # needs local file list
+    # 'file': 'OP_FILE', # needs local file list
     'has': 'OP_HAS',
     'is': 'OP_IS',
     'status': 'OP_STATUS',
@@ -63,14 +63,15 @@ tokens = [
     'SSTRING',
     'DSTRING',
     'USTRING',
-    #'REGEX',
-    #'SHA',
+    # 'REGEX',
+    # 'SHA',
     ] + operators.values()
 
+
 def SearchTokenizer():
-    t_LPAREN     = r'\('
-    t_RPAREN     = r'\)'
-    t_NEG        = r'!'
+    t_LPAREN = r'\('
+    t_RPAREN = r'\)'
+    t_NEG = r'!'
 
     def t_OP(t):
         r'[a-zA-Z_][a-zA-Z_]*:'
@@ -83,12 +84,12 @@ def SearchTokenizer():
 
     def t_SSTRING(t):
         r"'([^\\']+|\\'|\\\\)*'"
-        t.value=t.value[1:-1].decode("string-escape")
+        t.value = t.value[1:-1].decode("string-escape")
         return t
 
     def t_DSTRING(t):
         r'"([^\\"]+|\\"|\\\\)*"'
-        t.value=t.value[1:-1].decode("string-escape")
+        t.value = t.value[1:-1].decode("string-escape")
         return t
 
     def t_AND(t):
@@ -115,7 +116,7 @@ def SearchTokenizer():
 
     def t_USTRING(t):
         r'([^\s\(\)!]+)'
-        t.value=t.value.decode("string-escape")
+        t.value = t.value.decode("string-escape")
         return t
 
     def t_SECONDS(t):
@@ -150,7 +151,7 @@ def SearchTokenizer():
         r'\n+'
         t.lexer.lineno += len(t.value)
 
-    t_ignore  = ' \t'
+    t_ignore = ' \t'
 
     def t_error(t):
         print "Illegal character '%s'" % t.value[0]

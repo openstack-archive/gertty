@@ -23,6 +23,7 @@ from gertty import gitrepo
 from gertty import sync
 from gertty.view import mouse_scroll_decorator
 
+
 class PatchsetDialog(urwid.WidgetWrap):
     signals = ['ok', 'cancel']
 
@@ -31,9 +32,9 @@ class PatchsetDialog(urwid.WidgetWrap):
         ok_button = mywid.FixedButton('OK')
         cancel_button = mywid.FixedButton('Cancel')
         urwid.connect_signal(ok_button, 'click',
-                             lambda button:self._emit('ok'))
+                             lambda button: self._emit('ok'))
         urwid.connect_signal(cancel_button, 'click',
-                             lambda button:self._emit('cancel'))
+                             lambda button: self._emit('cancel'))
         button_widgets.append(('pack', ok_button))
         button_widgets.append(('pack', cancel_button))
         button_columns = urwid.Columns(button_widgets, dividechars=2)
@@ -46,22 +47,22 @@ class PatchsetDialog(urwid.WidgetWrap):
         self.new_buttons = []
         self.patchset_keys = {}
         oldb = mywid.FixedRadioButton(self.old_buttons, 'Base',
-                                      state=(old==None))
+                                      state=(old == None))
         left.append(oldb)
         right.append(urwid.Text(''))
         self.patchset_keys[oldb] = None
         for key, num in patchsets:
             oldb = mywid.FixedRadioButton(self.old_buttons, 'Patchset %d' % num,
-                                          state=(old==key))
+                                          state=(old == key))
             newb = mywid.FixedRadioButton(self.new_buttons, 'Patchset %d' % num,
-                                          state=(new==key))
+                                          state=(new == key))
             left.append(oldb)
             right.append(newb)
             self.patchset_keys[oldb] = key
             self.patchset_keys[newb] = key
         left = urwid.Pile(left)
         right = urwid.Pile(right)
-        table  = urwid.Columns([left, right])
+        table = urwid.Columns([left, right])
         rows = []
         rows.append(table)
         rows.append(urwid.Divider())
@@ -83,7 +84,9 @@ class PatchsetDialog(urwid.WidgetWrap):
                 break
         return old, new
 
+
 class LineContext(object):
+
     def __init__(self, old_revision_key, new_revision_key,
                  old_revision_num, new_revision_num,
                  old_fn, new_fn, old_ln, new_ln):
@@ -96,29 +99,38 @@ class LineContext(object):
         self.old_ln = old_ln
         self.new_ln = new_ln
 
+
 class BaseDiffCommentEdit(urwid.Columns):
     pass
+
 
 class BaseDiffComment(urwid.Columns):
     pass
 
+
 class BaseDiffLine(urwid.Button):
+
     def selectable(self):
         return True
 
+
 class BaseFileHeader(urwid.Button):
+
     def selectable(self):
         return True
+
 
 class BaseFileReminder(urwid.WidgetWrap):
     pass
 
+
 class DiffContextButton(urwid.WidgetWrap):
+
     def selectable(self):
         return True
 
     def __init__(self, view, diff, chunk):
-        focus_map={'context-button':'focused-context-button'}
+        focus_map = {'context-button': 'focused-context-button'}
         buttons = [mywid.FixedButton(('context-button', "Expand previous 10"),
                                      on_press=self.prev),
                    mywid.FixedButton(('context-button', "Expand"),
@@ -149,8 +161,10 @@ class DiffContextButton(urwid.WidgetWrap):
     def next(self, button):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
+
 @mouse_scroll_decorator.ScrollByWheel
 class BaseDiffView(urwid.WidgetWrap):
+
     def help(self):
         key = self.app.config.keymap.formatKeys
         return [
@@ -212,7 +226,7 @@ class BaseDiffView(urwid.WidgetWrap):
                     message = comment.message
                 else:
                     message = [('comment-name', comment.author.name),
-                               ('comment', u': '+comment.message)]
+                               ('comment', u': ' + comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
                 comment_filenames.add(comment.file)
@@ -229,7 +243,7 @@ class BaseDiffView(urwid.WidgetWrap):
                     message = comment.message
                 else:
                     message = [('comment-name', comment.author.name),
-                               ('comment', u': '+comment.message)]
+                               ('comment', u': ' + comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
                 comment_filenames.add(comment.file)
@@ -300,7 +314,7 @@ class BaseDiffView(urwid.WidgetWrap):
             diff = self.file_diffs[oldnew][path]
             for chunk in diff.chunks:
                 if (chunk.range[oldnew][gitrepo.START] <= lineno and
-                    chunk.range[oldnew][gitrepo.END]   >= lineno):
+                    chunk.range[oldnew][gitrepo.END] >= lineno):
                     i = chunk.indexOfLine(oldnew, lineno)
                     if i < (len(chunk.lines) / 2):
                         from_start = True
@@ -311,9 +325,9 @@ class BaseDiffView(urwid.WidgetWrap):
                     if chunk.last and (not from_start):
                         from_start = True
                     if from_start:
-                        self.expandChunk(diff, chunk, comment_lists, from_start=i+10)
+                        self.expandChunk(diff, chunk, comment_lists, from_start=i + 10)
                     else:
-                        self.expandChunk(diff, chunk, comment_lists, from_end=i-10)
+                        self.expandChunk(diff, chunk, comment_lists, from_end=i - 10)
                     break
 
     def expandChunk(self, diff, chunk, comment_lists={}, from_start=None, from_end=None,
@@ -325,7 +339,7 @@ class BaseDiffView(urwid.WidgetWrap):
             add_lines = chunk.lines[:from_start]
             del chunk.lines[:from_start]
         if from_end is not None:
-            index = self.listbox.body.index(chunk.button)+1
+            index = self.listbox.body.index(chunk.button) + 1
             add_lines = chunk.lines[from_end:]
             del chunk.lines[from_end:]
         if expand_all:
@@ -356,13 +370,13 @@ class BaseDiffView(urwid.WidgetWrap):
                 or
                 (isinstance(event, sync.ChangeUpdatedEvent) and
                  self.change_key in event.related_change_keys)):
-            #self.log.debug("Ignoring refresh diff due to event %s" % (event,))
+            # self.log.debug("Ignoring refresh diff due to event %s" % (event,))
             return False
-        #self.log.debug("Refreshing diff due to event %s" % (event,))
+        # self.log.debug("Refreshing diff due to event %s" % (event,))
         return True
 
     def refresh(self, event=None):
-        #TODO
+        # TODO
         pass
 
     def getContextAtTop(self, size):
@@ -419,8 +433,8 @@ class BaseDiffView(urwid.WidgetWrap):
     def onSelect(self, button):
         pos = self.listbox.focus_position
         e = self.makeCommentEdit(self.listbox.body[pos])
-        self.listbox.body.insert(pos+1, e)
-        self.listbox.focus_position = pos+1
+        self.listbox.body.insert(pos + 1, e)
+        self.listbox.focus_position = pos + 1
 
     def cleanupEdit(self, edit):
         raise NotImplementedError

@@ -22,6 +22,7 @@ from gertty import sync
 from gertty.view import change_list as view_change_list
 from gertty.view import mouse_scroll_decorator
 
+
 class ProjectRow(urwid.Button):
     project_focus_map = {None: 'focused',
                          'unreviewed-project': 'focused-unreviewed-project',
@@ -61,15 +62,19 @@ class ProjectRow(urwid.Button):
         self.unreviewed_changes.set_text('%i ' % len(project.unreviewed_changes))
         self.open_changes.set_text('%i ' % len(project.open_changes))
 
+
 class ProjectListHeader(urwid.WidgetWrap):
+
     def __init__(self):
         cols = [urwid.Text(u'Project'),
                 (11, urwid.Text(u'Unreviewed')),
                 (5, urwid.Text(u'Open'))]
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
+
 @mouse_scroll_decorator.ScrollByWheel
 class ProjectListView(urwid.WidgetWrap):
+
     def help(self):
         key = self.app.config.keymap.formatKeys
         return [
@@ -94,7 +99,7 @@ class ProjectListView(urwid.WidgetWrap):
         self.header = ProjectListHeader()
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
-        self._w.contents.append((urwid.Divider(),('pack', 1)))
+        self._w.contents.append((urwid.Divider(), ('pack', 1)))
         self._w.contents.append((urwid.AttrWrap(self.header, 'table-header'), ('pack', 1)))
         self._w.contents.append((self.listbox, ('weight', 1)))
         self._w.set_focus(3)

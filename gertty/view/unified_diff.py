@@ -24,6 +24,7 @@ from gertty.view.diff import *
 
 LN_COL_WIDTH = 5
 
+
 class UnifiedDiffCommentEdit(BaseDiffCommentEdit):
     def __init__(self, context, oldnew, key=None, comment=u''):
         super(UnifiedDiffCommentEdit, self).__init__([])
@@ -37,6 +38,7 @@ class UnifiedDiffCommentEdit(BaseDiffCommentEdit):
                               ('weight', 1, False)))
         self.focus_position = 1
 
+
 class UnifiedDiffComment(BaseDiffComment):
     def __init__(self, context, oldnew, comment):
         super(UnifiedDiffComment, self).__init__([])
@@ -44,6 +46,7 @@ class UnifiedDiffComment(BaseDiffComment):
         text = urwid.AttrMap(urwid.Text(comment), 'comment')
         self.contents.append((urwid.Text(u''), ('given', 8, False)))
         self.contents.append((text, ('weight', 1, False)))
+
 
 class UnifiedDiffLine(BaseDiffLine):
     def __init__(self, app, context, oldnew, old, new, callback=None):
@@ -55,11 +58,11 @@ class UnifiedDiffLine(BaseDiffLine):
         if old_ln is None:
             old_ln = ''
         else:
-            old_ln = '%*i' % (LN_COL_WIDTH-1, old_ln)
+            old_ln = '%*i' % (LN_COL_WIDTH - 1, old_ln)
         if new_ln is None:
             new_ln = ''
         else:
-            new_ln = '%*i' % (LN_COL_WIDTH-1, new_ln)
+            new_ln = '%*i' % (LN_COL_WIDTH - 1, new_ln)
         old_ln_col = urwid.Text(('line-number', old_ln))
         old_ln_col.set_wrap_mode('clip')
         new_ln_col = urwid.Text(('line-number', new_ln))
@@ -89,6 +92,7 @@ class UnifiedDiffLine(BaseDiffLine):
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+
 class UnifiedFileHeader(BaseFileHeader):
     def __init__(self, app, context, oldnew, old, new, callback=None):
         super(UnifiedFileHeader, self).__init__('', on_press=callback)
@@ -105,6 +109,7 @@ class UnifiedFileHeader(BaseFileHeader):
                'filename': 'focused-filename'}
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+
 class UnifiedFileReminder(BaseFileReminder):
     def __init__(self):
         self.old_text = urwid.Text(('filename', ''))
@@ -118,6 +123,7 @@ class UnifiedFileReminder(BaseFileReminder):
         self.old_text.set_text(('filename', old))
         self.new_text.set_text(('filename', new))
         self.col._invalidate()
+
 
 class UnifiedDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):

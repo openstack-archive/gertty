@@ -24,6 +24,7 @@ class SearchSyntaxError(Exception):
 
 
 class SearchCompiler(object):
+
     def __init__(self, app):
         self.app = app
         self.lexer = tokenizer.SearchTokenizer()

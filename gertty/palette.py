@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-DEFAULT_PALETTE={
+DEFAULT_PALETTE = {
     'focused': ['default,standout', ''],
     'header': ['white,bold', 'dark blue'],
     'error': ['light red', 'dark blue'],
@@ -109,7 +109,9 @@ LIGHT_PALETTE = {
     'filename': ['dark cyan', ''],
     }
 
+
 class Palette(object):
+
     def __init__(self, config):
         self.palette = {}
         self.palette.update(DEFAULT_PALETTE)
@@ -123,6 +125,6 @@ class Palette(object):
 
     def getPalette(self):
         ret = []
-        for k,v in self.palette.items():
-            ret.append(tuple([k]+v))
+        for k, v in self.palette.items():
+            ret.append(tuple([k] + v))
         return ret

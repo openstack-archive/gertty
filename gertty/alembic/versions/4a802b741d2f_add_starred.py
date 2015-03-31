@@ -28,8 +28,8 @@ def upgrade():
     change = sa.sql.table('change',
                           sa.sql.column('starred', sa.Boolean()),
                           sa.sql.column('pending_starred', sa.Boolean()))
-    connection.execute(change.update().values({'starred':False,
-                                               'pending_starred':False}))
+    connection.execute(change.update().values({'starred': False,
+                                               'pending_starred': False}))
 
     sqlite_alter_columns('change', [
         sa.Column('starred', sa.Boolean(), index=True, nullable=False),

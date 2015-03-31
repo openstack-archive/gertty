@@ -22,5 +22,6 @@ def upgrade():
     op.create_index(op.f('ix_account_username'), 'account', ['username'])
     op.create_index(op.f('ix_account_email'), 'account', ['email'])
 
+
 def downgrade():
     pass

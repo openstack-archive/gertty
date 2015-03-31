@@ -35,7 +35,8 @@ try:
 except AttributeError:
     OrderedDict = ordereddict.OrderedDict
 
-DEFAULT_CONFIG_PATH='~/.gertty.yaml'
+DEFAULT_CONFIG_PATH = '~/.gertty.yaml'
+
 
 class ConfigSchema(object):
     server = {v.Required('name'): str,
@@ -120,7 +121,9 @@ class ConfigSchema(object):
                            })
         return schema
 
+
 class Config(object):
+
     def __init__(self, server=None, palette='default', keymap='default',
                  path=DEFAULT_CONFIG_PATH):
         self.path = os.path.expanduser(path)
@@ -161,7 +164,7 @@ class Config(object):
             self.auth_type = 'digest'
         self.verify_ssl = server.get('verify-ssl', True)
         if not self.verify_ssl:
-            os.environ['GIT_SSL_NO_VERIFY']='true'
+            os.environ['GIT_SSL_NO_VERIFY'] = 'true'
         self.ssl_ca_path = server.get('ssl-ca-path', None)
         if self.ssl_ca_path is not None:
             self.ssl_ca_path = os.path.expanduser(self.ssl_ca_path)

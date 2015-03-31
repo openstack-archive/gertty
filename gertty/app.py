@@ -57,7 +57,9 @@ require you to press function-F1 or alt-F1 instead.
 
 """
 
+
 class StatusHeader(urwid.WidgetWrap):
+
     def __init__(self, app):
         super(StatusHeader, self).__init__(urwid.Columns([]))
         self.app = app
@@ -126,14 +128,15 @@ class StatusHeader(urwid.WidgetWrap):
 
 class SearchDialog(mywid.ButtonDialog):
     signals = ['search', 'cancel']
+
     def __init__(self, app):
         self.app = app
         search_button = mywid.FixedButton('Search')
         cancel_button = mywid.FixedButton('Cancel')
         urwid.connect_signal(search_button, 'click',
-                             lambda button:self._emit('search'))
+                             lambda button: self._emit('search'))
         urwid.connect_signal(cancel_button, 'click',
-                             lambda button:self._emit('cancel'))
+                             lambda button: self._emit('cancel'))
         super(SearchDialog, self).__init__("Search",
                                            "Enter a change number or search string.",
                                            entry_prompt="Search: ",
@@ -150,7 +153,10 @@ class SearchDialog(mywid.ButtonDialog):
 
 # From: cpython/file/2.7/Lib/webbrowser.py with modification to
 # redirect stdin/out/err.
+
+
 class BackgroundBrowser(webbrowser.GenericBrowser):
+
     """Class for all browsers which are to be started in the
        background."""
 
@@ -171,6 +177,7 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
             return (p.poll() is None)
         except OSError:
             return False
+
 
 class App(object):
     simple_change_search = re.compile('^(\d+|I[a-fA-F0-9]{40})$')
@@ -236,7 +243,7 @@ class App(object):
             self.welcome()
 
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
-        #self.loop.screen.set_terminal_properties(colors=88)
+        # self.loop.screen.set_terminal_properties(colors=88)
         if not disable_sync:
             self.sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
             self.sync_thread.daemon = True
@@ -349,8 +356,8 @@ class App(object):
         for title, items in parts:
             if text:
                 text += '\n'
-            text += title+'\n'
-            text += '%s\n' % ('='*len(title),)
+            text += title + '\n'
+            text += '%s\n' % ('=' * len(title),)
             for keys, cmdtext in items:
                 text += '{keys:{width}} {text}\n'.format(
                     keys=keys, width=keylen, text=cmdtext)
@@ -358,7 +365,7 @@ class App(object):
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
-        self.popup(dialog, min_width=76, min_height=len(lines)+4)
+        self.popup(dialog, min_width=76, min_height=len(lines) + 4)
 
     def welcome(self):
         text = WELCOME_TEXT
@@ -366,7 +373,7 @@ class App(object):
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
-        self.popup(dialog, min_width=76, min_height=len(lines)+4)
+        self.popup(dialog, min_width=76, min_height=len(lines) + 4)
 
     def _syncOneChangeFromQuery(self, query):
         number = changeid = None
@@ -449,6 +456,7 @@ class App(object):
         self.doSearch(query)
 
     trailing_filename_re = re.compile('.*(,[a-z]+)')
+
     def parseInternalURL(self, url):
         if not self.url_change_search.match(url):
             return None
@@ -474,7 +482,7 @@ class App(object):
                     filename = '/'.join(path)
                     m = trailing_filename_re.match(filename)
                     if m:
-                        filename = filename[:0-len(m.group(1))]
+                        filename = filename[:0 - len(m.group(1))]
                     path = None
         return (change, patchset, filename)
 
@@ -489,9 +497,9 @@ class App(object):
                              lambda button: self.backScreen())
 
         cols, rows = self.loop.screen.get_cols_rows()
-        cols = int(cols*.5)
+        cols = int(cols * .5)
         lines = textwrap.wrap(message, cols)
-        min_height = max(4, len(lines)+4)
+        min_height = max(4, len(lines) + 4)
 
         self.popup(dialog, min_height=min_height)
         return None
@@ -520,7 +528,7 @@ class App(object):
         local_path = os.path.join(self.config.git_root, project_name)
         local_root = os.path.abspath(self.config.git_root)
         assert os.path.commonprefix((local_root, local_path)) == local_root
-        return gitrepo.Repo(self.config.url+'p/'+project_name,
+        return gitrepo.Repo(self.config.url + 'p/' + project_name,
                             local_path)
 
     def openURL(self, url):
@@ -576,10 +584,10 @@ class App(object):
         try:
             repo.checkout(commit_sha)
             dialog = mywid.MessageDialog('Checkout', 'Change checked out in %s' % repo.path)
-            min_height=8
+            min_height = 8
         except gitrepo.GitCheckoutError as e:
             dialog = mywid.MessageDialog('Error', e.msg)
-            min_height=12
+            min_height = 12
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
         self.popup(dialog, min_height=min_height)
@@ -589,10 +597,10 @@ class App(object):
         try:
             repo.cherryPick(commit_sha)
             dialog = mywid.MessageDialog('Cherry-Pick', 'Change cherry-picked in %s' % repo.path)
-            min_height=8
+            min_height = 8
         except gitrepo.GitCheckoutError as e:
             dialog = mywid.MessageDialog('Error', e.msg)
-            min_height=12
+            min_height = 12
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
         self.popup(dialog, min_height=min_height)
@@ -601,17 +609,22 @@ class App(object):
 def version():
     return "Gertty version: %s" % gertty.version.version_info.version_string()
 
+
 class PrintKeymapAction(argparse.Action):
+
     def __call__(self, parser, namespace, values, option_string=None):
         for cmd in sorted(keymap.DEFAULT_KEYMAP.keys()):
             print cmd.replace(' ', '-')
         sys.exit(0)
 
+
 class PrintPaletteAction(argparse.Action):
+
     def __call__(self, parser, namespace, values, option_string=None):
         for attr in sorted(palette.DEFAULT_PALETTE.keys()):
             print attr
         sys.exit(0)
+
 
 def main():
     parser = argparse.ArgumentParser(

@@ -37,16 +37,18 @@ import requests.utils
 import gertty.version
 import gertty.gitrepo
 
-HIGH_PRIORITY=0
-NORMAL_PRIORITY=1
-LOW_PRIORITY=2
+HIGH_PRIORITY = 0
+NORMAL_PRIORITY = 1
+LOW_PRIORITY = 2
 
-TIMEOUT=30
+TIMEOUT = 30
+
 
 CLOSED_STATUSES = ['MERGED', 'ABANDONED']
 
 
 class MultiQueue(object):
+
     def __init__(self, priorities):
         try:
             self.queues = collections.OrderedDict()
@@ -95,7 +97,9 @@ class MultiQueue(object):
             self.condition.release()
         return False
 
+
 class UpdateEvent(object):
+
     def updateRelatedChanges(self, session, change):
         related_change_keys = set()
         related_change_keys.add(change.key)
@@ -107,7 +111,9 @@ class UpdateEvent(object):
                 related_change_keys.add(child.change.key)
         self.related_change_keys = related_change_keys
 
+
 class ProjectAddedEvent(UpdateEvent):
+
     def __repr__(self):
         return '<ProjectAddedEvent project_key:%s>' % (
             self.project_key,)
@@ -115,7 +121,9 @@ class ProjectAddedEvent(UpdateEvent):
     def __init__(self, project):
         self.project_key = project.key
 
+
 class ChangeAddedEvent(UpdateEvent):
+
     def __repr__(self):
         return '<ChangeAddedEvent project_key:%s change_key:%s>' % (
             self.project_key, self.change_key)
@@ -127,6 +135,7 @@ class ChangeAddedEvent(UpdateEvent):
         self.review_flag_changed = True
         self.status_changed = True
         self.held_changed = False
+
 
 class ChangeUpdatedEvent(UpdateEvent):
     def __repr__(self):
@@ -141,7 +150,9 @@ class ChangeUpdatedEvent(UpdateEvent):
         self.status_changed = False
         self.held_changed = False
 
+
 class Task(object):
+
     def __init__(self, priority=NORMAL_PRIORITY):
         self.log = logging.getLogger('gertty.sync')
         self.priority = priority
@@ -158,7 +169,9 @@ class Task(object):
         self.event.wait(timeout)
         return self.succeeded
 
+
 class SyncOwnAccountTask(Task):
+
     def __repr__(self):
         return '<SyncOwnAccountTask>'
 
@@ -172,7 +185,9 @@ class SyncOwnAccountTask(Task):
                                    remote.get('username'),
                                    remote.get('email'))
 
+
 class SyncProjectListTask(Task):
+
     def __repr__(self):
         return '<SyncProjectListTask>'
 
@@ -186,17 +201,19 @@ class SyncProjectListTask(Task):
                 local[p.name] = p
             local_keys = set(local.keys())
 
-            for name in local_keys-remote_keys:
+            for name in local_keys - remote_keys:
                 session.delete(local[name])
 
-            for name in remote_keys-local_keys:
+            for name in remote_keys - local_keys:
                 p = remote[name]
                 project = session.createProject(name,
                                                 description=p.get('description', ''))
                 self.log.info("Created project %s", project.name)
                 self.results.append(ProjectAddedEvent(project))
 
+
 class SyncSubscribedProjectBranchesTask(Task):
+
     def __repr__(self):
         return '<SyncSubscribedProjectBranchesTask>'
 
@@ -206,6 +223,7 @@ class SyncSubscribedProjectBranchesTask(Task):
             projects = session.getProjects(subscribed=True)
         for p in projects:
             sync.submitTask(SyncProjectBranchesTask(p.name, self.priority))
+
 
 class SyncProjectBranchesTask(Task):
     branch_re = re.compile(r'refs/heads/(.*)')
@@ -232,15 +250,17 @@ class SyncProjectBranchesTask(Task):
                 local[branch.name] = branch
             local_branches = set(local.keys())
 
-            for name in local_branches-remote_branches:
+            for name in local_branches - remote_branches:
                 session.delete(local[name])
                 self.log.info("Deleted branch %s from project %s in local DB.", name, project.name)
 
-            for name in remote_branches-local_branches:
+            for name in remote_branches - local_branches:
                 project.createBranch(name)
                 self.log.info("Added branch %s to project %s in local DB.", name, project.name)
 
+
 class SyncSubscribedProjectsTask(Task):
+
     def __repr__(self):
         return '<SyncSubscribedProjectsTask>'
 
@@ -249,7 +269,7 @@ class SyncSubscribedProjectsTask(Task):
         with app.db.getSession() as session:
             keys = [p.key for p in session.getProjects(subscribed=True)]
         for i in range(0, len(keys), 10):
-            t = SyncProjectTask(keys[i:i+10], self.priority)
+            t = SyncProjectTask(keys[i:i + 10], self.priority)
             self.tasks.append(t)
             sync.submitTask(t)
         t = SyncQueriedChangesTask('owner', 'is:owner', self.priority)
@@ -258,6 +278,7 @@ class SyncSubscribedProjectsTask(Task):
         t = SyncQueriedChangesTask('starred', 'is:starred', self.priority)
         self.tasks.append(t)
         sync.submitTask(t)
+
 
 class SyncProjectTask(Task):
     def __init__(self, project_keys, priority=NORMAL_PRIORITY):
@@ -279,7 +300,7 @@ class SyncProjectTask(Task):
                 query = 'q=project:%s' % project.name
                 if project.updated:
                     # Allow 4 seconds for request time, etc.
-                    query += ' -age:%ss' % (int(math.ceil((now-project.updated).total_seconds())) + 4,)
+                    query += ' -age:%ss' % (int(math.ceil((now - project.updated).total_seconds())) + 4,)
                 else:
                     query += ' status:open'
                 queries.append(query)
@@ -314,7 +335,9 @@ class SyncProjectTask(Task):
         for key in self.project_keys:
             sync.submitTask(SetProjectUpdatedTask(key, now, priority=self.priority))
 
+
 class SetProjectUpdatedTask(Task):
+
     def __init__(self, project_key, updated, priority=NORMAL_PRIORITY):
         super(SetProjectUpdatedTask, self).__init__(priority)
         self.project_key = project_key
@@ -328,6 +351,7 @@ class SetProjectUpdatedTask(Task):
         with app.db.getSession() as session:
             project = session.getProject(self.project_key)
             project.updated = self.updated
+
 
 class SyncQueriedChangesTask(Task):
     def __init__(self, query_name, query, priority=NORMAL_PRIORITY):
@@ -346,7 +370,7 @@ class SyncQueriedChangesTask(Task):
             query = 'q=%s' % self.query
             if sync_query.updated:
                 # Allow 4 seconds for request time, etc.
-                query += ' -age:%ss' % (int(math.ceil((now-sync_query.updated).total_seconds())) + 4,)
+                query += ' -age:%ss' % (int(math.ceil((now - sync_query.updated).total_seconds())) + 4,)
             else:
                 query += ' status:open'
             for project in session.getProjects(subscribed=True):
@@ -378,6 +402,7 @@ class SyncQueriedChangesTask(Task):
                 sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
         sync.submitTask(SetSyncQueryUpdatedTask(self.query_name, now, priority=self.priority))
 
+
 class SetSyncQueryUpdatedTask(Task):
     def __init__(self, query_name, updated, priority=NORMAL_PRIORITY):
         super(SetSyncQueryUpdatedTask, self).__init__(priority)
@@ -393,7 +418,9 @@ class SetSyncQueryUpdatedTask(Task):
             sync_query = session.getSyncQueryByName(self.query_name)
             sync_query.updated = self.updated
 
+
 class SyncChangeByCommitTask(Task):
+
     def __init__(self, commit, priority=NORMAL_PRIORITY):
         super(SyncChangeByCommitTask, self).__init__(priority)
         self.commit = commit
@@ -411,7 +438,9 @@ class SyncChangeByCommitTask(Task):
             sync.submitTask(SyncChangeTask(c['id'], priority=self.priority))
             self.log.debug("Sync change %s for its commit %s" % (c['id'], self.commit))
 
+
 class SyncChangeByNumberTask(Task):
+
     def __init__(self, number, priority=NORMAL_PRIORITY):
         super(SyncChangeByNumberTask, self).__init__(priority)
         self.number = number
@@ -431,7 +460,9 @@ class SyncChangeByNumberTask(Task):
             sync.submitTask(task)
             self.log.debug("Sync change %s because it is number %s" % (c['id'], self.number))
 
+
 class SyncChangeTask(Task):
+
     def __init__(self, change_id, force_fetch=False, priority=NORMAL_PRIORITY):
         super(SyncChangeTask, self).__init__(priority)
         self.change_id = change_id
@@ -636,13 +667,13 @@ class SyncChangeTask(Task):
                 local_labels[key] = label
             local_label_keys = set(local_labels.keys())
 
-            for key in local_approval_keys-remote_approval_keys:
+            for key in local_approval_keys - remote_approval_keys:
                 session.delete(local_approvals[key])
 
-            for key in local_label_keys-remote_label_keys:
+            for key in local_label_keys - remote_label_keys:
                 session.delete(local_labels[key])
 
-            for key in remote_approval_keys-local_approval_keys:
+            for key in remote_approval_keys - local_approval_keys:
                 remote_approval = remote_approval_entries[key]
                 account = session.getAccountByID(remote_approval['_account_id'],
                                                  name=remote_approval.get('name'),
@@ -663,7 +694,7 @@ class SyncChangeTask(Task):
                         result.held_changed = True
                         self.log.info("Setting change %s to held due to negative review after positive", change.id)
 
-            for key in remote_label_keys-local_label_keys:
+            for key in remote_label_keys - local_label_keys:
                 remote_label = remote_label_entries[key]
                 change.createLabel(remote_label['category'],
                                    remote_label['value'],
@@ -693,10 +724,10 @@ class SyncChangeTask(Task):
                 local_permitted[key] = permitted
             local_permitted_keys = set(local_permitted.keys())
 
-            for key in local_permitted_keys-remote_permitted_keys:
+            for key in local_permitted_keys - remote_permitted_keys:
                 session.delete(local_permitted[key])
 
-            for key in remote_permitted_keys-local_permitted_keys:
+            for key in remote_permitted_keys - local_permitted_keys:
                 remote_permitted = remote_permitted_entries[key]
                 change.createPermittedLabel(remote_permitted['category'],
                                             remote_permitted['value'])
@@ -722,11 +753,13 @@ class SyncChangeTask(Task):
         total_time = end_time - start_time
         self.log.info("Synced change %s in %0.5f seconds.", self.change_id, total_time)
 
+
 class CheckReposTask(Task):
     # on startup, check all projects
     #   for any subscribed project withot a local repo or if
     #   --fetch-missing-refs is supplied, check all local changes for
     #   missing refs, and sync the associated changes
+
     def __repr__(self):
         return '<CheckReposTask>'
 
@@ -748,7 +781,9 @@ class CheckReposTask(Task):
                 self.log.exception("Exception checking repo %s" %
                                    (project.name,))
 
+
 class CheckRevisionsTask(Task):
+
     def __init__(self, project_key, priority=NORMAL_PRIORITY):
         super(CheckRevisionsTask, self).__init__(priority)
         self.project_key = project_key
@@ -777,7 +812,9 @@ class CheckRevisionsTask(Task):
         for change_id in to_sync:
             sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
+
 class UploadReviewsTask(Task):
+
     def __repr__(self):
         return '<UploadReviewsTask>'
 
@@ -799,7 +836,9 @@ class UploadReviewsTask(Task):
             for m in session.getPendingMessages():
                 sync.submitTask(UploadReviewTask(m.key, self.priority))
 
+
 class SetTopicTask(Task):
+
     def __init__(self, change_key, priority=NORMAL_PRIORITY):
         super(SetTopicTask, self).__init__(priority)
         self.change_key = change_key
@@ -818,7 +857,9 @@ class SetTopicTask(Task):
                      data)
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
+
 class RebaseChangeTask(Task):
+
     def __init__(self, change_key, priority=NORMAL_PRIORITY):
         super(RebaseChangeTask, self).__init__(priority)
         self.change_key = change_key
@@ -835,7 +876,9 @@ class RebaseChangeTask(Task):
             sync.post('changes/%s/rebase' % (change.id,), {})
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
+
 class ChangeStarredTask(Task):
+
     def __init__(self, change_key, priority=NORMAL_PRIORITY):
         super(ChangeStarredTask, self).__init__(priority)
         self.change_key = change_key
@@ -856,7 +899,9 @@ class ChangeStarredTask(Task):
             change.pending_starred = False
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
+
 class ChangeStatusTask(Task):
+
     def __init__(self, change_key, priority=NORMAL_PRIORITY):
         super(ChangeStatusTask, self).__init__(priority)
         self.change_key = change_key
@@ -885,7 +930,9 @@ class ChangeStatusTask(Task):
                 sync.post('changes/%s/submit' % (change.id,), {})
             sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
 
+
 class SendCherryPickTask(Task):
+
     def __init__(self, cp_key, priority=NORMAL_PRIORITY):
         super(SendCherryPickTask, self).__init__(priority)
         self.cp_key = cp_key
@@ -907,7 +954,9 @@ class SendCherryPickTask(Task):
         if ret and 'id' in ret:
             sync.submitTask(SyncChangeTask(ret['id'], priority=self.priority))
 
+
 class ChangeCommitMessageTask(Task):
+
     def __init__(self, revision_key, priority=NORMAL_PRIORITY):
         super(ChangeCommitMessageTask, self).__init__(priority)
         self.revision_key = revision_key
@@ -928,7 +977,9 @@ class ChangeCommitMessageTask(Task):
             change_id = revision.change.id
         sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
+
 class UploadReviewTask(Task):
+
     def __init__(self, message_key, priority=NORMAL_PRIORITY):
         super(UploadReviewTask, self).__init__(priority)
         self.message_key = message_key
@@ -1001,7 +1052,9 @@ class UploadReviewTask(Task):
                 sync.post('changes/%s/submit' % (change_id,), {})
         sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
+
 class Sync(object):
+
     def __init__(self, app):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.version_string(),
                                             requests.utils.default_user_agent())
@@ -1082,9 +1135,9 @@ class Sync(object):
         r = self.session.get(url,
                              verify=self.app.config.verify_ssl,
                              auth=self.auth, timeout=TIMEOUT,
-                             headers = {'Accept': 'application/json',
-                                        'Accept-Encoding': 'gzip',
-                                        'User-Agent': self.user_agent})
+                             headers={'Accept': 'application/json',
+                                      'Accept-Encoding': 'gzip',
+                                      'User-Agent': self.user_agent})
         if r.status_code == 200:
             ret = json.loads(r.text[4:])
             if len(ret):
@@ -1102,11 +1155,11 @@ class Sync(object):
         r = self.session.post(url, data=json.dumps(data).encode('utf8'),
                               verify=self.app.config.verify_ssl,
                               auth=self.auth, timeout=TIMEOUT,
-                              headers = {'Content-Type': 'application/json;charset=UTF-8',
-                                         'User-Agent': self.user_agent})
+                              headers={'Content-Type': 'application/json;charset=UTF-8',
+                                       'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
         ret = None
-        if r.text and len(r.text)>4:
+        if r.text and len(r.text) > 4:
             try:
                 ret = json.loads(r.text[4:])
             except Exception:
@@ -1121,8 +1174,8 @@ class Sync(object):
         r = self.session.put(url, data=json.dumps(data).encode('utf8'),
                              verify=self.app.config.verify_ssl,
                              auth=self.auth, timeout=TIMEOUT,
-                             headers = {'Content-Type': 'application/json;charset=UTF-8',
-                                        'User-Agent': self.user_agent})
+                             headers={'Content-Type': 'application/json;charset=UTF-8',
+                                      'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
 
     def delete(self, path, data):
@@ -1132,8 +1185,8 @@ class Sync(object):
         r = self.session.delete(url, data=json.dumps(data).encode('utf8'),
                                 verify=self.app.config.verify_ssl,
                                 auth=self.auth, timeout=TIMEOUT,
-                                headers = {'Content-Type': 'application/json;charset=UTF-8',
-                                           'User-Agent': self.user_agent})
+                                headers={'Content-Type': 'application/json;charset=UTF-8',
+                                         'User-Agent': self.user_agent})
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):

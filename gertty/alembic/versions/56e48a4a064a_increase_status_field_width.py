@@ -15,6 +15,7 @@ import sqlalchemy as sa
 
 from gertty.dbsupport import sqlite_alter_columns
 
+
 def upgrade():
     sqlite_alter_columns('change', [
         sa.Column('status', sa.String(16), index=True, nullable=False)

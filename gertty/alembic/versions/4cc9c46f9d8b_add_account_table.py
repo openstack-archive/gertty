@@ -63,10 +63,10 @@ def upgrade():
 
     connection = op.get_bind()
     project = sa.sql.table('project', sa.sql.column('updated', sa.DateTime))
-    connection.execute(project.update().values({'updated':None}))
+    connection.execute(project.update().values({'updated': None}))
 
     approval = sa.sql.table('approval', sa.sql.column('pending'))
-    connection.execute(approval.delete().where(approval.c.pending==False))
+    connection.execute(approval.delete().where(approval.c.pending == False))
 
 
 def downgrade():

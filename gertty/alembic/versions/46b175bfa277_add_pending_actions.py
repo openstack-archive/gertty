@@ -46,12 +46,12 @@ def upgrade():
                           sa.sql.column('pending_rebase', sa.Boolean()),
                           sa.sql.column('pending_topic', sa.Boolean()),
                           sa.sql.column('pending_status', sa.Boolean()))
-    connection.execute(change.update().values({'pending_rebase':False,
-                                               'pending_topic':False,
-                                               'pending_status':False}))
+    connection.execute(change.update().values({'pending_rebase': False,
+                                               'pending_topic': False,
+                                               'pending_status': False}))
     revision = sa.sql.table('revision',
                             sa.sql.column('pending_message', sa.Boolean()))
-    connection.execute(revision.update().values({'pending_message':False}))
+    connection.execute(revision.update().values({'pending_message': False}))
 
     sqlite_alter_columns('change', [
         sa.Column('pending_rebase', sa.Boolean(), index=True, nullable=False),
@@ -61,6 +61,7 @@ def upgrade():
     sqlite_alter_columns('revision', [
         sa.Column('pending_message', sa.Boolean(), index=True, nullable=False),
         ])
+
 
 def downgrade():
     pass

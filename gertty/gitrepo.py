@@ -29,7 +29,9 @@ END = 1
 LINENO = 0
 LINE = 1
 
+
 class GitTimeZone(datetime.tzinfo):
+
     """Because we can't have nice things."""
 
     def __init__(self, offset_seconds):
@@ -46,11 +48,13 @@ class GitTimeZone(datetime.tzinfo):
 
 
 class CommitBlob(object):
+
     def __init__(self):
         self.path = '/COMMIT_MSG'
 
 
 class CommitContext(object):
+
     """A git.diff.Diff for commit messages."""
 
     def decorateGitTime(self, seconds, tz):
@@ -120,6 +124,7 @@ class CommitContext(object):
 
 
 class DiffChunk(object):
+
     def __init__(self):
         self.oldlines = []
         self.newlines = []
@@ -160,13 +165,17 @@ class DiffChunk(object):
             if l[oldnew][LINENO] == lineno:
                 return i
 
+
 class DiffContextChunk(DiffChunk):
     context = True
+
 
 class DiffChangedChunk(DiffChunk):
     context = False
 
+
 class DiffFile(object):
+
     def __init__(self):
         self.newname = 'Unknown File'
         self.oldname = 'Unknown File'
@@ -229,17 +238,23 @@ class DiffFile(object):
         self.old_lineno += 1
         self.new_lineno += 1
 
+
 class GitCheckoutError(Exception):
+
     def __init__(self, msg):
         super(GitCheckoutError, self).__init__(msg)
         self.msg = msg
 
+
 class GitCloneError(Exception):
+
     def __init__(self, msg):
         super(GitCloneError, self).__init__(msg)
         self.msg = msg
 
+
 class Repo(object):
+
     def __init__(self, url, path):
         self.log = logging.getLogger('gertty.gitrepo')
         self.url = url
@@ -294,10 +309,10 @@ class Repo(object):
         prevstyle = None
         output_old = []
         output_new = []
-        #self.log.debug('startold' + repr(old))
-        #self.log.debug('startnew' + repr(new))
+        # self.log.debug('startold' + repr(old))
+        # self.log.debug('startnew' + repr(new))
         for line in self.differ.compare(old, new):
-            #self.log.debug('diff output: ' + line)
+            # self.log.debug('diff output: ' + line)
             key = line[0]
             rest = line[2:]
             if key == '?':
@@ -310,25 +325,25 @@ class Repo(object):
                         indicator = ' '
                     else:
                         indicator = rest[i]
-                    #self.log.debug('%s %s %s %s %s' % (i, c, indicator, emphasis, accumulator))
+                    # self.log.debug('%s %s %s %s %s' % (i, c, indicator, emphasis, accumulator))
                     if indicator != ' ' and not emphasis:
                         # changing from not emph to emph
                         if accumulator:
-                            result.append((prevstyle+'-line', accumulator))
+                            result.append((prevstyle + '-line', accumulator))
                         accumulator = ''
                         emphasis = True
                     elif indicator == ' ' and emphasis:
                         # changing from emph to not emph
                         if accumulator:
-                            result.append((prevstyle+'-word', accumulator))
+                            result.append((prevstyle + '-word', accumulator))
                         accumulator = ''
                         emphasis = False
                     accumulator += c
                 if accumulator:
                     if emphasis:
-                        result.append((prevstyle+'-word', accumulator))
+                        result.append((prevstyle + '-word', accumulator))
                     else:
-                        result.append((prevstyle+'-line', accumulator))
+                        result.append((prevstyle + '-line', accumulator))
                 if prevstyle == 'added':
                     output_new.append(result)
                 elif prevstyle == 'removed':
@@ -337,9 +352,9 @@ class Repo(object):
                 continue
             if prevline is not None:
                 if prevstyle == 'added' or prevstyle == 'context':
-                    output_new.append((prevstyle+'-line', prevline))
+                    output_new.append((prevstyle + '-line', prevline))
                 if prevstyle == 'removed' or prevstyle == 'context':
-                    output_old.append((prevstyle+'-line', prevline))
+                    output_old.append((prevstyle + '-line', prevline))
             if key == '+':
                 prevstyle = 'added'
             elif key == '-':
@@ -347,24 +362,25 @@ class Repo(object):
             elif key == ' ':
                 prevstyle = 'context'
             prevline = rest
-        #self.log.debug('prev'+repr(prevline))
+        # self.log.debug('prev'+repr(prevline))
         if prevline is not None:
             if prevstyle == 'added':
-                output_new.append((prevstyle+'-line', prevline))
+                output_new.append((prevstyle + '-line', prevline))
             elif prevstyle == 'removed':
-                output_old.append((prevstyle+'-line', prevline))
-        #self.log.debug(repr(output_old))
-        #self.log.debug(repr(output_new))
+                output_old.append((prevstyle + '-line', prevline))
+        # self.log.debug(repr(output_old))
+        # self.log.debug(repr(output_new))
         return output_old, output_new
 
     header_re = re.compile('@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@')
+
     def diff(self, old, new, context=10000, show_old_commit=False):
         """Create a diff from old to new.
 
         Note that the commit message is also diffed, and listed as /COMMIT_MSG.
         """
         repo = git.Repo(self.path)
-        #'-y', '-x', 'diff -C10', old, new, path).split('\n'):
+        # '-y', '-x', 'diff -C10', old, new, path).split('\n'):
         oldc = repo.commit(old)
         newc = repo.commit(new)
         files = []
@@ -375,7 +391,7 @@ class Repo(object):
             extra_contexts.append(CommitContext(None, newc))
         contexts = itertools.chain(
             extra_contexts, oldc.diff(
-                newc, color='never',create_patch=True, U=context))
+                newc, color='never', create_patch=True, U=context))
         for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
@@ -401,15 +417,15 @@ class Repo(object):
             prev_key = ''
             diff_lines = diff_context.diff.split('\n')
             for i, line in enumerate(diff_lines):
-                last_line = (i == len(diff_lines)-1)
+                last_line = (i == len(diff_lines) - 1)
                 if line.startswith('---'):
                     continue
                 if line.startswith('+++'):
                     continue
                 if line.startswith('@@'):
-                    #socket.sendall(line)
+                    # socket.sendall(line)
                     m = self.header_re.match(line)
-                    #socket.sendall(str(m.groups()))
+                    # socket.sendall(str(m.groups()))
                     f.old_lineno = int(m.group(1))
                     f.new_lineno = int(m.group(3))
                     continue

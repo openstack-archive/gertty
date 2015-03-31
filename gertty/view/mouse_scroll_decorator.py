@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
 def mouse_event_scrolling(class_type):
     def mouse_event_scrolling(self, size, event, button, col, row, focus):
         if event == 'mouse press':
@@ -27,6 +28,7 @@ def mouse_event_scrolling(class_type):
         return super(class_type, self).mouse_event(size, event, button, col,
                                                    row, focus)
     return mouse_event_scrolling
+
 
 def ScrollByWheel(original_class):
     original_class.mouse_event = mouse_event_scrolling(original_class)

@@ -85,7 +85,7 @@ message_table = Table(
     Column('key', Integer, primary_key=True),
     Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
     Column('account_key', Integer, ForeignKey("account.key"), index=True),
-    Column('id', String(255), index=True), #, unique=True, nullable=False),
+    Column('id', String(255), index=True),  # unique=True, nullable=False),
     Column('created', DateTime, index=True, nullable=False),
     Column('message', Text, nullable=False),
     Column('draft', Boolean, index=True, nullable=False),
@@ -96,7 +96,7 @@ comment_table = Table(
     Column('key', Integer, primary_key=True),
     Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
     Column('account_key', Integer, ForeignKey("account.key"), index=True),
-    Column('id', String(255), index=True), #, unique=True, nullable=False),
+    Column('id', String(255), index=True),  # unique=True, nullable=False),
     Column('in_reply_to', String(255)),
     Column('created', DateTime, index=True, nullable=False),
     Column('file', Text, nullable=False),
@@ -153,14 +153,18 @@ sync_query_table = Table(
     Column('updated', DateTime, index=True),
     )
 
+
 class Account(object):
+
     def __init__(self, id, name=None, username=None, email=None):
         self.id = id
         self.name = name
         self.username = username
         self.email = email
 
+
 class Project(object):
+
     def __init__(self, name, subscribed=False, description=''):
         self.name = name
         self.subscribed = subscribed
@@ -184,12 +188,16 @@ class Project(object):
         session.flush()
         return b
 
+
 class Branch(object):
+
     def __init__(self, project, name):
         self.project_key = project.key
         self.name = name
 
+
 class Change(object):
+
     def __init__(self, project, id, owner, number, branch, change_id,
                  subject, created, updated, status, topic=None,
                  hidden=False, reviewed=False, starred=False, held=False,
@@ -248,7 +256,7 @@ class Change(object):
     def getMinMaxPermittedForCategory(self, category):
         if not hasattr(self, '_permitted_cache'):
             self._updatePermittedCache()
-        return self._permitted_cache.get(category, (0,0))
+        return self._permitted_cache.get(category, (0, 0))
 
     def _updatePermittedCache(self):
         cache = {}
@@ -311,6 +319,7 @@ class Change(object):
 
 
 class Revision(object):
+
     def __init__(self, change, number, message, commit, parent,
                  fetch_auth, fetch_ref, pending_message=False,
                  can_submit=False):
@@ -365,6 +374,7 @@ class Revision(object):
 
 
 class Message(object):
+
     def __init__(self, revision, id, author, created, message, draft=False, pending=False):
         self.revision_key = revision.key
         self.account_key = author.key
@@ -386,6 +396,7 @@ class Message(object):
                 author_name = self.author.email
         return author_name
 
+
 class Comment(object):
     def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, draft=False):
         self.revision_key = revision.key
@@ -399,20 +410,26 @@ class Comment(object):
         self.message = message
         self.draft = draft
 
+
 class Label(object):
+
     def __init__(self, change, category, value, description):
         self.change_key = change.key
         self.category = category
         self.value = value
         self.description = description
 
+
 class PermittedLabel(object):
+
     def __init__(self, change, category, value):
         self.change_key = change.key
         self.category = category
         self.value = value
 
+
 class Approval(object):
+
     def __init__(self, change, reviewer, category, value, draft=False):
         self.change_key = change.key
         self.account_key = reviewer.key
@@ -420,11 +437,14 @@ class Approval(object):
         self.value = value
         self.draft = draft
 
+
 class PendingCherryPick(object):
+
     def __init__(self, revision, branch, message):
         self.revision_key = revision.key
         self.branch = branch
         self.message = message
+
 
 class SyncQuery(object):
     def __init__(self, name):
@@ -437,17 +457,17 @@ mapper(Project, project_table, properties=dict(
         changes=relationship(Change, backref='project',
                              order_by=change_table.c.number),
         unreviewed_changes=relationship(Change,
-                                        primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                         change_table.c.hidden==False,
-                                                         change_table.c.status!='MERGED',
-                                                         change_table.c.status!='ABANDONED',
-                                                         change_table.c.reviewed==False),
+                                        primaryjoin=and_(project_table.c.key == change_table.c.project_key,
+                                                         change_table.c.hidden == False,
+                                                         change_table.c.status != 'MERGED',
+                                                         change_table.c.status != 'ABANDONED',
+                                                         change_table.c.reviewed == False),
                                         order_by=change_table.c.number,
                                         ),
         open_changes=relationship(Change,
-                                  primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                   change_table.c.status!='MERGED',
-                                                   change_table.c.status!='ABANDONED'),
+                                  primaryjoin=and_(project_table.c.key == change_table.c.project_key,
+                                                   change_table.c.status != 'MERGED',
+                                                   change_table.c.status != 'ABANDONED'),
                                   order_by=change_table.c.number,
                                   ),
         ))
@@ -467,8 +487,8 @@ mapper(Change, change_table, properties=dict(
         approvals=relationship(Approval, backref='change', order_by=(approval_table.c.category,
                                                                      approval_table.c.value)),
         draft_approvals=relationship(Approval,
-                                     primaryjoin=and_(change_table.c.key==approval_table.c.change_key,
-                                                      approval_table.c.draft==True),
+                                     primaryjoin=and_(change_table.c.key == approval_table.c.change_key,
+                                                      approval_table.c.draft == True),
                                      order_by=(approval_table.c.category,
                                                approval_table.c.value))
         ))
@@ -478,8 +498,8 @@ mapper(Revision, revision_table, properties=dict(
                               order_by=(comment_table.c.line,
                                         comment_table.c.created)),
         draft_comments=relationship(Comment,
-                                    primaryjoin=and_(revision_table.c.key==comment_table.c.revision_key,
-                                                     comment_table.c.draft==True),
+                                    primaryjoin=and_(revision_table.c.key == comment_table.c.revision_key,
+                                                     comment_table.c.draft == True),
                                     order_by=(comment_table.c.line,
                                               comment_table.c.created)),
         pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
@@ -495,12 +515,14 @@ mapper(Approval, approval_table, properties=dict(
 mapper(PendingCherryPick, pending_cherry_pick_table)
 mapper(SyncQuery, sync_query_table)
 
+
 class Database(object):
+
     def __init__(self, app):
         self.log = logging.getLogger('gertty.db')
         self.app = app
         self.engine = create_engine(self.app.config.dburi)
-        #metadata.create_all(self.engine)
+        # metadata.create_all(self.engine)
         self.migrate()
         # If we want the objects returned from query() to be usable
         # outside of the session, we need to expunge them from the session,
@@ -533,7 +555,9 @@ class Database(object):
             alembic.command.stamp(config, "44402069e137")
         alembic.command.upgrade(config, 'head')
 
+
 class DatabaseSession(object):
+
     def __init__(self, database):
         self.database = database
         self.session = database.session
@@ -552,7 +576,7 @@ class DatabaseSession(object):
         self.session().close()
         self.session = None
         end = time.time()
-        self.database.log.debug("Database lock held %s seconds" % (end-self.start,))
+        self.database.log.debug("Database lock held %s seconds" % (end - self.start,))
         self.database.lock.release()
 
     def abort(self):
@@ -638,7 +662,7 @@ class DatabaseSession(object):
         self.database.log.debug("Search query: %s" % query)
         q = self.session().query(Change).filter(self.search.parse(query))
         if unreviewed:
-            q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
+            q = q.filter(change_table.c.hidden == False, change_table.c.reviewed == False)
         if sort_by == 'updated':
             q = q.order_by(change_table.c.updated)
         else:

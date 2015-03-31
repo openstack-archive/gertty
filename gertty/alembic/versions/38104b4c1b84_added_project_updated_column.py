@@ -28,6 +28,7 @@ def upgrade():
 
     op.create_index(op.f('ix_project_updated'), 'project', ['updated'], unique=False)
 
+
 def downgrade():
     op.drop_index(op.f('ix_project_updated'), table_name='project')
     op.drop_column('project', 'updated')

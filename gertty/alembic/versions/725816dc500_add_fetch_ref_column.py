@@ -36,6 +36,7 @@ def upgrade():
         sa.Column('fetch_ref', sa.String(length=255), nullable=False)
         ])
 
+
 def downgrade():
     op.drop_column('revision', 'fetch_auth')
     op.drop_column('revision', 'fetch_ref')

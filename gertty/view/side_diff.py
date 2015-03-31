@@ -24,6 +24,7 @@ from gertty.view.diff import *
 
 LN_COL_WIDTH = 5
 
+
 class SideDiffCommentEdit(BaseDiffCommentEdit):
     def __init__(self, app, context, old_key=None, new_key=None, old=u'', new=u''):
         super(SideDiffCommentEdit, self).__init__([])
@@ -52,6 +53,7 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
             return None
         return r
 
+
 class SideDiffComment(BaseDiffComment):
     def __init__(self, context, old, new):
         super(SideDiffComment, self).__init__([])
@@ -67,6 +69,7 @@ class SideDiffComment(BaseDiffComment):
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         self.contents.append((newt, ('weight', 1, False)))
 
+
 class SideDiffLine(BaseDiffLine):
     def __init__(self, app, context, old, new, callback=None):
         super(SideDiffLine, self).__init__('', on_press=callback)
@@ -76,7 +79,7 @@ class SideDiffLine(BaseDiffLine):
             if ln is None:
                 ln = ''
             else:
-                ln = '%*i' % (LN_COL_WIDTH-1, ln)
+                ln = '%*i' % (LN_COL_WIDTH - 1, ln)
             ln_col = urwid.Text(('line-number', ln))
             ln_col.set_wrap_mode('clip')
             line_col = urwid.Text(line)
@@ -94,6 +97,7 @@ class SideDiffLine(BaseDiffLine):
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+
 class SideFileHeader(BaseFileHeader):
     def __init__(self, app, context, old, new, callback=None):
         super(SideFileHeader, self).__init__('', on_press=callback)
@@ -105,6 +109,7 @@ class SideFileHeader(BaseFileHeader):
                'filename': 'focused-filename'}
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+
 class SideFileReminder(BaseFileReminder):
     def __init__(self):
         self.old_text = urwid.Text(('filename', ''))
@@ -115,6 +120,7 @@ class SideFileReminder(BaseFileReminder):
     def set(self, old, new):
         self.old_text.set_text(('filename', old))
         self.new_text.set_text(('filename', new))
+
 
 class SideDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):

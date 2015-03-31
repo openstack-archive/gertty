@@ -17,6 +17,7 @@ import sqlalchemy as sa
 
 from gertty.dbsupport import sqlite_alter_columns, sqlite_drop_columns
 
+
 def upgrade():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

@@ -23,6 +23,7 @@ import gertty.search
 
 from tokenizer import tokens
 
+
 def SearchParser():
     precedence = (
         ('left', 'NOT', 'NEG'),
@@ -112,7 +113,7 @@ def SearchParser():
             delta = delta * 60 * 60 * 60 * 30
         elif unit == 'years':
             delta = delta * 60 * 60 * 60 * 365
-        p[0] = gertty.db.change_table.c.updated < (now-delta)
+        p[0] = gertty.db.change_table.c.updated < (now - delta)
 
     def p_change_term(p):
         '''change_term : OP_CHANGE CHANGE_ID
@@ -157,7 +158,7 @@ def SearchParser():
 
     def p_project_term(p):
         '''project_term : OP_PROJECT string'''
-        #TODO: support regex
+        # TODO: support regex
         p[0] = gertty.db.project_table.c.name == p[2]
 
     def p_project_key_term(p):
@@ -166,17 +167,17 @@ def SearchParser():
 
     def p_branch_term(p):
         '''branch_term : OP_BRANCH string'''
-        #TODO: support regex
+        # TODO: support regex
         p[0] = gertty.db.change_table.c.branch == p[2]
 
     def p_topic_term(p):
         '''topic_term : OP_TOPIC string'''
-        #TODO: support regex
+        # TODO: support regex
         p[0] = gertty.db.change_table.c.topic == p[2]
 
     def p_ref_term(p):
         '''ref_term : OP_REF string'''
-        #TODO: support regex
+        # TODO: support regex
         p[0] = gertty.db.change_table.c.branch == p[2][len('refs/heads/'):]
 
     label_re = re.compile(r'(?P<label>[a-zA-Z0-9_-]+([a-zA-Z]|((?<![-+])[0-9])))'
@@ -236,7 +237,7 @@ def SearchParser():
 
     def p_has_term(p):
         '''has_term : OP_HAS string'''
-        #TODO: implement star
+        # TODO: implement star
         if p[2] == 'draft':
             filters = []
             filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
@@ -249,7 +250,7 @@ def SearchParser():
 
     def p_is_term(p):
         '''is_term : OP_IS string'''
-        #TODO: implement watched, draft
+        # TODO: implement watched, draft
         username = p.parser.username
         if p[2] == 'reviewed':
             filters = []

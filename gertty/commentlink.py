@@ -28,7 +28,9 @@ try:
 except AttributeError:
     OrderedDict = ordereddict.OrderedDict
 
+
 class TextReplacement(object):
+
     def __init__(self, config):
         if isinstance(config, basestring):
             self.color = None
@@ -42,7 +44,9 @@ class TextReplacement(object):
             return (self.color.format(**data), self.text.format(**data))
         return (None, self.text.format(**data))
 
+
 class LinkReplacement(object):
+
     def __init__(self, config):
         self.url = config['url']
         self.text = config['text']
@@ -50,7 +54,7 @@ class LinkReplacement(object):
     def replace(self, app, data):
         link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
         urwid.connect_signal(link, 'selected',
-            lambda link:self.activate(app, self.url.format(**data)))
+            lambda link: self.activate(app, self.url.format(**data)))
         return link
 
     def activate(self, app, url):
@@ -59,7 +63,9 @@ class LinkReplacement(object):
             return app.openInternalURL(result)
         return app.openURL(url)
 
+
 class SearchReplacement(object):
+
     def __init__(self, config):
         self.query = config['query']
         self.text = config['text']
@@ -67,10 +73,12 @@ class SearchReplacement(object):
     def replace(self, app, data):
         link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
         urwid.connect_signal(link, 'selected',
-            lambda link:app.doSearch(self.query.format(**data)))
+            lambda link: app.doSearch(self.query.format(**data)))
         return link
 
+
 class CommentLink(object):
+
     def __init__(self, config):
         self.match = re.compile(config['match'], re.M)
         self.test_result = config.get('test-result', None)
@@ -118,4 +126,3 @@ class CommentLink(object):
                 ret += [r.replace(app, m.groupdict()) for r in self.replacements]
                 chunk = after
         return ret
-

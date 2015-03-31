@@ -26,6 +26,7 @@ import gertty.view
 
 
 class ThreadStack(object):
+
     def __init__(self):
         self.stack = []
 
@@ -46,6 +47,7 @@ class ThreadStack(object):
 
     def countChildren(self):
         return [len(x[1]) for x in self.stack]
+
 
 class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
@@ -136,6 +138,7 @@ class ChangeRow(urwid.Button):
                     val = ('negative-label', val)
             self.columns.contents.append((urwid.Text(val), self.columns.options('given', 2)))
 
+
 class ChangeListHeader(urwid.WidgetWrap):
     def __init__(self, project=False, owner=False, updated=False):
         cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u' Subject'))]
@@ -153,8 +156,10 @@ class ChangeListHeader(urwid.WidgetWrap):
         for category in categories:
             self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 2)))
 
+
 @mouse_scroll_decorator.ScrollByWheel
 class ChangeListView(urwid.WidgetWrap):
+
     def help(self):
         key = self.app.config.keymap.formatKeys
         return [
@@ -268,7 +273,7 @@ class ChangeListView(urwid.WidgetWrap):
             if focus_row in self.listbox.body:
                 pos = self.listbox.body.index(focus_row)
             else:
-                pos = min(focus_pos, len(self.listbox.body)-1)
+                pos = min(focus_pos, len(self.listbox.body) - 1)
             self.listbox.body.set_focus(pos)
             if change_list:
                 self.header.update(self.categories)
@@ -310,16 +315,16 @@ class ChangeListView(urwid.WidgetWrap):
             stack_children = stack.countChildren()
             for i, nchildren in enumerate(stack_children):
                 if nchildren:
-                    if i+1 == len(stack_children):
+                    if i + 1 == len(stack_children):
                         prefix += u'\u251c'
                     else:
                         prefix += u'\u2502'
                 else:
-                    if i+1 == len(stack_children):
+                    if i + 1 == len(stack_children):
                         prefix += u'\u2514'
                     else:
                         prefix += u' '
-                if i+1 == len(stack_children):
+                if i + 1 == len(stack_children):
                     prefix += u'\u2500'
                 else:
                     prefix += u' '
@@ -345,9 +350,9 @@ class ChangeListView(urwid.WidgetWrap):
             i = self.listbox.body.index(row)
         except ValueError:
             return None
-        if i+1 >= len(self.listbox.body):
+        if i + 1 >= len(self.listbox.body):
             return None
-        row = self.listbox.body[i+1]
+        row = self.listbox.body[i + 1]
         return row.change_key
 
     def getPrevChangeKey(self, change_key):
@@ -358,7 +363,7 @@ class ChangeListView(urwid.WidgetWrap):
             return None
         if i <= 0:
             return None
-        row = self.listbox.body[i-1]
+        row = self.listbox.body[i - 1]
         return row.change_key
 
     def toggleReviewed(self, change_key):

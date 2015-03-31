@@ -26,7 +26,7 @@ def upgrade():
     connection = op.get_bind()
     change = sa.sql.table('change',
                           sa.sql.column('held', sa.Boolean()))
-    connection.execute(change.update().values({'held':False}))
+    connection.execute(change.update().values({'held': False}))
 
     sqlite_alter_columns('change', [
         sa.Column('held', sa.Boolean(), index=True, nullable=False),

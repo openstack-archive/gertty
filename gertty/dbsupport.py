@@ -74,7 +74,7 @@ def sqlite_alter_columns(table_name, column_defs):
         # copy it because we may already be creating a new version of
         # it (or removing it).
         idx_columns = [col.name for col in index.columns]
-        if len(idx_columns)==1 and idx_columns[0] in changed_columns.keys():
+        if len(idx_columns) == 1 and idx_columns[0] in changed_columns.keys():
             continue
         # Otherwise, recreate the index.
         indexes.append((index.name,
@@ -103,6 +103,7 @@ def sqlite_alter_columns(table_name, column_defs):
     # (re-)create indexes
     for index in indexes:
         op.create_index(op.f(index[0]), index[1], index[2], unique=index[3])
+
 
 def sqlite_drop_columns(table_name, drop_columns):
     """Implement drop columns for SQLite.
@@ -141,7 +142,7 @@ def sqlite_drop_columns(table_name, drop_columns):
         # If this is a single column index for a dropped column, don't
         # copy it.
         idx_columns = [col.name for col in index.columns]
-        if len(idx_columns)==1 and idx_columns[0] in drop_columns:
+        if len(idx_columns) == 1 and idx_columns[0] in drop_columns:
             continue
         # Otherwise, recreate the index.
         indexes.append((index.name,

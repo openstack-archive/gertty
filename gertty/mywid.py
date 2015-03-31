@@ -31,7 +31,9 @@ GLOBAL_HELP = (
      "List held changes"),
     )
 
+
 class TextButton(urwid.Button):
+
     def selectable(self):
         return True
 
@@ -40,27 +42,35 @@ class TextButton(urwid.Button):
         self.text = urwid.Text(text)
         self._w = urwid.AttrMap(self.text, None, focus_map='focused')
 
+
 class FixedButton(urwid.Button):
+
     def sizing(self):
         return frozenset([urwid.FIXED])
 
     def pack(self, size, focus=False):
-        return (len(self.get_label())+4, 1)
+        return (len(self.get_label()) + 4, 1)
+
 
 class FixedRadioButton(urwid.RadioButton):
+
     def sizing(self):
         return frozenset([urwid.FIXED])
 
     def pack(self, size, focus=False):
-        return (len(self.get_label())+4, 1)
+        return (len(self.get_label()) + 4, 1)
+
 
 class TableColumn(urwid.Pile):
+
     def pack(self, size, focus=False):
         maxcol = size[0]
         mx = max([i[0].pack((maxcol,), focus)[0] for i in self.contents])
-        return (min(mx+2, maxcol), len(self.contents))
+        return (min(mx + 2, maxcol), len(self.contents))
+
 
 class Table(urwid.WidgetWrap):
+
     def __init__(self, headers=[], columns=None):
         if columns is None:
             cols = [('pack', TableColumn([('pack', w)])) for w in headers]
@@ -73,7 +83,9 @@ class Table(urwid.WidgetWrap):
         for i, widget in enumerate(cells):
             self._w.contents[i][0].contents.append((widget, ('pack', None)))
 
+
 class ButtonDialog(urwid.WidgetWrap):
+
     def __init__(self, title, message, entry_prompt=None, entry_text='', buttons=[]):
         button_widgets = []
         for button in buttons:
@@ -92,15 +104,17 @@ class ButtonDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(ButtonDialog, self).__init__(urwid.LineBox(fill, title))
 
+
 class TextEditDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
+
     def __init__(self, title, prompt, button, text):
         save_button = FixedButton(button)
         cancel_button = FixedButton('Cancel')
         urwid.connect_signal(save_button, 'click',
-                             lambda button:self._emit('save'))
+                             lambda button: self._emit('save'))
         urwid.connect_signal(cancel_button, 'click',
-                             lambda button:self._emit('cancel'))
+                             lambda button: self._emit('cancel'))
         button_widgets = [('pack', save_button),
                           ('pack', cancel_button)]
         button_columns = urwid.Columns(button_widgets, dividechars=2)
@@ -114,25 +128,30 @@ class TextEditDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(TextEditDialog, self).__init__(urwid.LineBox(fill, title))
 
+
 class MessageDialog(ButtonDialog):
     signals = ['close']
+
     def __init__(self, title, message):
         ok_button = FixedButton('OK')
         urwid.connect_signal(ok_button, 'click',
-                             lambda button:self._emit('close'))
+                             lambda button: self._emit('close'))
         super(MessageDialog, self).__init__(title, message, buttons=[ok_button])
+
 
 class YesNoDialog(ButtonDialog):
     signals = ['yes', 'no']
+
     def __init__(self, title, message):
         yes_button = FixedButton('Yes')
         no_button = FixedButton('No')
         urwid.connect_signal(yes_button, 'click',
-                             lambda button:self._emit('yes'))
+                             lambda button: self._emit('yes'))
         urwid.connect_signal(no_button, 'click',
-                             lambda button:self._emit('no'))
+                             lambda button: self._emit('no'))
         super(YesNoDialog, self).__init__(title, message, buttons=[yes_button,
                                                                    no_button])
+
     def keypress(self, size, key):
         r = super(YesNoDialog, self).keypress(size, key)
         if r in ('Y', 'y'):
@@ -142,6 +161,7 @@ class YesNoDialog(ButtonDialog):
             self._emit('no')
             return None
         return r
+
 
 class HyperText(urwid.Text):
     _selectable = True
@@ -162,7 +182,7 @@ class HyperText(urwid.Text):
     def focusLastItem(self):
         if len(self.selectable_items) == 0:
             return False
-        self.focusItem(len(self.selectable_items)-1)
+        self.focusItem(len(self.selectable_items) - 1)
         return True
 
     def focusPreviousItem(self):
@@ -170,7 +190,7 @@ class HyperText(urwid.Text):
             return False
         if self.focused_index is None:
             self.focusItem(self.last_focused_index)
-        item = max(0, self.focused_index-1)
+        item = max(0, self.focused_index - 1)
         if item != self.focused_index:
             self.focusItem(item)
             return True
@@ -181,7 +201,7 @@ class HyperText(urwid.Text):
             return False
         if self.focused_index is None:
             self.focusItem(self.last_focused_index)
-        item = min(len(self.selectable_items)-1, self.focused_index+1)
+        item = min(len(self.selectable_items) - 1, self.focused_index + 1)
         if item != self.focused_index:
             self.focusItem(item)
             return True
@@ -262,9 +282,9 @@ class HyperText(urwid.Text):
         if isinstance(markup, tuple):
             return (markup[0], self.processLinks(markup[1], data))
         if isinstance(markup, Link):
-            self.selectable_items.append((markup, data['pos'], data['pos']+len(markup.text)))
+            self.selectable_items.append((markup, data['pos'], data['pos'] + len(markup.text)))
             data['pos'] += len(markup.text)
-            focused = len(self.selectable_items)-1 == self.focused_index
+            focused = len(self.selectable_items) - 1 == self.focused_index
             link_attr = markup.getAttr(focused)
             if link_attr:
                 return (link_attr, markup.text)
@@ -291,6 +311,7 @@ class HyperText(urwid.Text):
             self.focusItem(None)
         return super(HyperText, self).render(size, focus)
 
+
 class Link(urwid.Widget):
     signals = ['selected']
 
@@ -310,7 +331,10 @@ class Link(urwid.Widget):
 # A workaround for the issue fixed in
 # https://github.com/wardi/urwid/pull/74
 # included here until thi fix is released
+
+
 class MyGridFlow(urwid.GridFlow):
+
     def generate_display_widget(self, size):
         p = super(MyGridFlow, self).generate_display_widget(size)
         for item in p.contents:
