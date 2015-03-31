@@ -163,7 +163,7 @@ class KeyMap(object):
             if command == 'name':
                 continue
             command = command.replace('-', ' ')
-            if type(keys) != type([]):
+            if isinstance(keys, basestring):
                 keys = [keys]
             self.commandmap[command] = keys
         self.keymap = {}
