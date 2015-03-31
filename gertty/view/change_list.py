@@ -18,7 +18,6 @@ import logging
 import urwid
 
 from gertty import keymap
-from gertty import mywid
 from gertty import sync
 from gertty.view import change as view_change
 from gertty.view import mouse_scroll_decorator

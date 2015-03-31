@@ -13,14 +13,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-import logging
-
 import urwid
 
-from gertty import mywid
 from gertty import gitrepo
-from gertty.view.diff import *
+from gertty.view.diff import BaseDiffCommentEdit, BaseDiffComment, BaseDiffLine
+from gertty.view.diff import BaseFileHeader, BaseFileReminder, BaseDiffView
+from gertty.view.diff import LineContext
 
 LN_COL_WIDTH = 5
 

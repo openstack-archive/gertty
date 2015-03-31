@@ -20,9 +20,9 @@ import threading
 import alembic
 import alembic.config
 import sqlalchemy
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, select, func
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.schema import ForeignKey
-from sqlalchemy.orm import mapper, sessionmaker, relationship, column_property, scoped_session
+from sqlalchemy.orm import mapper, sessionmaker, relationship, scoped_session
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import and_
