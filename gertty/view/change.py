@@ -768,7 +768,8 @@ class ChangeView(urwid.WidgetWrap):
         # Handle needed-by
         children = {}
         children.update((r.change.key, r.change.subject)
-                        for r in session.getRevisionsByParent([revision.commit for revision in change.revisions])
+                        for r in session.getRevisionsByParent(
+                            [revision.commit for revision in change.revisions])
                         if (r.change.status != 'MERGED' and
                             r == r.change.revisions[-1]))
         self._updateDependenciesWidget(children,

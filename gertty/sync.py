@@ -139,7 +139,8 @@ class ChangeAddedEvent(UpdateEvent):
 
 class ChangeUpdatedEvent(UpdateEvent):
     def __repr__(self):
-        return '<ChangeUpdatedEvent project_key:%s change_key:%s review_flag_changed:%s status_changed:%s>' % (
+        return '<ChangeUpdatedEvent project_key:%s change_key:%s ' \
+               'review_flag_changed:%s status_changed:%s>' % (
             self.project_key, self.change_key, self.review_flag_changed, self.status_changed)
 
     def __init__(self, change):
@@ -474,10 +475,14 @@ class SyncChangeTask(Task):
     def run(self, sync):
         start_time = time.time()
         app = sync.app
-        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS' % self.change_id)
+        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS'
+                                 '&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS'
+                                 '&o=CURRENT_ACTIONS'
+                                 % self.change_id)
         # Perform subqueries this task will need outside of the db session
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
-            remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
+            remote_comments_data = sync.get('changes/%s/revisions/%s/comments'
+                                            % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
         fetches = collections.defaultdict(list)
         parent_commits = set()
@@ -609,9 +614,14 @@ class SyncChangeTask(Task):
                         created = dateutil.parser.parse(remote_message['date'])
                         message = revision.createMessage(remote_message['id'], account, created,
                                                      remote_message['message'])
-                        self.log.info("Created new review message %s for revision %s in local DB.", message.key, revision.key)
+                        self.log.info("Created new review message %s for "
+                                      "revision %s in local DB.",
+                                      message.key, revision.key)
                     else:
-                        self.log.info("Unable to create new review message for revision %s because it is not in local DB (draft?).", remote_message.get('_revision_number'))
+                        self.log.info("Unable to create new review message for "
+                                      "revision %s because it is not in local "
+                                      "DB (draft?).",
+                                      remote_message.get('_revision_number'))
                 else:
                     if message.author != account:
                         message.author = account
@@ -625,7 +635,8 @@ class SyncChangeTask(Task):
                     remote_approval['category'] = remote_label_name
                     key = '%s~%s' % (remote_approval['category'], remote_approval['_account_id'])
                     remote_approval_entries[key] = remote_approval
-                    if remote_approval['_account_id'] == sync.account_id and int(remote_approval['value']) != 0:
+                    if remote_approval['_account_id'] == sync.account_id \
+                            and int(remote_approval['value']) != 0:
                         user_voted = True
                 for key, value in remote_label_dict.get('values', {}).items():
                     # +1: "LGTM"
@@ -692,7 +703,9 @@ class SyncChangeTask(Task):
                     if not change.held:
                         change.held = True
                         result.held_changed = True
-                        self.log.info("Setting change %s to held due to negative review after positive", change.id)
+                        self.log.info("Setting change %s to held due to"
+                                      " negative review after positive",
+                                      change.id)
 
             for key in remote_label_keys - local_label_keys:
                 remote_label = remote_label_entries[key]

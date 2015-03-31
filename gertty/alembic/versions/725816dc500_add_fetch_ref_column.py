@@ -25,7 +25,8 @@ def upgrade():
         op.add_column('revision', sa.Column('fetch_ref', sa.String(length=255)))
 
     conn = op.get_bind()
-    res = conn.execute('select r.key, r.number, c.number from revision r, "change" c where r.change_key=c.key')
+    res = conn.execute('select r.key, r.number, c.number from revision r, '
+                       '"change" c where r.change_key=c.key')
     for (rkey, rnumber, cnumber) in res.fetchall():
         q = sa.text('update revision set fetch_auth=:auth, fetch_ref=:ref where "key"=:key')
         ref = 'refs/changes/%s/%s/%s' % (str(cnumber)[-2:], cnumber, rnumber)
