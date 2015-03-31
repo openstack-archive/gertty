@@ -19,7 +19,6 @@ import urlparse
 
 import urwid
 
-from gertty import gitrepo
 from gertty import keymap
 from gertty import mywid
 from gertty import sync

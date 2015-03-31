@@ -10,7 +10,6 @@ Create Date: 2014-05-05 11:49:42.133569
 revision = '56e48a4a064a'
 down_revision = '44402069e137'
 
-from alembic import op
 import sqlalchemy as sa
 
 from gertty.dbsupport import sqlite_alter_columns
