@@ -15,6 +15,7 @@
 
 import datetime
 import logging
+import urlparse
 
 import urwid
 
@@ -440,6 +441,7 @@ class ChangeView(urwid.WidgetWrap):
         self.created_label = urwid.Text(u'', wrap='clip')
         self.updated_label = urwid.Text(u'', wrap='clip')
         self.status_label = urwid.Text(u'', wrap='clip')
+        self.permalink_label = urwid.Text(u'', wrap='clip')
         change_info = []
         change_info_map={'change-data': 'focused-change-data'}
         for l, v in [("Change-Id", self.change_id_label),
@@ -452,6 +454,7 @@ class ChangeView(urwid.WidgetWrap):
                      ("Created", self.created_label),
                      ("Updated", self.updated_label),
                      ("Status", self.status_label),
+                     ("Permalink", self.permalink_label),
                      ]:
             row = urwid.Columns([(12, urwid.Text(('change-header', l), wrap='clip')), v])
             change_info.append(row)
@@ -555,6 +558,8 @@ class ChangeView(urwid.WidgetWrap):
             self.created_label.set_text(('change-data', str(self.app.time(change.created))))
             self.updated_label.set_text(('change-data', str(self.app.time(change.updated))))
             self.status_label.set_text(('change-data', change.status))
+            url = urlparse.urljoin(self.app.config.url, str(change.number))
+            self.permalink_label.set_text(('change-data', url))
             self.commit_message.set_text(change.revisions[-1].message)
 
             categories = []
