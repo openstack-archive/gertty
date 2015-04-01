@@ -175,6 +175,10 @@ class Config(object):
         if not git_url.endswith('/'):
             git_url += '/'
         self.git_url = git_url
+        if 'git-url' in server:
+            self.git_url_supplied = True
+        else:
+            self.git_url_supplied = False
         self.dburi = server.get('dburi',
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
         log_file = server.get('log-file', '~/.gertty.log')
