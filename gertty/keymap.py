@@ -37,7 +37,6 @@ CHANGE_SEARCH = 'change search'
 # Change screen:
 TOGGLE_REVIEWED = 'toggle reviewed'
 TOGGLE_HIDDEN = 'toggle hidden'
-TOGGLE_STARRED = 'toggle starred'
 REVIEW = 'review'
 DIFF = 'diff'
 LOCAL_CHECKOUT = 'local checkout'
@@ -85,7 +84,6 @@ DEFAULT_KEYMAP = {
 
     TOGGLE_REVIEWED: 'v',
     TOGGLE_HIDDEN: 'k',
-    TOGGLE_STARRED: '*',
     REVIEW: 'r',
     DIFF: 'd',
     LOCAL_CHECKOUT: 'c',
