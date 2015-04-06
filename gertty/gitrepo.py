@@ -234,6 +234,11 @@ class GitCheckoutError(Exception):
         super(GitCheckoutError, self).__init__(msg)
         self.msg = msg
 
+class GitCloneError(Exception):
+    def __init__(self, msg):
+        super(GitCloneError, self).__init__(msg)
+        self.msg = msg
+
 class Repo(object):
     def __init__(self, url, path):
         self.log = logging.getLogger('gertty.gitrepo')
@@ -241,10 +246,9 @@ class Repo(object):
         self.path = path
         self.differ = difflib.Differ()
         if not os.path.exists(path):
+            if url is None:
+                raise GitCloneError("No URL available for git clone")
             git.Repo.clone_from(self.url, self.path)
-            self.newly_cloned = True
-        else:
-            self.newly_cloned = False
 
     def hasCommit(self, sha):
         repo = git.Repo(self.path)

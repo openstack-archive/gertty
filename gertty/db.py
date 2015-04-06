@@ -74,6 +74,7 @@ revision_table = Table(
     Column('message', Text, nullable=False),
     Column('commit', String(255), index=True, nullable=False),
     Column('parent', String(255), index=True, nullable=False),
+    # TODO: fetch_ref, fetch_auth are unused; remove
     Column('fetch_auth', Boolean, nullable=False),
     Column('fetch_ref', String(255), nullable=False),
     Column('pending_message', Boolean, index=True, nullable=False),

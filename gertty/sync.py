@@ -35,6 +35,7 @@ import requests
 import requests.utils
 
 import gertty.version
+import gertty.gitrepo
 
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
@@ -712,8 +713,9 @@ class SyncChangeTask(Task):
 
 class CheckReposTask(Task):
     # on startup, check all projects
-    #   for any newly cloned project, run checkrevisionstask on that project
-    #   if --fetch-missing-refs is supplied, run crt on every project
+    #   for any subscribed project withot a local repo or if
+    #   --fetch-missing-refs is supplied, check all local changes for
+    #   missing refs, and sync the associated changes
     def __repr__(self):
         return '<CheckReposTask>'
 
@@ -723,8 +725,12 @@ class CheckReposTask(Task):
             projects = session.getProjects(subscribed=True)
         for project in projects:
             try:
-                repo = app.getRepo(project.name)
-                if repo.newly_cloned or app.fetch_missing_refs:
+                missing = False
+                try:
+                    repo = app.getRepo(project.name)
+                except gitrepo.GitCloneError:
+                    missing = True
+                if missing or app.fetch_missing_refs:
                     sync.submitTask(CheckRevisionsTask(project.key,
                                                        priority=LOW_PRIORITY))
             except Exception:
@@ -741,50 +747,24 @@ class CheckRevisionsTask(Task):
 
     def run(self, sync):
         app = sync.app
-        to_fetch = collections.defaultdict(list)
+        to_sync = set()
         with app.db.getSession() as session:
             project = session.getProject(self.project_key)
-            repo = app.getRepo(project.name)
+            repo = None
+            try:
+                repo = app.getRepo(project.name)
+            except gitrepo.GitCloneError:
+                pass
             for change in project.open_changes:
-                for revision in change.revisions:
-                    if not (repo.hasCommit(revision.parent) and
-                            repo.hasCommit(revision.commit)):
-                        if revision.fetch_ref:
-                            to_fetch[(project.name, revision.fetch_auth)
-                                     ].append(revision.fetch_ref)
-        for (name, auth), refs in to_fetch.items():
-            sync.submitTask(FetchRefTask(name, refs, auth, priority=self.priority))
-
-class FetchRefTask(Task):
-    def __init__(self, project_name, refs, auth, priority=NORMAL_PRIORITY):
-        super(FetchRefTask, self).__init__(priority)
-        self.project_name = project_name
-        self.refs = refs
-        self.auth = auth
-
-    def __repr__(self):
-        return '<FetchRefTask %s %s>' % (self.project_name, self.refs)
-
-    def run(self, sync):
-        # TODO: handle multiple parents
-        url = sync.app.config.url + self.project_name
-        if self.auth:
-            url = list(urlparse.urlsplit(url))
-            url[1] = '%s:%s@%s' % (sync.app.config.username,
-                                   sync.app.config.password, url[1])
-            url = urlparse.urlunsplit(url)
-        self.log.debug("git fetch %s %s" % (url, self.refs))
-        repo = sync.app.getRepo(self.project_name)
-        refs = ['+%(ref)s:%(ref)s' % dict(ref=ref) for ref in self.refs]
-        try:
-            repo.fetch(url, refs)
-        except Exception:
-            # Backwards compat with GitPython before the multi-ref fetch
-            # patch.
-            # (https://github.com/gitpython-developers/GitPython/pull/170)
-            for ref in refs:
-                self.log.debug("git fetch %s %s" % (url, ref))
-                repo.fetch(url, ref)
+                if repo:
+                    for revision in change.revisions:
+                        if not (repo.hasCommit(revision.parent) and
+                                repo.hasCommit(revision.commit)):
+                            to_sync.add(change.id)
+                else:
+                    to_sync.add(change.id)
+        for change_id in to_sync:
+            sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
 class UploadReviewsTask(Task):
     def __repr__(self):
