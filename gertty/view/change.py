@@ -435,7 +435,7 @@ class ChangeView(urwid.WidgetWrap):
         self.hide_comments = True
         self.change_id_label = urwid.Text(u'', wrap='clip')
         self.owner_label = mywid.TextButton(u'', on_press=self.searchOwner)
-        self.project_label = urwid.Text(u'', wrap='clip')
+        self.project_label = mywid.TextButton(u'', on_press=self.searchProject)
         self.branch_label = urwid.Text(u'', wrap='clip')
         self.topic_label = urwid.Text(u'', wrap='clip')
         self.created_label = urwid.Text(u'', wrap='clip')
@@ -448,7 +448,9 @@ class ChangeView(urwid.WidgetWrap):
                      ("Owner", urwid.Padding(urwid.AttrMap(self.owner_label, None,
                                                            focus_map=change_info_map),
                                              width='pack')),
-                     ("Project", self.project_label),
+                     ("Project", urwid.Padding(urwid.AttrMap(self.project_label, None,
+                                                           focus_map=change_info_map),
+                                             width='pack')),
                      ("Branch", self.branch_label),
                      ("Topic", self.topic_label),
                      ("Created", self.created_label),
@@ -544,6 +546,7 @@ class ChangeView(urwid.WidgetWrap):
                                                 hidden, held)
             self.app.status.update(title=self.title)
             self.project_key = change.project.key
+            self.project_name = change.project.name
             self.change_rest_id = change.id
             if change.owner:
                 self.owner_email = change.owner.email
@@ -552,7 +555,7 @@ class ChangeView(urwid.WidgetWrap):
 
             self.change_id_label.set_text(('change-data', change.change_id))
             self.owner_label.text.set_text(('change-data', change.owner_name))
-            self.project_label.set_text(('change-data', change.project.name))
+            self.project_label.text.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.set_text(('change-data', self.topic))
             self.created_label.set_text(('change-data', str(self.app.time(change.created))))
@@ -1001,6 +1004,9 @@ class ChangeView(urwid.WidgetWrap):
     def searchOwner(self, widget):
         if self.owner_email:
             self.app.doSearch("status:open owner:%s" % (self.owner_email,))
+
+    def searchProject(self, widget):
+        self.app.doSearch("status:open project:%s" % (self.project_name,))
 
     def reviewKey(self, reviewkey):
         approvals = {}
