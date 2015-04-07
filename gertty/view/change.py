@@ -437,7 +437,7 @@ class ChangeView(urwid.WidgetWrap):
         self.owner_label = mywid.TextButton(u'', on_press=self.searchOwner)
         self.project_label = mywid.TextButton(u'', on_press=self.searchProject)
         self.branch_label = urwid.Text(u'', wrap='clip')
-        self.topic_label = urwid.Text(u'', wrap='clip')
+        self.topic_label = mywid.TextButton(u'', on_press=self.searchTopic)
         self.created_label = urwid.Text(u'', wrap='clip')
         self.updated_label = urwid.Text(u'', wrap='clip')
         self.status_label = urwid.Text(u'', wrap='clip')
@@ -452,7 +452,9 @@ class ChangeView(urwid.WidgetWrap):
                                                            focus_map=change_info_map),
                                              width='pack')),
                      ("Branch", self.branch_label),
-                     ("Topic", self.topic_label),
+                     ("Topic", urwid.Padding(urwid.AttrMap(self.topic_label, None,
+                                                           focus_map=change_info_map),
+                                             width='pack')),
                      ("Created", self.created_label),
                      ("Updated", self.updated_label),
                      ("Status", self.status_label),
@@ -557,7 +559,7 @@ class ChangeView(urwid.WidgetWrap):
             self.owner_label.text.set_text(('change-data', change.owner_name))
             self.project_label.text.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
-            self.topic_label.set_text(('change-data', self.topic))
+            self.topic_label.text.set_text(('change-data', self.topic))
             self.created_label.set_text(('change-data', str(self.app.time(change.created))))
             self.updated_label.set_text(('change-data', str(self.app.time(change.updated))))
             self.status_label.set_text(('change-data', change.status))
@@ -1007,6 +1009,10 @@ class ChangeView(urwid.WidgetWrap):
 
     def searchProject(self, widget):
         self.app.doSearch("status:open project:%s" % (self.project_name,))
+
+    def searchTopic(self, widget):
+        if self.topic:
+            self.app.doSearch("status:open topic:%s" % (self.topic,))
 
     def reviewKey(self, reviewkey):
         approvals = {}
