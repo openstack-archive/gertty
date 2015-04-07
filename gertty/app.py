@@ -510,7 +510,6 @@ class App(object):
             self.doSearch("status:open is:held")
         elif key in self.config.dashboards:
             d = self.config.dashboards[key]
-            self.clearHistory()
             view = view_change_list.ChangeListView(self, d['query'], d['name'])
             self.changeScreen(view)
 
