@@ -50,8 +50,14 @@ class LinkReplacement(object):
     def replace(self, app, data):
         link = mywid.Link(self.text.format(**data), 'link', 'focused-link')
         urwid.connect_signal(link, 'selected',
-            lambda link:app.openURL(self.url.format(**data)))
+            lambda link:self.activate(app, self.url.format(**data)))
         return link
+
+    def activate(self, app, url):
+        result = app.parseInternalURL(url)
+        if result is not None:
+            return app.openInternalURL(result)
+        return app.openURL(url)
 
 class SearchReplacement(object):
     def __init__(self, config):
