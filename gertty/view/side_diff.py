@@ -105,6 +105,16 @@ class SideFileHeader(BaseFileHeader):
                'filename': 'focused-filename'}
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+class SideFileReminder(BaseFileReminder):
+    def __init__(self):
+        self.old_text = urwid.Text(('filename', ''))
+        self.new_text = urwid.Text(('filename', ''))
+        col = urwid.Columns([self.old_text, self.new_text])
+        super(SideFileReminder, self).__init__(col)
+
+    def set(self, old, new):
+        self.old_text.set_text(('filename', old))
+        self.new_text.set_text(('filename', new))
 
 class SideDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):
@@ -147,6 +157,9 @@ class SideDiffView(BaseDiffView):
                                                  new_comment_key,
                                                  old_comment, new_comment))
         return lines
+
+    def makeFileReminder(self):
+        return SideFileReminder()
 
     def makeFileHeader(self, diff, comment_lists):
         context = LineContext(
