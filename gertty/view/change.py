@@ -347,9 +347,15 @@ class ChangeMessageBox(mywid.HyperText):
         if message.draft:
             lines.insert(0, '')
             lines.insert(0, 'Patch Set %s:' % (message.revision.number,))
-        text = [('change-message-name', message.author_name),
-                ('change-message-header', ': '+lines.pop(0)),
-                ('change-message-header',
+        if message.author.username == self.app.config.username:
+            name_style = 'change-message-own-name'
+            header_style = 'change-message-own-header'
+        else:
+            name_style = 'change-message-name'
+            header_style = 'change-message-header'
+        text = [(name_style, message.author_name),
+                (header_style, ': '+lines.pop(0)),
+                (header_style,
                  created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
         if message.draft and not message.pending:
             text.append(('change-message-draft', ' (draft)'))
@@ -588,7 +594,11 @@ class ChangeView(urwid.WidgetWrap):
                 if not approvals:
                     approvals = {}
                     row = []
-                    row.append(urwid.Text(('reviewer-name', approval.reviewer.name)))
+                    if approval.reviewer.username == self.app.config.username:
+                        style = 'reviewer-own-name'
+                    else:
+                        style = 'reviewer-name'
+                    row.append(urwid.Text((style, approval.reviewer.name)))
                     for i, category in enumerate(categories):
                         w = urwid.Text(u'', align=urwid.CENTER)
                         approvals[category] = w
