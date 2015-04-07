@@ -930,6 +930,10 @@ class UploadReviewTask(Task):
 
         with app.db.getSession() as session:
             message = session.getMessage(self.message_key)
+            if message is None:
+                self.log.debug("Message %s for change %s has already been uploaded" % (
+                    self.message_key, change.id))
+                return
             change = message.revision.change
         if not change.held:
             self.log.debug("Syncing %s to find out if it should be held" % (change.id,))
