@@ -433,7 +433,7 @@ class ChangeView(urwid.WidgetWrap):
         self.message_rows = {}
         self.last_revision_key = None
         self.hide_comments = True
-        self.change_id_label = urwid.Text(u'', wrap='clip')
+        self.change_id_label = mywid.TextButton(u'', on_press=self.searchChangeId)
         self.owner_label = mywid.TextButton(u'', on_press=self.searchOwner)
         self.project_label = mywid.TextButton(u'', on_press=self.searchProject)
         self.branch_label = urwid.Text(u'', wrap='clip')
@@ -444,7 +444,9 @@ class ChangeView(urwid.WidgetWrap):
         self.permalink_label = urwid.Text(u'', wrap='clip')
         change_info = []
         change_info_map={'change-data': 'focused-change-data'}
-        for l, v in [("Change-Id", self.change_id_label),
+        for l, v in [("Change-Id", urwid.Padding(urwid.AttrMap(self.change_id_label, None,
+                                                               focus_map=change_info_map),
+                                                 width='pack')),
                      ("Owner", urwid.Padding(urwid.AttrMap(self.owner_label, None,
                                                            focus_map=change_info_map),
                                              width='pack')),
@@ -550,12 +552,13 @@ class ChangeView(urwid.WidgetWrap):
             self.project_key = change.project.key
             self.project_name = change.project.name
             self.change_rest_id = change.id
+            self.change_id = change.change_id
             if change.owner:
                 self.owner_email = change.owner.email
             else:
                 self.owner_email = None
 
-            self.change_id_label.set_text(('change-data', change.change_id))
+            self.change_id_label.text.set_text(('change-data', change.change_id))
             self.owner_label.text.set_text(('change-data', change.owner_name))
             self.project_label.text.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
@@ -1002,6 +1005,9 @@ class ChangeView(urwid.WidgetWrap):
                 sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
         self.app.backScreen()
         self.refresh()
+
+    def searchChangeId(self, widget):
+        self.app.doSearch("status:open change:%s" % (self.change_id,))
 
     def searchOwner(self, widget):
         if self.owner_email:
