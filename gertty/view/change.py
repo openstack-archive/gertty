@@ -332,7 +332,10 @@ class ChangeButton(mywid.FixedButton):
         super(ChangeButton, self).set_label(text)
 
     def openChange(self):
-        self.change_view.app.changeScreen(ChangeView(self.change_view.app, self.change_key))
+        try:
+            self.change_view.app.changeScreen(ChangeView(self.change_view.app, self.change_key))
+        except gertty.view.DisplayError as e:
+            self.change_view.app.error(e.message)
 
 class ChangeMessageBox(mywid.HyperText):
     def __init__(self, app, message):
