@@ -105,6 +105,20 @@ class UnifiedFileHeader(BaseFileHeader):
                'filename': 'focused-filename'}
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
+class UnifiedFileReminder(BaseFileReminder):
+    def __init__(self):
+        self.old_text = urwid.Text(('filename', ''))
+        self.new_text = urwid.Text(('filename', ''))
+        self.col = urwid.Columns([('pack', self.old_text),
+                                  ('pack', self.new_text),
+                                  urwid.Text(u'')], dividechars=2)
+        super(UnifiedFileReminder, self).__init__(self.col)
+
+    def set(self, old, new):
+        self.old_text.set_text(('filename', old))
+        self.new_text.set_text(('filename', new))
+        self.col._invalidate()
+
 class UnifiedDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []
@@ -152,6 +166,9 @@ class UnifiedDiffView(BaseDiffView):
                                                     new_comment_key,
                                                     new_comment))
         return lines
+
+    def makeFileReminder(self):
+        return UnifiedFileReminder()
 
     def makeFileHeader(self, diff, comment_lists):
         context = LineContext(

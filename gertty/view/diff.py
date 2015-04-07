@@ -110,6 +110,9 @@ class BaseFileHeader(urwid.Button):
     def selectable(self):
         return True
 
+class BaseFileReminder(urwid.WidgetWrap):
+    pass
+
 class DiffContextButton(urwid.WidgetWrap):
     def selectable(self):
         return True
@@ -232,7 +235,8 @@ class BaseDiffView(urwid.WidgetWrap):
                 comment_filenames.add(comment.file)
         repo = self.app.getRepo(self.project_name)
         self._w.contents.append((self.app.header, ('pack', 1)))
-        self._w.contents.append((urwid.Divider(), ('pack', 1)))
+        self.file_reminder = self.makeFileReminder()
+        self._w.contents.append((self.file_reminder, ('pack', 1)))
         lines = []  # The initial set of lines to display
         self.file_diffs = [{}, {}]  # Mapping of fn -> DiffFile object (old, new)
         # this is a list of files:
@@ -343,6 +347,9 @@ class BaseDiffView(urwid.WidgetWrap):
     def makeFileHeader(self, diff, comment_lists):
         raise NotImplementedError
 
+    def makeFileReminder(self):
+        raise NotImplementedError
+
     def interested(self, event):
         if not ((isinstance(event, sync.ChangeAddedEvent) and
                  self.change_key in event.related_change_keys)
@@ -358,10 +365,37 @@ class BaseDiffView(urwid.WidgetWrap):
         #TODO
         pass
 
+    def getContextAtTop(self, size):
+        middle, top, bottom = self.listbox.calculate_visible(size, True)
+        if top and top[1]:
+            (widget, pos, rows) = top[1][-1]
+        elif middle:
+            pos = middle[2]
+        # Make sure the first header shows up as soon as it scrolls up
+        if pos > 1:
+            pos -= 1
+        context = None
+        while True:
+            item = self.listbox.body[pos]
+            if hasattr(item, 'context'):
+                break
+            pos -= 1
+        if pos > 0:
+            context = item.context
+        return context
+
     def keypress(self, size, key):
         old_focus = self.listbox.focus
         r = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
+
+        context = self.getContextAtTop(size)
+        if context:
+            self.file_reminder.set(context.old_fn,
+                                   context.new_fn)
+        else:
+            self.file_reminder.set('', '')
+
         commands = self.app.config.keymap.getCommands(r)
         if (isinstance(old_focus, BaseDiffCommentEdit) and
             (old_focus != new_focus or (keymap.PREV_SCREEN in commands))):
