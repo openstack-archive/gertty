@@ -500,6 +500,9 @@ class App(object):
         commands = self.config.keymap.getCommands(key)
         if keymap.PREV_SCREEN in commands:
             self.backScreen()
+        elif keymap.TOP_SCREEN in commands:
+            self.clearHistory()
+            self.refresh(force=True)
         elif keymap.HELP in commands:
             self.help()
         elif keymap.QUIT in commands:
