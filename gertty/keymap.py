@@ -31,6 +31,7 @@ CURSOR_MAX_RIGHT = urwid.CURSOR_MAX_RIGHT
 ACTIVATE = urwid.ACTIVATE
 # Global gertty commands:
 PREV_SCREEN = 'previous screen'
+TOP_SCREEN = 'top screen'
 HELP = 'help'
 QUIT = 'quit'
 CHANGE_SEARCH = 'change search'
@@ -81,6 +82,7 @@ DEFAULT_KEYMAP = {
     ACTIVATE: 'enter',
 
     PREV_SCREEN: 'esc',
+    TOP_SCREEN: 'meta home',
     HELP: ['f1', '?'],
     QUIT: 'ctrl q',
     CHANGE_SEARCH: 'ctrl o',

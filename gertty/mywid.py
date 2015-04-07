@@ -21,6 +21,8 @@ GLOBAL_HELP = (
      "Display help"),
     (keymap.PREV_SCREEN,
      "Back to previous screen"),
+    (keymap.TOP_SCREEN,
+     "Back to project list"),
     (keymap.QUIT,
      "Quit Gertty"),
     (keymap.CHANGE_SEARCH,
