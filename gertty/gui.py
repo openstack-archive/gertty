@@ -29,6 +29,7 @@ import webbrowser
 
 import urwid
 
+from gertty import app
 from gertty import db
 from gertty import config
 from gertty import gitrepo
@@ -42,7 +43,7 @@ from gertty.view import change_list as view_change_list
 from gertty.view import project_list as view_project_list
 from gertty.view import change as view_change
 import gertty.view
-import gertty.version
+
 
 WELCOME_TEXT = """\
 Welcome to Gertty!
@@ -190,17 +191,9 @@ class App(object):
         logging.basicConfig(filename=self.config.log_file, filemode='w',
                             format='%(asctime)s %(message)s',
                             level=level)
-        # Python2.6 Logger.setLevel doesn't convert string name
-        # to integer code. Here, we set the requests logger level to
-        # be less verbose, since our logging output duplicates some
-        # requests logging content in places.
-        req_level_name = 'WARN'
-        req_logger = logging.getLogger('requests')
-        if sys.version_info < (2, 7):
-            level = logging.getLevelName(req_level_name)
-            req_logger.setLevel(level)
-        else:
-            req_logger.setLevel(req_level_name)
+
+        app.set_reqeusts_log_level(level)
+
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
 
@@ -354,7 +347,7 @@ class App(object):
             for keys, cmdtext in items:
                 text += '{keys:{width}} {text}\n'.format(
                     keys=keys, width=keylen, text=cmdtext)
-        dialog = mywid.MessageDialog('Help for %s' % version(), text)
+        dialog = mywid.MessageDialog('Help for %s' % app.version(), text)
         lines = text.split('\n')
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
@@ -616,13 +609,8 @@ class PrintPaletteAction(argparse.Action):
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
-    parser.add_argument('-c', dest='path',
-                        default=config.DEFAULT_CONFIG_PATH,
-                        help='path to config file')
-    parser.add_argument('-v', dest='verbose', action='store_true',
-                        help='enable more verbose logging')
-    parser.add_argument('-d', dest='debug', action='store_true',
-                        help='enable debug logging')
+    app.add_common_arguments(parser)
+
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
                         help='disable remote syncing')
     parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
@@ -632,15 +620,10 @@ def main():
                         help='print the keymap command names to stdout')
     parser.add_argument('--print-palette', nargs=0, action=PrintPaletteAction,
                         help='print the palette attribute names to stdout')
-    parser.add_argument('--version', dest='version', action='version',
-                        version=version(),
-                        help='show Gertty\'s version')
     parser.add_argument('-p', dest='palette', default='default',
                         help='color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
                         help='keymap to use')
-    parser.add_argument('server', nargs='?',
-                        help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.palette, args.keymap, args.debug, args.verbose,
             args.no_sync, args.fetch_missing_refs, args.path)
