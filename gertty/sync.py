@@ -84,6 +84,17 @@ class MultiQueue(object):
         finally:
             self.condition.release()
 
+    def has(self, item):
+        self.condition.acquire()
+        try:
+            for queue in self.queues.values():
+                for qitem in queue:
+                    if isinstance(qitem, item):
+                        return True
+        finally:
+            self.condition.release()
+        return False
+
 class UpdateEvent(object):
     def updateRelatedChanges(self, session, change):
         related_change_keys = set()
@@ -1044,8 +1055,8 @@ class Sync(object):
         except requests.ConnectionError, e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
-                self.submitTask(SyncSubscribedProjectsTask(HIGH_PRIORITY))
-                self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+                if not self.queue.has(UploadReviewsTask):
+                    self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.offline = True
             self.app.status.update(offline=True, refresh=False)
             os.write(pipe, 'refresh\n')
