@@ -16,6 +16,7 @@
 import argparse
 import datetime
 import dateutil
+import itertools
 import logging
 import os
 import Queue
@@ -28,6 +29,7 @@ import urlparse
 import warnings
 import webbrowser
 
+import prettytable
 import sqlalchemy.exc
 import urwid
 
@@ -46,6 +48,7 @@ from gertty.view import change as view_change
 import gertty.view
 import gertty.version
 
+
 WELCOME_TEXT = """\
 Welcome to Gertty!
 
@@ -58,6 +61,7 @@ Press the F1 key anywhere to get help.  Your terminal emulator may
 require you to press function-F1 or alt-F1 instead.
 
 """
+
 
 class StatusHeader(urwid.WidgetWrap):
     def __init__(self, app):
@@ -192,17 +196,9 @@ class App(object):
         logging.basicConfig(filename=self.config.log_file, filemode='w',
                             format='%(asctime)s %(message)s',
                             level=level)
-        # Python2.6 Logger.setLevel doesn't convert string name
-        # to integer code. Here, we set the requests logger level to
-        # be less verbose, since our logging output duplicates some
-        # requests logging content in places.
-        req_level_name = 'WARN'
-        req_logger = logging.getLogger('requests')
-        if sys.version_info < (2, 7):
-            level = logging.getLevelName(req_level_name)
-            req_logger.setLevel(level)
-        else:
-            req_logger.setLevel(req_level_name)
+
+        set_requests_log_level(level)
+
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
 
@@ -248,7 +244,7 @@ class App(object):
             self.sync.offline = True
             self.status.update(offline=True)
 
-    def run(self):
+    def run(self, args):
         try:
             self.loop.run()
         except KeyboardInterrupt:
@@ -649,6 +645,102 @@ class App(object):
 
 
 
+class CliApp(object):
+
+    def __init__(self, server=None, debug=False, verbose=False,
+                 path=gertty.config.DEFAULT_CONFIG_PATH):
+        self.server = server
+        self.config = gertty.config.Config(server=server, path=path)
+        if debug:
+            level = logging.DEBUG
+        elif verbose:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+
+        if debug:
+            logging.basicConfig(format='%(asctime)s %(message)s',
+                                level=level)
+        else:
+            logging.basicConfig(filename=self.config.log_file, filemode='w',
+                                format='%(asctime)s %(message)s',
+                                level=level)
+
+        set_requests_log_level(level)
+
+        self.log = logging.getLogger('gertty.App')
+        self.log.debug("Starting")
+
+        search = gertty.search.SearchCompiler(self.config.username)
+        self.db = gertty.db.Database(self.config.dburi, search)
+
+        has_subscribed_projects = False
+        with self.db.getSession() as session:
+            if session.getProjects(subscribed=True):
+                has_subscribed_projects = True
+        if not has_subscribed_projects:
+            self.welcome()
+
+        self.gertty = GerttyFacade(self.config, self.db)
+
+    def welcome(self):
+        print(WELCOME_TEXT)
+
+    def list_projects(self):
+        print('Listing subscribed projects')
+        cols = ['name', 'description', 'updated']
+        table = prettytable.PrettyTable([c.title() for c in cols])
+        table.align['Name'] = 'l'
+        for project in self.gertty.projects():
+            table.add_row([project[col] for col in cols])
+        print(table)
+
+    def list_reviews(self, project_name):
+        print('Listing reviews for', project_name)
+        cols = ['change_id', 'status', 'updated', 'subject']
+        table = prettytable.PrettyTable([c.title() for c in cols])
+        table.align['Subject'] = 'l'
+        for review in self.gertty.reviews(project_name):
+            table.add_row([review[col] for col in cols])
+        print(table)
+
+    def checkout(self, changeset_id, patchset=None):
+        self.gertty.checkout(changeset_id, patchset)
+
+    def run(self, args):
+        if args.cmd == 'projects':
+            self.list_projects()
+        elif args.cmd == 'reviews':
+            self.list_reviews(args.project_name)
+        elif args.cmd == 'checkout':
+            self.checkout(args.changeset_id, args.patchset)
+        elif args.cmd == 'sync':
+            self.sync()
+
+
+class FakeGUIApp(object):
+
+    def __init__(self, app):
+        self.app = app
+
+    def __getattr__(self, name):
+        return getattr(self.app, name)
+
+    def getRepo(self, project_name):
+        return get_repo(self.app.config, project_name)
+
+    class status:
+
+        @staticmethod
+        def update(title=None, error=None, offline=None, refresh=True):
+            if title:
+                print title
+            if error:
+                print 'ERROR:', error
+            if offline:
+                print 'Error: we are offline'
+
+
 def version():
     return "Gertty version: %s" % gertty.version.version_info.release_string()
 
@@ -664,9 +756,43 @@ class PrintPaletteAction(argparse.Action):
             print attr
         sys.exit(0)
 
+
+def _inject_default_parser(parser, default_name):
+    top_level_options = itertools.chain(
+        *tuple(o.option_strings for o in parser._actions))
+    for opt in top_level_options:
+        if opt in sys.argv:
+            return
+
+    for p in parser._subparsers._actions:
+        if not isinstance(p, argparse._SubParsersAction):
+            continue
+        for parser_name in p._name_parser_map:
+            if parser_name in sys.argv[1:]:
+                return
+
+    sys.argv.insert(1, default_name)
+
+
+def set_requests_log_level(level):
+    # Python2.6 Logger.setLevel doesn't convert string name
+    # to integer code. Here, we set the requests logger level to
+    # be less verbose, since our logging output duplicates some
+    # requests logging content in places.
+    req_level_name = 'WARN'
+    req_logger = logging.getLogger('requests')
+    if sys.version_info < (2, 7):
+        level = logging.getLevelName(req_level_name)
+        req_logger.setLevel(level)
+    else:
+        req_logger.setLevel(req_level_name)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
+
+    # adds the options common to all commands
     parser.add_argument('-c', dest='path',
                         default=config.DEFAULT_CONFIG_PATH,
                         help='path to config file')
@@ -674,28 +800,112 @@ def main():
                         help='enable more verbose logging')
     parser.add_argument('-d', dest='debug', action='store_true',
                         help='enable debug logging')
-    parser.add_argument('--no-sync', dest='no_sync', action='store_true',
-                        help='disable remote syncing')
-    parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
-                        action='store_true',
-                        help='fetch any refs missing from local repos')
+    parser.add_argument('--version', dest='version', action='version',
+                        version=version(),
+                        help='show Gertty\'s version')
+    parser.add_argument('--server', dest='server',
+                        help='the server to use (as specified in config file)')
+
+    subparsers = parser.add_subparsers(title='commands')
+
+    gui = subparsers.add_parser('gui', help='start the Gertty GUI, default if '
+                                            'no command is specified.')
+    gui.add_argument('--no-sync', dest='no_sync', action='store_true',
+                     help='disable remote syncing')
+    gui.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
+                     action='store_true',
+                     help='fetch any refs missing from local repos')
+    gui.add_argument('-p', dest='palette', default='default',
+                     help='color palette to use')
+    gui.add_argument('-k', dest='keymap', default='default',
+                     help='keymap to use')
+    gui.set_defaults(cmd='gui')
+
+    projects = subparsers.add_parser('projects',
+                                     help='show a list of projects')
+    projects.set_defaults(cmd='projects')
+
+    reviews = subparsers.add_parser('reviews', help='show a list of reviews')
+    reviews.add_argument('project_name', help='project name')
+    reviews.set_defaults(cmd='reviews')
+
+    checkout = subparsers.add_parser('checkout', help='checkout a patchset')
+    checkout.add_argument('changeset_id', help='changeset_id')
+    checkout.add_argument('--patchset', default=None, help='patchset')
+    checkout.set_defaults(cmd='checkout')
+
     parser.add_argument('--print-keymap', nargs=0, action=PrintKeymapAction,
                         help='print the keymap command names to stdout')
     parser.add_argument('--print-palette', nargs=0, action=PrintPaletteAction,
                         help='print the palette attribute names to stdout')
-    parser.add_argument('--version', dest='version', action='version',
-                        version=version(),
-                        help='show Gertty\'s version')
-    parser.add_argument('-p', dest='palette', default='default',
-                        help='color palette to use')
-    parser.add_argument('-k', dest='keymap', default='default',
-                        help='keymap to use')
-    parser.add_argument('--server', dest='server',
-                        help='the server to use (as specified in config file)')
+
+    _inject_default_parser(parser, 'gui')
     args = parser.parse_args()
-    g = App(args.server, args.palette, args.keymap, args.debug, args.verbose,
-            args.no_sync, args.fetch_missing_refs, args.path)
-    g.run()
+    if args.cmd == 'gui':
+        app = App(args.server, args.palette, args.keymap, args.debug,
+                  args.verbose, args.no_sync, args.fetch_missing_refs,
+                  args.path)
+    else:
+        app = CliApp(server=args.server, debug=args.debug,
+                     verbose=args.verbose, path=args.path)
+
+    app.run(args)
+
+
+class GerttyFacade(object):
+
+    def __init__(self, config, db):
+        self.config = config
+        self.db = db
+
+    def _session(self):
+        return self.db.getSession()
+
+    def projects(self, subscribed=True, unreviewed=True):
+        session = self._session()
+        projects = session.getProjects(subscribed=subscribed,
+                                       unreviewed=unreviewed)
+        for project in projects:
+            yield {'name': project.name,
+                   'description': project.description,
+                   'updated': project.updated}
+
+    def reviews(self, project_name):
+        project = self._session().getProjectByName(project_name)
+        query = ('_project_key:%d %s' %
+                 (project.key, self.config.project_change_list_query))
+        session = self._session()
+        for change in self._session().getChanges(query, sort_by='updated'):
+            yield {
+                'change_id': change.change_id,
+                'status': change.status,
+                'updated': change.updated,
+                'subject': change.subject,
+            }
+
+    def checkout(self, changeset_id, patchset=-1):
+        patchset = patchset or -1
+        change = self._session().getChangeByChangeID(changeset_id)
+        revision = list(change.revisions)[-1]  # TODO: latest for now
+        try:
+            repo = gitrepo.get_repo(revision.change.project.name, self.config)
+            repo.checkout(revision.commit)
+            #print 'Change checked out in %s' % repo.path
+        except gitrepo.GitCheckoutError as e:
+            print 'ERROR:', e.msg  # TODO: make less stupid
+
+    def comments(self, change_id, revision=-1):
+        change = self._session().getChangeByChangeID(change_id)
+        revision = list(change.revisions)[revision]
+        for comment  in revision.comments:
+            yield {
+                'author': comment.author.name,
+                'draft': comment.draft,
+                'created': comment.created,
+                'message': comment.message,
+                'file': comment.file,
+                'line': comment.line,
+            }
 
 
 if __name__ == '__main__':
