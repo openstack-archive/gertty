@@ -24,8 +24,8 @@ class SearchSyntaxError(Exception):
 
 
 class SearchCompiler(object):
-    def __init__(self, app):
-        self.app = app
+    def __init__(self, username):
+        self.username = username
         self.lexer = tokenizer.SearchTokenizer()
         self.parser = parser.SearchParser()
 
@@ -44,7 +44,7 @@ class SearchCompiler(object):
         return tables
 
     def parse(self, data):
-        self.parser.username = self.app.config.username
+        self.parser.username = self.username
         result = self.parser.parse(data, lexer=self.lexer)
         tables = self.findTables(result)
         if gertty.db.project_table in tables:
@@ -74,6 +74,6 @@ if __name__ == '__main__':
     app = Dummy()
     app.config = Dummy()
     app.config.username = 'bob'
-    search = SearchCompiler(app)
+    search = SearchCompiler(app.config.username)
     x = search.parse(query)
     print x

@@ -208,8 +208,8 @@ class App(object):
 
         self.fetch_missing_refs = fetch_missing_refs
         self.config.keymap.updateCommandMap()
-        self.search = search.SearchCompiler(self)
-        self.db = db.Database(self)
+        self.search = search.SearchCompiler(self.config.username)
+        self.db = db.Database(self.config.dburi, self.search)
         self.sync = sync.Sync(self)
 
         self.screens = []
