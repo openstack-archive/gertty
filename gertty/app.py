@@ -50,5 +50,5 @@ def add_common_arguments(parser):
     parser.add_argument('--version', dest='version', action='version',
                         version=version(),
                         help='show Gertty\'s version')
-    parser.add_argument('server', nargs='?',
+    parser.add_argument('--server', dest='server',
                         help='the server to use (as specified in config file)')
