@@ -595,10 +595,11 @@ def add_sqlite_match(dbapi_connection, connection_record):
     dbapi_connection.create_function("matches", 2, match)
 
 class Database(object):
-    def __init__(self, app):
+    def __init__(self, app, dburi, search):
         self.log = logging.getLogger('gertty.db')
-        self.app = app
-        self.engine = create_engine(self.app.config.dburi)
+        self.dburi = dburi
+        self.search = search
+        self.engine = create_engine(self.dburi)
         #metadata.create_all(self.engine)
         self.migrate(app)
         # If we want the objects returned from query() to be usable
@@ -625,7 +626,7 @@ class Database(object):
 
         config = alembic.config.Config()
         config.set_main_option("script_location", "gertty:alembic")
-        config.set_main_option("sqlalchemy.url", self.app.config.dburi)
+        config.set_main_option("sqlalchemy.url", self.dburi)
         config.gertty_app = app
 
         if current_rev is None and has_table:
@@ -637,7 +638,7 @@ class DatabaseSession(object):
     def __init__(self, database):
         self.database = database
         self.session = database.session
-        self.search = database.app.search
+        self.search = database.search
 
     def __enter__(self):
         self.database.lock.acquire()
