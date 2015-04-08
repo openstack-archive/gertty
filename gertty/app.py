@@ -908,7 +908,7 @@ def main():
                         help='color palette to use')
     parser.add_argument('-k', dest='keymap', default='default',
                         help='keymap to use')
-    parser.add_argument('server', nargs='?',
+    parser.add_argument('--server', dest='server',
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.palette, args.keymap, args.debug, args.verbose,
