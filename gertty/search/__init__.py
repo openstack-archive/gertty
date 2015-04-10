@@ -62,7 +62,7 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
-    query = 'status:open AND topic:enable_swift'
+    query = 'ref:^refs/heads/foo.*'
     lexer = tokenizer.SearchTokenizer()
     lexer.input(query)
     while True:

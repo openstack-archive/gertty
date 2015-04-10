@@ -27,6 +27,7 @@ import urlparse
 import warnings
 import webbrowser
 
+import sqlalchemy.exc
 import urwid
 
 from gertty import db
@@ -417,6 +418,10 @@ class App(object):
                 changes = session.getChanges(query)
             except gertty.search.SearchSyntaxError as e:
                 return self.error(e.message)
+            except sqlalchemy.exc.OperationalError as e:
+                return self.error(e.message)
+            except Exception as e:
+                return self.error(str(e))
             change_key = None
             if len(changes) == 1:
                 change_key = changes[0].key
