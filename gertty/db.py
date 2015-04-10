@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
 import time
 import logging
 import threading
@@ -496,6 +497,15 @@ mapper(Approval, approval_table, properties=dict(
         reviewer=relationship(Account)))
 mapper(PendingCherryPick, pending_cherry_pick_table)
 mapper(SyncQuery, sync_query_table)
+
+def match(expr, item):
+    if item is None:
+        return False
+    return re.match(expr, item) is not None
+
+@sqlalchemy.event.listens_for(sqlalchemy.engine.Engine, "connect")
+def add_sqlite_match(dbapi_connection, connection_record):
+    dbapi_connection.create_function("matches", 2, match)
 
 class Database(object):
     def __init__(self, app):

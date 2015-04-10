@@ -16,7 +16,7 @@ import datetime
 import re
 
 import ply.yacc as yacc
-from sqlalchemy.sql.expression import and_, or_, not_, select
+from sqlalchemy.sql.expression import and_, or_, not_, select, func
 
 import gertty.db
 import gertty.search
@@ -157,8 +157,10 @@ def SearchParser():
 
     def p_project_term(p):
         '''project_term : OP_PROJECT string'''
-        #TODO: support regex
-        p[0] = gertty.db.project_table.c.name == p[2]
+        if p[2].startswith('^'):
+            p[0] = func.matches(p[2], gertty.db.project_table.c.name)
+        else:
+            p[0] = gertty.db.project_table.c.name == p[2]
 
     def p_project_key_term(p):
         '''project_key_term : OP_PROJECT_KEY NUMBER'''
@@ -166,18 +168,24 @@ def SearchParser():
 
     def p_branch_term(p):
         '''branch_term : OP_BRANCH string'''
-        #TODO: support regex
-        p[0] = gertty.db.change_table.c.branch == p[2]
+        if p[2].startswith('^'):
+            p[0] = func.matches(p[2], gertty.db.change_table.c.branch)
+        else:
+            p[0] = gertty.db.change_table.c.branch == p[2]
 
     def p_topic_term(p):
         '''topic_term : OP_TOPIC string'''
-        #TODO: support regex
-        p[0] = gertty.db.change_table.c.topic == p[2]
+        if p[2].startswith('^'):
+            p[0] = func.matches(p[2], gertty.db.change_table.c.topic)
+        else:
+            p[0] = gertty.db.change_table.c.topic == p[2]
 
     def p_ref_term(p):
         '''ref_term : OP_REF string'''
-        #TODO: support regex
-        p[0] = gertty.db.change_table.c.branch == p[2][len('refs/heads/'):]
+        if p[2].startswith('^'):
+            p[0] = func.matches(p[2], 'refs/heads/'+gertty.db.change_table.c.branch)
+        else:
+            p[0] = gertty.db.change_table.c.branch == p[2][len('refs/heads/'):]
 
     label_re = re.compile(r'(?P<label>[a-zA-Z0-9_-]+([a-zA-Z]|((?<![-+])[0-9])))'
                           r'(?P<operator>[<>]?=?)(?P<value>[-+]?[0-9]+)'
