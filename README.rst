@@ -39,6 +39,12 @@ Gertty is packaged starting in Fedora 21.  You can install it with::
 
   yum install python-gertty
 
+openSUSE
+~~~~~~~~
+
+Gertty is packaged for openSUSE 13.1 onwards.  You can install it via
+`1-click install from the Open Build Service <http://software.opensuse.org/package/python-gertty>`_.
+
 Source
 ~~~~~~
 
