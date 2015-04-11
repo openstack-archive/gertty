@@ -62,7 +62,7 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
-    query = 'NOT label:Code-Review<=2 age:5d'
+    query = 'reviewer:10068'
     lexer = tokenizer.SearchTokenizer()
     lexer.input(query)
     while True:
