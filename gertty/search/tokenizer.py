@@ -51,13 +51,6 @@ tokens = [
     'NEG',
     'LPAREN',
     'RPAREN',
-    'SECONDS',
-    'MINUTES',
-    'HOURS',
-    'DAYS',
-    'WEEKS',
-    'MONTHS',
-    'YEARS',
     'NUMBER',
     'CHANGE_ID',
     'SSTRING',
@@ -118,34 +111,6 @@ def SearchTokenizer():
         r'([^\s\(\)!]+)'
         t.value=t.value.decode("string-escape")
         return t
-
-    def t_SECONDS(t):
-        r's|sec|second|seconds'
-        t.value = 'seconds'
-
-    def t_MINUTES(t):
-        r'm|min|minute|minutes'
-        t.value = 'minutes'
-
-    def t_HOURS(t):
-        r'h|hr|hour|hours'
-        t.value = 'hours'
-
-    def t_DAYS(t):
-        r'd|day|days'
-        t.value = 'days'
-
-    def t_WEEKS(t):
-        r'w|week|weeks'
-        t.value = 'weeks'
-
-    def t_MONTHS(t):
-        r'mon|month|months'
-        t.value = 'months'
-
-    def t_YEARS(t):
-        r'y|year|years'
-        t.value = 'years'
 
     def t_newline(t):
         r'\n+'
