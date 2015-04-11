@@ -125,11 +125,18 @@ def SearchParser():
                        gertty.db.account_table.c.name == p[2])
 
     def p_reviewer_term(p):
-        '''reviewer_term : OP_REVIEWER string'''
+        '''reviewer_term : OP_REVIEWER string
+                         | OP_REVIEWER NUMBER'''
         filters = []
         filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
         filters.append(gertty.db.approval_table.c.account_key == gertty.db.account_table.c.key)
-        if p[2] == 'self':
+        try:
+            number = int(p[2])
+        except:
+            number = None
+        if number is not None:
+            filters.append(gertty.db.account_table.c.id == number)
+        elif p[2] == 'self':
             username = p.parser.username
             filters.append(gertty.db.account_table.c.username == username)
         else:
