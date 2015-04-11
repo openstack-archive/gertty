@@ -62,7 +62,7 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
-    query = 'ref:^refs/heads/foo.*'
+    query = 'message:"Blueprint"'
     lexer = tokenizer.SearchTokenizer()
     lexer.input(query)
     while True:
