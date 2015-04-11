@@ -76,6 +76,7 @@ def SearchParser():
                 | has_term
                 | is_term
                 | status_term
+                | limit_term
                 | op_term'''
         p[0] = p[1]
 
@@ -301,6 +302,16 @@ def SearchParser():
             p[0] = gertty.db.change_table.c.status.in_(['MERGED', 'ABANDONED'])
         else:
             p[0] = gertty.db.change_table.c.status == p[2].upper()
+
+    def p_limit_term(p):
+        '''limit_term : OP_LIMIT NUMBER'''
+        # TODO: Implement this.  The sqlalchemy limit call needs to be
+        # applied to the query operation and so can not be returned as
+        # part of the production here.  The information would need to
+        # be returned out-of-band.  In the mean time, since limits are
+        # not as important in gertty, make this a no-op for now so
+        # that it does not produce a syntax error.
+        p[0] = (True == True)
 
     def p_op_term(p):
         'op_term : OP'
