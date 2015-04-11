@@ -23,6 +23,7 @@ import gertty.config
 import gertty.db
 import gertty.gitrepo
 import gertty.search
+import gertty.sync
 import gertty.version
 
 
@@ -97,6 +98,38 @@ class App(object):
     def checkout(self, changeset_id, patchset=None):
         self.gertty.checkout(changeset_id, patchset)
 
+    def sync(self, fetch_missing_refs=None):
+        print('Syncing with', self.server)
+        # TODO: maybe add some nose-like dots or a status bar
+        sync = gertty.sync.Sync(GUIApp(self), forever=False)
+        # the syncing process uses a pipe to communicate status back to us,
+        # right now this is useless
+        devnull = open(os.devnull, 'w')
+        sync.run(devnull.fileno())
+
+
+class GUIApp(object):
+
+    def __init__(self, app):
+        self.app = app
+
+    def __getattr__(self, name):
+        return getattr(self.app, name)
+
+    def getRepo(self, project_name):
+        return get_repo(self.app.config, project_name)
+
+    class status:
+
+        @staticmethod
+        def update(title=None, error=None, offline=None, refresh=True):
+            if title:
+                print title
+            if error:
+                print 'ERROR:', error
+            if offline:
+                print 'Error: we are offline'
+
 
 def get_repo(config, project_name):
     """Ripped from App.getRepo."""
@@ -129,6 +162,13 @@ def main():
     checkout.add_argument('--patchset', default=None, help='patchset')
     checkout.set_defaults(cmd='checkout')
 
+    sync = subparsers.add_parser('sync',
+                                 help='sync gertty database with Gerrit')
+    sync.set_defaults(cmd='sync')
+    sync.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
+                      action='store_true',
+                      help='fetch any refs missing from local repos')
+
     args = parser.parse_args()
     app = App(server=args.server, debug=args.debug, verbose=args.verbose,
               path=args.path)
@@ -138,6 +178,8 @@ def main():
         app.list_reviews(args.project_name)
     elif args.cmd == 'checkout':
         app.checkout(args.changeset_id, args.patchset)
+    elif args.cmd == 'sync':
+        app.sync()
     return 0
 
 
