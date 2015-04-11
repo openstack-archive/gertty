@@ -85,34 +85,26 @@ def SearchParser():
                   | USTRING'''
         p[0] = p[1]
 
-    def p_age_unit(p):
-        '''age_unit : SECONDS
-                    | MINUTES
-                    | HOURS
-                    | DAYS
-                    | WEEKS
-                    | MONTHS
-                    | YEARS'''
-        p[0] = p[1]
-
     def p_age_term(p):
-        '''age_term : OP_AGE NUMBER age_unit'''
+        '''age_term : OP_AGE NUMBER string'''
         now = datetime.datetime.utcnow()
-        delta = p[1]
-        unit = p[2]
-        if unit == 'minutes':
+        delta = p[2]
+        unit = p[3]
+        if unit in ['seconds', 'second', 'sec', 's']:
+            pass
+        elif unit in ['minutes', 'minute', 'min', 'm']:
             delta = delta * 60
-        elif unit == 'hours':
+        elif unit in ['hours', 'hour', 'hr', 'h']:
             delta = delta * 60 * 60
-        elif unit == 'days':
-            delta = delta * 60 * 60 * 60
-        elif unit == 'weeks':
-            delta = delta * 60 * 60 * 60 * 7
-        elif unit == 'months':
-            delta = delta * 60 * 60 * 60 * 30
-        elif unit == 'years':
-            delta = delta * 60 * 60 * 60 * 365
-        p[0] = gertty.db.change_table.c.updated < (now-delta)
+        elif unit in ['days', 'day', 'd']:
+            delta = delta * 60 * 60 * 24
+        elif unit in ['weeks', 'week', 'w']:
+            delta = delta * 60 * 60 * 24 * 7
+        elif unit in ['months', 'month', 'mon']:
+            delta = delta * 60 * 60 * 24 * 30
+        elif unit in ['years', 'year', 'y']:
+            delta = delta * 60 * 60 * 24 * 365
+        p[0] = gertty.db.change_table.c.updated < (now-datetime.timedelta(seconds=delta))
 
     def p_change_term(p):
         '''change_term : OP_CHANGE CHANGE_ID
