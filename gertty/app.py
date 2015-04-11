@@ -649,6 +649,15 @@ class CliApp(object):
     def checkout(self, changeset_id, patchset=None):
         self.gertty.checkout(changeset_id, patchset)
 
+    def sync(self, fetch_missing_refs=None):
+        print('Syncing with', self.server)
+        # TODO: maybe add some nose-like dots or a status bar
+        sync = gertty.sync.Sync(FakeGUIApp(self), forever=False)
+        # the syncing process uses a pipe to communicate status back to us,
+        # right now this is useless
+        devnull = open(os.devnull, 'w')
+        sync.run(devnull.fileno())
+
     def run(self, args):
         if args.cmd == 'projects':
             self.list_projects()
@@ -775,6 +784,13 @@ def main():
     checkout.add_argument('changeset_id', help='changeset_id')
     checkout.add_argument('--patchset', default=None, help='patchset')
     checkout.set_defaults(cmd='checkout')
+
+    sync = subparsers.add_parser('sync',
+                                 help='sync gertty database with Gerrit')
+    sync.set_defaults(cmd='sync')
+    sync.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
+                      action='store_true',
+                      help='fetch any refs missing from local repos')
 
     parser.add_argument('--print-keymap', nargs=0, action=PrintKeymapAction,
                         help='print the keymap command names to stdout')
