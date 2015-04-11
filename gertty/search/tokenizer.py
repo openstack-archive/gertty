@@ -36,6 +36,7 @@ operators = {
     'has': 'OP_HAS',
     'is': 'OP_IS',
     'status': 'OP_STATUS',
+    'limit': 'OP_LIMIT',
     }
 
 reserved = {
