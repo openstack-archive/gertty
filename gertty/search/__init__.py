@@ -62,7 +62,7 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
-    query = 'reviewer:10068'
+    query = 'status:open limit:50'
     lexer = tokenizer.SearchTokenizer()
     lexer.input(query)
     while True:
