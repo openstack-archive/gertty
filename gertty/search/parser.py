@@ -224,7 +224,7 @@ def SearchParser():
         '''message_term : OP_MESSAGE string'''
         filters = []
         filters.append(gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key)
-        filters.append(gertty.db.revision_table.c.message == p[2])
+        filters.append(gertty.db.revision_table.c.message.like('%%%s%%' % p[2]))
         s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
         p[0] = gertty.db.change_table.c.key.in_(s)
 
