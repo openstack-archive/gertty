@@ -46,6 +46,8 @@ TIMEOUT=30
 
 CLOSED_STATUSES = ['MERGED', 'ABANDONED']
 
+class Empty(Exception):
+    pass
 
 class MultiQueue(object):
     def __init__(self, priorities):
@@ -84,8 +86,7 @@ class MultiQueue(object):
                         ret = queue.popleft()
                         return ret
                     except IndexError:
-                        pass
-                self.condition.wait()
+                        raise Empty
         finally:
             self.condition.release()
 
@@ -100,6 +101,13 @@ class MultiQueue(object):
             self.condition.release()
         return results
 
+
+    def wait(self, timeout=None):
+        self.condition.acquire()
+        try:
+            self.condition.wait(timeout=timeout)
+        finally:
+            self.condition.acquire()
 
 class UpdateEvent(object):
     def updateRelatedChanges(self, session, change):
@@ -1246,12 +1254,13 @@ class VacuumDatabaseTask(Task):
             session.vacuum()
 
 class Sync(object):
-    def __init__(self, app):
+    def __init__(self, app, forever=True):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.release_string(),
                                             requests.utils.default_user_agent())
         self.offline = False
         self.account_id = None
         self.app = app
+        self.run_forever = forever
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
         self.result_queue = Queue.Queue()
@@ -1269,9 +1278,10 @@ class Sync(object):
         self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
         self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
         self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
-        self.periodic_thread = threading.Thread(target=self.periodicSync)
-        self.periodic_thread.daemon = True
-        self.periodic_thread.start()
+        if self.run_forever:
+            self.periodic_thread = threading.Thread(target=self.periodicSync)
+            self.periodic_thread.daemon = True
+            self.periodic_thread.start()
 
     def periodicSync(self):
         hourly = time.time()
@@ -1296,7 +1306,13 @@ class Sync(object):
     def run(self, pipe):
         task = None
         while True:
-            task = self._run(pipe, task)
+            try:
+                task = self._run(pipe, task)
+            except Empty:
+                if not self.run_forever:
+                    return
+                else:
+                    self.queue.wait()
 
     def _run(self, pipe, task=None):
         if not task:
