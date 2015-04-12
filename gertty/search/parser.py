@@ -25,7 +25,7 @@ from tokenizer import tokens  # NOQA
 
 
 def SearchParser():
-    precedence = (
+    precedence = (  # NOQA
         ('left', 'NOT', 'NEG'),
     )
 

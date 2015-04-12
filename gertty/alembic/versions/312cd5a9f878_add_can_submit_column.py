@@ -25,7 +25,7 @@ def upgrade():
 
     conn = op.get_bind()
     q = sa.text('update revision set can_submit=:submit')
-    res = conn.execute(q, submit=False)
+    conn.execute(q, submit=False)
 
     sqlite_alter_columns('revision', [
         sa.Column('can_submit', sa.Boolean(), nullable=False),
