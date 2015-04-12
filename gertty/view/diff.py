@@ -17,6 +17,7 @@ import logging
 
 import urwid
 
+from gertty import gitrepo
 from gertty import keymap
 from gertty import mywid
 from gertty import gitrepo
@@ -233,7 +234,7 @@ class BaseDiffView(urwid.WidgetWrap):
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
                 comment_filenames.add(comment.file)
-        repo = self.app.getRepo(self.project_name)
+        repo = gitrepo.get_repo(self.project_name, self.app.config)
         self._w.contents.append((self.app.header, ('pack', 1)))
         self.file_reminder = self.makeFileReminder()
         self._w.contents.append((self.file_reminder, ('pack', 1)))

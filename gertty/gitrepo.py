@@ -484,3 +484,9 @@ class Repo(object):
             f.addContextLine(line)
         f.finalize()
         return f
+
+def get_repo(project_name, config):
+    local_path = os.path.join(config.git_root, project_name)
+    local_root = os.path.abspath(config.git_root)
+    assert os.path.commonprefix((local_root, local_path)) == local_root
+    return Repo(config.url+'p/'+project_name, local_path)
