@@ -19,6 +19,7 @@ import urlparse
 
 import urwid
 
+from gertty import gitrepo
 from gertty import keymap
 from gertty import mywid
 from gertty import sync
@@ -504,7 +505,7 @@ class ChangeView(urwid.WidgetWrap):
             change = session.getChange(self.change_key)
             change_number = change.number
             change_id = change.id
-            repo = self.app.getRepo(change.project.name)
+            repo = gitrepo.get_repo(change.project.name, self.app.config)
             for revision in change.revisions:
                 if not repo.hasCommit(revision.parent):
                     missing_revisions.add(revision.parent)
@@ -626,7 +627,7 @@ class ChangeView(urwid.WidgetWrap):
 
             self.refreshDependencies(session, change)
 
-            repo = self.app.getRepo(change.project.name)
+            repo = gitrepo.get_repo(change.project.name, self.app.config)
             # The listbox has both revisions and messages in it (and
             # may later contain the vote table and change header), so
             # keep track of the index separate from the loop.

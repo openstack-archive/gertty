@@ -522,13 +522,6 @@ class App(object):
             view = view_change_list.ChangeListView(self, d['query'], d['name'])
             self.changeScreen(view)
 
-    def getRepo(self, project_name):
-        local_path = os.path.join(self.config.git_root, project_name)
-        local_root = os.path.abspath(self.config.git_root)
-        assert os.path.commonprefix((local_root, local_path)) == local_root
-        return gitrepo.Repo(self.config.url+'p/'+project_name,
-                            local_path)
-
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)
         webbrowser.open_new_tab(url)
@@ -578,7 +571,7 @@ class App(object):
         return ret
 
     def localCheckoutCommit(self, project_name, commit_sha):
-        repo = self.getRepo(project_name)
+        repo = gitrepo.get_repo(project_name, self.config)
         try:
             repo.checkout(commit_sha)
             dialog = mywid.MessageDialog('Checkout', 'Change checked out in %s' % repo.path)
@@ -591,7 +584,7 @@ class App(object):
         self.popup(dialog, min_height=min_height)
 
     def localCherryPickCommit(self, project_name, commit_sha):
-        repo = self.getRepo(project_name)
+        repo = gitrepo.get_repo(project_name, self.config)
         try:
             repo.cherryPick(commit_sha)
             dialog = mywid.MessageDialog('Cherry-Pick', 'Change cherry-picked in %s' % repo.path)

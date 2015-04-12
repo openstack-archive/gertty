@@ -567,7 +567,7 @@ class SyncChangeTask(Task):
             change.subject = remote_change['subject']
             change.updated = dateutil.parser.parse(remote_change['updated'])
             change.topic = remote_change.get('topic')
-            repo = app.getRepo(change.project.name)
+            repo = gertty.gitrepo.get_repo(change.project.name, app.config)
             new_revision = False
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
                 revision = session.getRevisionByCommit(remote_commit)
@@ -847,7 +847,7 @@ class CheckReposTask(Task):
             try:
                 missing = False
                 try:
-                    app.getRepo(project.name)
+                    repo = gertty.gitrepo.get_repo(project.name, app.config)
                 except gitrepo.GitCloneError:
                     missing = True
                 if missing or app.fetch_missing_refs:
@@ -878,7 +878,7 @@ class CheckRevisionsTask(Task):
             project = session.getProject(self.project_key)
             repo = None
             try:
-                repo = app.getRepo(project.name)
+                repo = gitrepo.get_repo(project.name, app.config)
             except gitrepo.GitCloneError:
                 pass
             for change in project.open_changes:
