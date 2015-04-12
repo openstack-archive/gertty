@@ -231,6 +231,8 @@ class Change(object):
         cat_max = {}
         cat_value = {}
         for approval in self.approvals:
+            if approval.draft:
+                continue
             cur_min = cat_min.get(approval.category, 0)
             cur_max = cat_max.get(approval.category, 0)
             cur_min = min(approval.value, cur_min)
