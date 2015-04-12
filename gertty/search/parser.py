@@ -249,7 +249,7 @@ def SearchParser():
 
     def p_is_term(p):
         '''is_term : OP_IS string'''
-        #TODO: implement watched, draft
+        #TODO: implement draft
         username = p.parser.username
         if p[2] == 'reviewed':
             filters = []
@@ -281,6 +281,8 @@ def SearchParser():
             filters.append(gertty.db.account_table.c.username == username)
             s = select([gertty.db.change_table.c.key], correlate=False).where(and_(*filters))
             p[0] = gertty.db.change_table.c.key.in_(s)
+        elif p[2] == 'watched':
+            p[0] = gertty.db.project_table.c.subscribed == True
         else:
             raise gertty.search.SearchSyntaxError('Syntax error: is:%s is not supported' % p[2])
 
