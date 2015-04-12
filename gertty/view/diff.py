@@ -47,7 +47,7 @@ class PatchsetDialog(urwid.WidgetWrap):
         self.new_buttons = []
         self.patchset_keys = {}
         oldb = mywid.FixedRadioButton(self.old_buttons, 'Base',
-                                      state=(old == None))
+                                      state=(old is None))
         left.append(oldb)
         right.append(urwid.Text(''))
         self.patchset_keys[oldb] = None

@@ -66,7 +66,7 @@ def upgrade():
     connection.execute(project.update().values({'updated': None}))
 
     approval = sa.sql.table('approval', sa.sql.column('pending'))
-    connection.execute(approval.delete().where(approval.c.pending == False))
+    connection.execute(approval.delete().where(approval.c.pending == False))  # NOQA
 
 
 def downgrade():

@@ -459,10 +459,10 @@ mapper(Project, project_table, properties=dict(
                              order_by=change_table.c.number),
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key == change_table.c.project_key,
-                                                         change_table.c.hidden == False,
+                                                         change_table.c.hidden == False,  # NOQA
                                                          change_table.c.status != 'MERGED',
                                                          change_table.c.status != 'ABANDONED',
-                                                         change_table.c.reviewed == False),
+                                                         change_table.c.reviewed == False),  # NOQA
                                         order_by=change_table.c.number,
                                         ),
         open_changes=relationship(Change,
@@ -489,7 +489,7 @@ mapper(Change, change_table, properties=dict(
                                                                      approval_table.c.value)),
         draft_approvals=relationship(Approval,
                                      primaryjoin=and_(change_table.c.key == approval_table.c.change_key,
-                                                      approval_table.c.draft == True),
+                                                      approval_table.c.draft == True),  # NOQA
                                      order_by=(approval_table.c.category,
                                                approval_table.c.value))
         ))
@@ -500,7 +500,7 @@ mapper(Revision, revision_table, properties=dict(
                                         comment_table.c.created)),
         draft_comments=relationship(Comment,
                                     primaryjoin=and_(revision_table.c.key == comment_table.c.revision_key,
-                                                     comment_table.c.draft == True),
+                                                     comment_table.c.draft == True),  # NOQA
                                     order_by=(comment_table.c.line,
                                               comment_table.c.created)),
         pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
@@ -663,7 +663,7 @@ class DatabaseSession(object):
         self.database.log.debug("Search query: %s" % query)
         q = self.session().query(Change).filter(self.search.parse(query))
         if unreviewed:
-            q = q.filter(change_table.c.hidden == False, change_table.c.reviewed == False)
+            q = q.filter(change_table.c.hidden == False, change_table.c.reviewed == False)  # NOQA
         if sort_by == 'updated':
             q = q.order_by(change_table.c.updated)
         else:

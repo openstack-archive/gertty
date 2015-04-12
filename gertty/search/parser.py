@@ -271,10 +271,10 @@ def SearchParser():
         elif p[2] == 'owner':
             p[0] = gertty.db.account_table.c.username == username
         elif p[2] == 'starred':
-            p[0] = gertty.db.change_table.c.starred == True
+            p[0] = gertty.db.change_table.c.starred is True
         elif p[2] == 'held':
             # A gertty extension
-            p[0] = gertty.db.change_table.c.held == True
+            p[0] = gertty.db.change_table.c.held is True
         elif p[2] == 'reviewer':
             filters = []
             filters.append(gertty.db.approval_table.c.change_key == gertty.db.change_table.c.key)
