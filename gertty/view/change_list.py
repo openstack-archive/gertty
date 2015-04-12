@@ -33,7 +33,6 @@ class ThreadStack(object):
         self.stack.append([change, children])
 
     def pop(self):
-        change = None
         while self.stack:
             if self.stack[-1][1]:
                 # handle children at the tip
@@ -95,7 +94,6 @@ class ChangeRow(urwid.Button):
         else:
             subject = change.subject
         flag = ' '
-        color = None
         if change.starred:
             flag = '*'
             style = 'starred-change'
@@ -440,7 +438,7 @@ class ChangeListView(urwid.WidgetWrap):
                 return None
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
-            held = self.toggleHeld(change_key)
+            self.toggleHeld(change_key)
             row = self.change_rows[change_key]
             with self.app.db.getSession() as session:
                 change = session.getChange(change_key)
@@ -451,7 +449,7 @@ class ChangeListView(urwid.WidgetWrap):
                 return None
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
-            starred = self.toggleStarred(change_key)
+            self.toggleStarred(change_key)
             row = self.change_rows[change_key]
             with self.app.db.getSession() as session:
                 change = session.getChange(change_key)
