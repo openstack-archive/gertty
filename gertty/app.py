@@ -472,7 +472,7 @@ class App(object):
                     continue
                 if not filename:
                     filename = '/'.join(path)
-                    m = trailing_filename_re.match(filename)
+                    m = self.trailing_filename_re.match(filename)
                     if m:
                         filename = filename[:0-len(m.group(1))]
                     path = None

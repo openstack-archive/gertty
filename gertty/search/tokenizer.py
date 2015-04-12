@@ -68,9 +68,10 @@ tokens = [
     ] + operators.values()
 
 def SearchTokenizer():
-    t_LPAREN     = r'\('
-    t_RPAREN     = r'\)'
-    t_NEG        = r'!'
+    t_LPAREN = r'\('   # NOQA
+    t_RPAREN = r'\)'   # NOQA
+    t_NEG    = r'!'    # NOQA
+    t_ignore = ' \t'   # NOQA (and intentionally not using r'' due to tab char)
 
     def t_OP(t):
         r'[a-zA-Z_][a-zA-Z_]*:'
@@ -149,8 +150,6 @@ def SearchTokenizer():
     def t_newline(t):
         r'\n+'
         t.lexer.lineno += len(t.value)
-
-    t_ignore  = ' \t'
 
     def t_error(t):
         print "Illegal character '%s'" % t.value[0]

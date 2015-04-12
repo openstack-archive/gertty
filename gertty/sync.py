@@ -35,7 +35,7 @@ import requests
 import requests.utils
 
 import gertty.version
-import gertty.gitrepo
+from gertty import gitrepo
 
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
@@ -402,9 +402,7 @@ class SyncChangeByCommitTask(Task):
         return '<SyncChangeByCommitTask %s>' % (self.commit,)
 
     def run(self, sync):
-        app = sync.app
-        with app.db.getSession() as session:
-            query = 'commit:%s' % self.commit
+        query = 'commit:%s' % self.commit
         changes = sync.get('changes/?q=%s' % query)
         self.log.debug('Query: %s ' % (query,))
         for c in changes:
@@ -420,9 +418,7 @@ class SyncChangeByNumberTask(Task):
         return '<SyncChangeByNumberTask %s>' % (self.number,)
 
     def run(self, sync):
-        app = sync.app
-        with app.db.getSession() as session:
-            query = '%s' % self.number
+        query = '%s' % self.number
         changes = sync.get('changes/?q=%s' % query)
         self.log.debug('Query: %s ' % (query,))
         for c in changes:
@@ -738,7 +734,7 @@ class CheckReposTask(Task):
             try:
                 missing = False
                 try:
-                    repo = app.getRepo(project.name)
+                    app.getRepo(project.name)
                 except gitrepo.GitCloneError:
                     missing = True
                 if missing or app.fetch_missing_refs:
@@ -922,9 +918,9 @@ class ChangeCommitMessageTask(Task):
             revision.pending_message = False
             data = dict(message=revision.message)
             # Inside db session for rollback
-            ret = sync.post('changes/%s/revisions/%s/message' %
-                            (revision.change.id, revision.commit),
-                            data)
+            sync.post('changes/%s/revisions/%s/message' %
+                      (revision.change.id, revision.commit),
+                      data)
             change_id = revision.change.id
         sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
@@ -942,8 +938,8 @@ class UploadReviewTask(Task):
         with app.db.getSession() as session:
             message = session.getMessage(self.message_key)
             if message is None:
-                self.log.debug("Message %s for change %s has already been uploaded" % (
-                    self.message_key, change.id))
+                self.log.debug("Message %s has already been uploaded" % (
+                    self.message_key))
                 return
             change = message.revision.change
         if not change.held:

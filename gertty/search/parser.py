@@ -24,7 +24,7 @@ import gertty.search
 from tokenizer import tokens
 
 def SearchParser():
-    precedence = (
+    precedence = (  # NOQA
         ('left', 'NOT', 'NEG'),
     )
 

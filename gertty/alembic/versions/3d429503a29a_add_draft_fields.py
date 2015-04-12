@@ -25,9 +25,9 @@ def upgrade():
         op.add_column('approval', sa.Column('draft', sa.Boolean()))
 
     conn = op.get_bind()
-    res = conn.execute("update message set draft=pending")
-    res = conn.execute("update comment set draft=pending")
-    res = conn.execute("update approval set draft=pending")
+    conn.execute("update message set draft=pending")
+    conn.execute("update comment set draft=pending")
+    conn.execute("update approval set draft=pending")
 
     sqlite_alter_columns('message', [
         sa.Column('draft', sa.Boolean(), index=True, nullable=False),

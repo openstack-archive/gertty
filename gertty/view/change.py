@@ -541,7 +541,6 @@ class ChangeView(urwid.WidgetWrap):
         return True
 
     def refresh(self):
-        change_info = []
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
             self.topic = change.topic or ''
