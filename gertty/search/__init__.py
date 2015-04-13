@@ -55,6 +55,11 @@ class SearchCompiler(object):
             result = and_(gertty.db.change_table.c.account_key == gertty.db.account_table.c.key,
                           result)
             tables.remove(gertty.db.account_table)
+        if gertty.db.file_table in tables:
+            result = and_(gertty.db.file_table.c.revision_key == gertty.db.revision_table.c.key,
+                          gertty.db.revision_table.c.change_key == gertty.db.change_table.c.key,
+                          result)
+            tables.remove(gertty.db.file_table)
         if tables:
             raise Exception("Unknown table in search: %s" % tables)
         return result

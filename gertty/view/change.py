@@ -233,22 +233,15 @@ class RevisionRow(urwid.WidgetWrap):
         self.commit_sha = revision.commit
         self.can_submit = revision.can_submit
         self.title = mywid.TextButton(u'', on_press = self.expandContract)
-        stats = repo.diffstat(revision.parent, revision.commit)
         table = mywid.Table(columns=3)
         total_added = 0
         total_removed = 0
-        for added, removed, filename in stats:
-            try:
-                added = int(added)
-            except ValueError:
-                added = 0
-            try:
-                removed = int(removed)
-            except ValueError:
-                removed = 0
+        for rfile in revision.files:
+            added = rfile.inserted or 0
+            removed = rfile.deleted or 0
             total_added += added
             total_removed += removed
-            table.addRow([urwid.Text(('filename', filename), wrap='clip'),
+            table.addRow([urwid.Text(('filename', rfile.display_path), wrap='clip'),
                           urwid.Text([('lines-added', '+%i' % (added,)), ', '],
                                      align=urwid.RIGHT),
                           urwid.Text(('lines-removed', '-%i' % (removed,)))])
