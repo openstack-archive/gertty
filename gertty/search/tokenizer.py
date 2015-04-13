@@ -32,7 +32,7 @@ operators = {
     'label': 'OP_LABEL',
     'message': 'OP_MESSAGE',
     'comment': 'OP_COMMENT',
-    #'file': 'OP_FILE', # needs local file list
+    'file': 'OP_FILE',
     'has': 'OP_HAS',
     'is': 'OP_IS',
     'status': 'OP_STATUS',

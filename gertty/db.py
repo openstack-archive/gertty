@@ -153,6 +153,17 @@ sync_query_table = Table(
     Column('name', String(255), index=True, unique=True, nullable=False),
     Column('updated', DateTime, index=True),
     )
+file_table = Table(
+    'file', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
+    Column('path', Text, nullable=False, index=True),
+    Column('old_path', Text, index=True),
+    Column('inserted', Integer),
+    Column('deleted', Integer),
+    Column('status', String(1), nullable=False),
+    )
+
 
 class Account(object):
     def __init__(self, id, name=None, username=None, email=None):
@@ -354,6 +365,15 @@ class Revision(object):
         session.flush()
         return c
 
+    def createFile(self, *args, **kw):
+        session = Session.object_session(self)
+        args = [self] + list(args)
+        f = File(*args, **kw)
+        self.files.append(f)
+        session.add(f)
+        session.flush()
+        return f
+
     def getPendingMessage(self):
         for m in self.messages:
             if m.pending:
@@ -433,6 +453,44 @@ class SyncQuery(object):
     def __init__(self, name):
         self.name = name
 
+class File(object):
+    STATUS_ADDED = 'A'
+    STATUS_DELETED = 'D'
+    STATUS_RENAMED = 'R'
+    STATUS_COPIED = 'C'
+    STATUS_REWRITTEN = 'W'
+    STATUS_MODIFIED = 'M'
+
+    def __init__(self, revision, path, status, old_path=None,
+                 inserted=None, deleted=None):
+        self.revision_key = revision.key
+        self.path = path
+        self.status = status
+        self.old_path = old_path
+        self.inserted = inserted
+        self.deleted = deleted
+
+    @property
+    def display_path(self):
+        if not self.old_path:
+            return self.path
+        pre = []
+        post = []
+        for start in range(len(self.old_path)):
+            if self.path[start] == self.old_path[start]:
+                pre.append(self.old_path[start])
+            else:
+                break
+        pre = ''.join(pre)
+        for end in range(1, len(self.old_path)-1):
+            if self.path[0-end] == self.old_path[0-end]:
+                post.insert(0, self.old_path[0-end])
+            else:
+                break
+        post = ''.join(post)
+        mid = '{%s => %s}' % (self.old_path[start:0-end+1], self.path[start:0-end+1])
+        return pre + mid + post
+
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
         branches=relationship(Branch, backref='project',
@@ -485,10 +543,12 @@ mapper(Revision, revision_table, properties=dict(
                                                      comment_table.c.draft==True),
                                     order_by=(comment_table.c.line,
                                               comment_table.c.created)),
+        files=relationship(File, backref='revision'),
         pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
         ))
 mapper(Message, message_table, properties=dict(
         author=relationship(Account)))
+mapper(File, file_table)
 mapper(Comment, comment_table, properties=dict(
         author=relationship(Account)))
 mapper(Label, label_table)
@@ -513,7 +573,7 @@ class Database(object):
         self.app = app
         self.engine = create_engine(self.app.config.dburi)
         #metadata.create_all(self.engine)
-        self.migrate()
+        self.migrate(app)
         # If we want the objects returned from query() to be usable
         # outside of the session, we need to expunge them from the session,
         # and since the DatabaseSession always calls commit() on the session
@@ -528,7 +588,7 @@ class Database(object):
     def getSession(self):
         return DatabaseSession(self)
 
-    def migrate(self):
+    def migrate(self, app):
         conn = self.engine.connect()
         context = alembic.migration.MigrationContext.configure(conn)
         current_rev = context.get_current_revision()
@@ -539,6 +599,7 @@ class Database(object):
         config = alembic.config.Config()
         config.set_main_option("script_location", "gertty:alembic")
         config.set_main_option("sqlalchemy.url", self.app.config.dburi)
+        config.gertty_app = app
 
         if current_rev is None and has_table:
             self.log.debug('Stamping database as initial revision')

@@ -525,7 +525,7 @@ class SyncChangeTask(Task):
     def run(self, sync):
         start_time = time.time()
         app = sync.app
-        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS' % self.change_id)
+        remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS&o=ALL_FILES' % self.change_id)
         # Perform subqueries this task will need outside of the db session
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
@@ -617,6 +617,18 @@ class SyncChangeTask(Task):
                                        (change.id, remote_revision['_number'], revision.parent))
                     parent_commits.add(revision.parent)
                 result.updateRelatedChanges(session, change)
+
+                filemap = {}
+                for remote_path, remote_file in remote_revision['files'].items():
+                    if remote_file.get('binary'):
+                        inserted = deleted = None
+                    else:
+                        inserted = remote_file.get('lines_inserted', 0)
+                        deleted = remote_file.get('lines_deleted', 0)
+                    f = revision.createFile(remote_path, remote_file.get('status', 'M'),
+                                            remote_file.get('old_path'), inserted, deleted)
+                    filemap[remote_path] = f
+
                 remote_comments_data = remote_revision['_gertty_remote_comments_data']
                 for remote_file, remote_comments in remote_comments_data.items():
                     for remote_comment in remote_comments:
