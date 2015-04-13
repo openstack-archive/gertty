@@ -76,6 +76,7 @@ def SearchParser():
                 | has_term
                 | is_term
                 | status_term
+                | file_term
                 | limit_term
                 | op_term'''
         p[0] = p[1]
@@ -293,6 +294,15 @@ def SearchParser():
             p[0] = gertty.db.project_table.c.subscribed == True
         else:
             raise gertty.search.SearchSyntaxError('Syntax error: is:%s is not supported' % p[2])
+
+    def p_file_term(p):
+        '''file_term : OP_FILE string'''
+        if p[2].startswith('^'):
+            p[0] = or_(func.matches(p[2], gertty.db.file_table.c.path),
+                       func.matches(p[2], gertty.db.file_table.c.old_path))
+        else:
+            p[0] = or_(gertty.db.file_table.c.path == p[2],
+                       gertty.db.file_table.c.old_path == p[2])
 
     def p_status_term(p):
         '''status_term : OP_STATUS string'''
