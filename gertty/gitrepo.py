@@ -170,6 +170,8 @@ class DiffFile(object):
     def __init__(self):
         self.newname = 'Unknown File'
         self.oldname = 'Unknown File'
+        self.old_empty = False
+        self.new_empty = False
         self.chunks = []
         self.current_chunk = None
         self.old_lineno = 0
@@ -389,8 +391,10 @@ class Repo(object):
             # f.newname = diff_context.b_path
             if diff_context.new_file:
                 f.oldname = 'Empty file'
+                f.old_empty = True
             if diff_context.deleted_file:
                 f.newname = 'Empty file'
+                f.new_empty = True
             files.append(f)
             if diff_context.rename_from:
                 f.oldname = diff_context.rename_from
@@ -468,6 +472,16 @@ class Repo(object):
                     continue
                 if not last_line:
                     raise Exception("Unhandled line: %s" % line)
+            if not diff_context.diff:
+                # There is no diff, possibly because this is simply a
+                # rename.  Include context lines so that comments may
+                # appear.
+                newc = repo.commit(new)
+                blob = newc.tree[f.newname]
+                f.old_lineno = 1
+                f.new_lineno = 1
+                for line in blob.data_stream.read().splitlines():
+                    f.addContextLine(line)
             f.finalize()
         return files
 
@@ -479,7 +493,10 @@ class Repo(object):
         f.new_lineno = 1
         repo = git.Repo(self.path)
         newc = repo.commit(new)
-        blob = newc.tree[path]
+        try:
+            blob = newc.tree[path]
+        except KeyError:
+            return None
         for line in blob.data_stream.read().splitlines():
             f.addContextLine(line)
         f.finalize()

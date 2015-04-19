@@ -133,6 +133,12 @@ def sqlite_drop_columns(table_name, drop_columns):
             new_columns.append(col_copy)
 
     for key in meta.tables[table_name].foreign_keys:
+        # If this is a single column constraint for a dropped column,
+        # don't copy it.
+        if (len(key.constraint.columns)==1 and
+            key.constraint.columns[0] in drop_columns):
+            continue
+        # Otherwise, recreate the constraint.
         constraint = key.constraint
         con_copy = constraint.copy()
         new_columns.append(con_copy)

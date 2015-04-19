@@ -618,16 +618,21 @@ class SyncChangeTask(Task):
                     parent_commits.add(revision.parent)
                 result.updateRelatedChanges(session, change)
 
-                filemap = {}
+                f = revision.getFile('/COMMIT_MSG')
+                if f is None:
+                    f = revision.createFile('/COMMIT_MSG', None,
+                                            None, None, None)
                 for remote_path, remote_file in remote_revision['files'].items():
-                    if remote_file.get('binary'):
-                        inserted = deleted = None
-                    else:
-                        inserted = remote_file.get('lines_inserted', 0)
-                        deleted = remote_file.get('lines_deleted', 0)
-                    f = revision.createFile(remote_path, remote_file.get('status', 'M'),
-                                            remote_file.get('old_path'), inserted, deleted)
-                    filemap[remote_path] = f
+                    f = revision.getFile(remote_path)
+                    if f is None:
+                        if remote_file.get('binary'):
+                            inserted = deleted = None
+                        else:
+                            inserted = remote_file.get('lines_inserted', 0)
+                            deleted = remote_file.get('lines_deleted', 0)
+                        f = revision.createFile(remote_path, remote_file.get('status', 'M'),
+                                                remote_file.get('old_path'),
+                                                inserted, deleted)
 
                 remote_comments_data = remote_revision['_gertty_remote_comments_data']
                 for remote_file, remote_comments in remote_comments_data.items():
@@ -643,11 +648,12 @@ class SyncChangeTask(Task):
                             parent = False
                             if remote_comment.get('side', '') == 'PARENT':
                                 parent = True
-                            comment = revision.createComment(remote_comment['id'], account,
-                                                             remote_comment.get('in_reply_to'),
-                                                             created,
-                                                             remote_file, parent, remote_comment.get('line'),
-                                                             remote_comment['message'])
+                            fileobj = revision.getFile(remote_file)
+                            comment = fileobj.createComment(remote_comment['id'], account,
+                                                            remote_comment.get('in_reply_to'),
+                                                            created,
+                                                            parent, remote_comment.get('line'),
+                                                            remote_comment['message'])
                             self.log.info("Created new comment %s for revision %s in local DB.",
                                           comment.key, revision.key)
                         else:
@@ -1124,21 +1130,20 @@ class UploadReviewTask(Task):
                 for approval in change.draft_approvals:
                     data['labels'][approval.category] = approval.value
                     session.delete(approval)
-            if revision.draft_comments:
-                data['comments'] = {}
-                last_file = None
-                comment_list = []
-                for comment in revision.draft_comments:
-                    if comment.file != last_file:
-                        last_file = comment.file
-                        comment_list = []
-                        data['comments'][comment.file] = comment_list
-                    d = dict(line=comment.line,
-                             message=comment.message)
-                    if comment.parent:
-                        d['side'] = 'PARENT'
-                    comment_list.append(d)
-                    session.delete(comment)
+            comments = {}
+            for file in revision.files:
+                if file.draft_comments:
+                    comment_list = []
+                    for comment in file.draft_comments:
+                        d = dict(line=comment.line,
+                                 message=comment.message)
+                        if comment.parent:
+                            d['side'] = 'PARENT'
+                        comment_list.append(d)
+                        session.delete(comment)
+                    comments[file.path] = comment_list
+            if comments:
+                data['comments'] = comments
             session.delete(message)
             # Inside db session for rollback
             sync.post('changes/%s/revisions/%s/review' % (change.id, revision.commit),

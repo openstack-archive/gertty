@@ -18,7 +18,6 @@ import urwid
 from gertty import gitrepo
 from gertty.view.diff import BaseDiffCommentEdit, BaseDiffComment, BaseDiffLine
 from gertty.view.diff import BaseFileHeader, BaseFileReminder, BaseDiffView
-from gertty.view.diff import LineContext
 
 LN_COL_WIDTH = 5
 
@@ -121,11 +120,7 @@ class UnifiedDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []
         for old, new in lines_to_add:
-            context = LineContext(
-                self.old_revision_key, self.new_revision_key,
-                self.old_revision_num, self.new_revision_num,
-                diff.oldname, diff.newname,
-                old[0], new[0])
+            context = self.makeContext(diff, old[0], new[0])
             if context.old_ln is not None:
                 lines.append(UnifiedDiffLine(self.app, context, gitrepo.OLD, old, new,
                                              callback=self.onSelect))
@@ -169,11 +164,7 @@ class UnifiedDiffView(BaseDiffView):
         return UnifiedFileReminder()
 
     def makeFileHeader(self, diff, comment_lists):
-        context = LineContext(
-            self.old_revision_key, self.new_revision_key,
-            self.old_revision_num, self.new_revision_num,
-            diff.oldname, diff.newname,
-            None, None)
+        context = self.makeContext(diff, None, None, header=True)
         lines = []
         lines.append(UnifiedFileHeader(self.app, context, gitrepo.OLD,
                                        diff.oldname, diff.newname,
