@@ -298,11 +298,13 @@ def SearchParser():
     def p_file_term(p):
         '''file_term : OP_FILE string'''
         if p[2].startswith('^'):
-            p[0] = or_(func.matches(p[2], gertty.db.file_table.c.path),
-                       func.matches(p[2], gertty.db.file_table.c.old_path))
+            p[0] = and_(or_(func.matches(p[2], gertty.db.file_table.c.path),
+                            func.matches(p[2], gertty.db.file_table.c.old_path)),
+                        gertty.db.file_table.c.status is not None)
         else:
-            p[0] = or_(gertty.db.file_table.c.path == p[2],
-                       gertty.db.file_table.c.old_path == p[2])
+            p[0] = and_(or_(gertty.db.file_table.c.path == p[2],
+                            gertty.db.file_table.c.old_path == p[2]),
+                        gertty.db.file_table.c.status is not None)
 
     def p_status_term(p):
         '''status_term : OP_STATUS string'''

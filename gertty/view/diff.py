@@ -84,17 +84,16 @@ class PatchsetDialog(urwid.WidgetWrap):
         return old, new
 
 class LineContext(object):
-    def __init__(self, old_revision_key, new_revision_key,
-                 old_revision_num, new_revision_num,
-                 old_fn, new_fn, old_ln, new_ln):
-        self.old_revision_key = old_revision_key
-        self.new_revision_key = new_revision_key
-        self.old_revision_num = old_revision_num
-        self.new_revision_num = new_revision_num
+    def __init__(self, old_file_key, new_file_key,
+                 old_fn, new_fn, old_ln, new_ln,
+                 header=False):
+        self.old_file_key = old_file_key
+        self.new_file_key = new_file_key
         self.old_fn = old_fn
         self.new_fn = new_fn
         self.old_ln = old_ln
         self.new_ln = new_ln
+        self.header = header
 
 class BaseDiffCommentEdit(urwid.Columns):
     pass
@@ -172,20 +171,33 @@ class BaseDiffView(urwid.WidgetWrap):
         del self._w.contents[:]
         with self.app.db.getSession() as session:
             new_revision = session.getRevision(self.new_revision_key)
+            old_comments = []
+            new_comments = []
+            self.old_file_keys = {}
+            self.new_file_keys = {}
             if self.old_revision_key is not None:
                 old_revision = session.getRevision(self.old_revision_key)
                 self.old_revision_num = old_revision.number
                 old_str = 'patchset %s' % self.old_revision_num
                 self.base_commit = old_revision.commit
-                old_comments = old_revision.comments
+                for f in old_revision.files:
+                    old_comments += f.comments
+                    self.old_file_keys[f.path] = f.key
                 show_old_commit = True
             else:
                 old_revision = None
                 self.old_revision_num = None
                 old_str = 'base'
                 self.base_commit = new_revision.parent
-                old_comments = []
                 show_old_commit = False
+                # The old files are the same as the new files since we
+                # are diffing from base -> change, however, we should
+                # use the old file names for file lookup.
+                for f in new_revision.files:
+                    if f.old_path:
+                        self.old_file_keys[f.old_path] = f.key
+                    else:
+                        self.old_file_keys[f.path] = f.key
             self.title = u'Diff of %s change %s from %s to patchset %s' % (
                 new_revision.change.project.name,
                 new_revision.change.number,
@@ -194,19 +206,25 @@ class BaseDiffView(urwid.WidgetWrap):
             self.change_key = new_revision.change.key
             self.project_name = new_revision.change.project.name
             self.commit = new_revision.commit
+            for f in new_revision.files:
+                new_comments += f.comments
+                self.new_file_keys[f.path] = f.key
             comment_lists = {}
             comment_filenames = set()
-            for comment in new_revision.comments:
+            for comment in new_comments:
+                path = comment.file.path
                 if comment.parent:
                     if old_revision:  # we're not looking at the base
                         continue
                     key = 'old'
+                    if comment.file.old_path:
+                        path = comment.file.old_path
                 else:
                     key = 'new'
                 if comment.draft:
                     key += 'draft'
                 key += '-' + str(comment.line)
-                key += '-' + str(comment.file)
+                key += '-' + path
                 comment_list = comment_lists.get(key, [])
                 if comment.draft:
                     message = comment.message
@@ -215,15 +233,16 @@ class BaseDiffView(urwid.WidgetWrap):
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
-                comment_filenames.add(comment.file)
+                comment_filenames.add(path)
             for comment in old_comments:
                 if comment.parent:
                     continue
+                path = comment.file.path
                 key = 'old'
                 if comment.draft:
                     key += 'draft'
                 key += '-' + str(comment.line)
-                key += '-' + str(comment.file)
+                key += '-' + path
                 comment_list = comment_lists.get(key, [])
                 if comment.draft:
                     message = comment.message
@@ -232,7 +251,7 @@ class BaseDiffView(urwid.WidgetWrap):
                                ('comment', u': '+comment.message)]
                 comment_list.append((comment.key, message))
                 comment_lists[key] = comment_list
-                comment_filenames.add(comment.file)
+                comment_filenames.add(path)
         repo = self.app.getRepo(self.project_name)
         self._w.contents.append((self.app.header, ('pack', 1)))
         self.file_reminder = self.makeFileReminder()
@@ -250,7 +269,10 @@ class BaseDiffView(urwid.WidgetWrap):
         # that contain the full text.
         for filename in comment_filenames:
             diff = repo.getFile(self.base_commit, self.commit, filename)
-            diffs.append(diff)
+            if diff:
+                diffs.append(diff)
+            else:
+                self.log.debug("Unable to find file %s in commit %s" % (filename, self.commit))
         for i, diff in enumerate(diffs):
             if i > 0:
                 lines.append(urwid.Text(''))
@@ -297,6 +319,11 @@ class BaseDiffView(urwid.WidgetWrap):
                 oldnew = gitrepo.OLD
             else:
                 oldnew = gitrepo.NEW
+            file_diffs = self.file_diffs[oldnew]
+            if path not in file_diffs:
+                self.log.error("Unable to display comment: %s" % key)
+                del comment_lists[key]
+                continue
             diff = self.file_diffs[oldnew][path]
             for chunk in diff.chunks:
                 if (chunk.range[oldnew][gitrepo.START] <= lineno and
@@ -340,6 +367,21 @@ class BaseDiffView(urwid.WidgetWrap):
             self.listbox.body.remove(chunk.button)
         else:
             chunk.button.update()
+
+    def makeContext(self, diff, old_ln, new_ln, header=False):
+        old_key = None
+        new_key = None
+        if not diff.old_empty:
+            if diff.oldname in self.old_file_keys:
+                old_key = self.old_file_keys[diff.oldname]
+            elif diff.newname in self.old_file_keys:
+                old_key = self.old_file_keys[diff.newname]
+        if not diff.new_empty:
+            new_key = self.new_file_keys[diff.newname]
+        return LineContext(
+            old_key, new_key,
+            diff.oldname, diff.newname,
+            old_ln, new_ln, header)
 
     def makeLines(self, diff, lines_to_add, comment_lists):
         raise NotImplementedError
@@ -431,28 +473,25 @@ class BaseDiffView(urwid.WidgetWrap):
             session.delete(comment)
 
     def saveComment(self, context, text, new=True):
-        if (not new) and (not context.old_revision_num):
+        if (not new) and (not self.old_revision_num):
             parent = True
-            revision_key = context.new_revision_key
         else:
             parent = False
-            if new:
-                revision_key = context.new_revision_key
-            else:
-                revision_key = context.old_revision_key
         if new:
             line_num = context.new_ln
-            filename = context.new_fn
+            file_key = context.new_file_key
         else:
             line_num = context.old_ln
-            filename = context.old_fn
+            file_key = context.old_file_key
+        if file_key is None:
+            raise Exception("Comment is not associated with a file")
         with self.app.db.getSession() as session:
-            revision = session.getRevision(revision_key)
+            fileojb = session.getFile(file_key)
             account = session.getAccountByUsername(self.app.config.username)
-            comment = revision.createComment(None, account, None,
-                                             datetime.datetime.utcnow(),
-                                             filename, parent,
-                                             line_num, text, draft=True)
+            comment = fileojb.createComment(None, account, None,
+                                            datetime.datetime.utcnow(),
+                                            parent,
+                                            line_num, text, draft=True)
             key = comment.key
         return key
 

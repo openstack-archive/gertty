@@ -17,7 +17,6 @@ import urwid
 from gertty import keymap
 from gertty.view.diff import BaseDiffComment, BaseDiffCommentEdit, BaseDiffLine
 from gertty.view.diff import BaseFileHeader, BaseFileReminder, BaseDiffView
-from gertty.view.diff import LineContext
 
 LN_COL_WIDTH = 5
 
@@ -32,20 +31,32 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
         self.old = urwid.Edit(edit_text=old, multiline=True)
         self.new = urwid.Edit(edit_text=new, multiline=True)
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
-        self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
+        if context.old_ln is not None or context.header:
+            self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
+        else:
+            self.contents.append((urwid.Text(u''), ('weight', 1, False)))
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
-        self.contents.append((urwid.AttrMap(self.new, 'draft-comment'), ('weight', 1, False)))
-        self.focus_position = 3
+        if context.new_ln is not None or context.header:
+            self.contents.append((urwid.AttrMap(self.new, 'draft-comment'), ('weight', 1, False)))
+        else:
+            self.contents.append((urwid.Text(u''), ('weight', 1, False)))
+        if context.new_ln is not None or context.header:
+            self.focus_position = 3
+        else:
+            self.focus_position = 1
 
     def keypress(self, size, key):
         r = super(SideDiffCommentEdit, self).keypress(size, key)
         commands = self.app.config.keymap.getCommands(r)
         if ((keymap.NEXT_SELECTABLE in commands) or
             (keymap.PREV_SELECTABLE in commands)):
-            if self.focus_position == 3:
-                self.focus_position = 1
-            else:
-                self.focus_position = 3
+            if ((self.context.old_ln is not None and
+                 self.context.new_ln is not None) or
+                self.context.header):
+                if self.focus_position == 3:
+                    self.focus_position = 1
+                else:
+                    self.focus_position = 3
             return None
         return r
 
@@ -117,11 +128,7 @@ class SideDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []
         for old, new in lines_to_add:
-            context = LineContext(
-                self.old_revision_key, self.new_revision_key,
-                self.old_revision_num, self.new_revision_num,
-                diff.oldname, diff.newname,
-                old[0], new[0])
+            context = self.makeContext(diff, old[0], new[0])
             lines.append(SideDiffLine(self.app, context, old, new,
                                       callback=self.onSelect))
             # see if there are any comments for this line
@@ -159,11 +166,7 @@ class SideDiffView(BaseDiffView):
         return SideFileReminder()
 
     def makeFileHeader(self, diff, comment_lists):
-        context = LineContext(
-            self.old_revision_key, self.new_revision_key,
-            self.old_revision_num, self.new_revision_num,
-            diff.oldname, diff.newname,
-            None, None)
+        context = self.makeContext(diff, None, None, header=True)
         lines = []
         lines.append(SideFileHeader(self.app, context, diff.oldname, diff.newname,
                                     callback=self.onSelect))

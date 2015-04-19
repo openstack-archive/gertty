@@ -237,6 +237,8 @@ class RevisionRow(urwid.WidgetWrap):
         total_added = 0
         total_removed = 0
         for rfile in revision.files:
+            if rfile.status is None:
+                continue
             added = rfile.inserted or 0
             removed = rfile.deleted or 0
             total_added += added
@@ -279,13 +281,13 @@ class RevisionRow(urwid.WidgetWrap):
     def update(self, revision):
         line = [('revision-name', 'Patch Set %s ' % revision.number),
                 ('revision-commit', revision.commit)]
-        num_drafts = len(revision.draft_comments)
+        num_drafts = sum([len(f.draft_comments) for f in revision.files])
         if num_drafts:
             pending_message = revision.getPendingMessage()
             if not pending_message:
                 line.append(('revision-drafts', ' (%s draft%s)' % (
                             num_drafts, num_drafts>1 and 's' or '')))
-        num_comments = len(revision.comments) - num_drafts
+        num_comments = sum([len(f.comments) for f in revision.files]) - num_drafts
         if num_comments:
             line.append(('revision-comments', ' (%s inline comment%s)' % (
                         num_comments, num_comments>1 and 's' or '')))
