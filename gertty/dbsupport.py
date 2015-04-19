@@ -133,6 +133,22 @@ def sqlite_drop_columns(table_name, drop_columns):
             new_columns.append(col_copy)
 
     for key in meta.tables[table_name].foreign_keys:
+        # If this is a single column constraint for a dropped column,
+        # don't copy it.
+        if isinstance(key.constraint.columns, sqlalchemy.sql.base.ColumnCollection):
+            # This is needed for SQLAlchemy >= 1.0.4
+            columns = [c.name for c in key.constraint.columns]
+        else:
+            # This is needed for SQLAlchemy <= 0.9.9.  This is
+            # backwards compat code just in case someone updates
+            # Gertty without updating SQLAlchemy.  This is simple
+            # enough to check and will hopefully avoid leaving the
+            # user's db in an inconsistent state.  Remove this after
+            # Gertty 1.2.0.
+            columns = key.constraint.columns
+        if (len(columns)==1 and columns[0] in drop_columns):
+            continue
+        # Otherwise, recreate the constraint.
         constraint = key.constraint
         con_copy = constraint.copy()
         new_columns.append(con_copy)
