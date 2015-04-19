@@ -95,12 +95,11 @@ message_table = Table(
 comment_table = Table(
     'comment', metadata,
     Column('key', Integer, primary_key=True),
-    Column('revision_key', Integer, ForeignKey("revision.key"), index=True),
+    Column('file_key', Integer, ForeignKey("file.key"), index=True),
     Column('account_key', Integer, ForeignKey("account.key"), index=True),
     Column('id', String(255), index=True), #, unique=True, nullable=False),
     Column('in_reply_to', String(255)),
     Column('created', DateTime, index=True, nullable=False),
-    Column('file', Text, nullable=False),
     Column('parent', Boolean, nullable=False),
     Column('line', Integer),
     Column('message', Text, nullable=False),
@@ -347,15 +346,6 @@ class Revision(object):
         session.flush()
         return m
 
-    def createComment(self, *args, **kw):
-        session = Session.object_session(self)
-        args = [self] + list(args)
-        c = Comment(*args, **kw)
-        self.comments.append(c)
-        session.add(c)
-        session.flush()
-        return c
-
     def createPendingCherryPick(self, *args, **kw):
         session = Session.object_session(self)
         args = [self] + list(args)
@@ -372,7 +362,16 @@ class Revision(object):
         self.files.append(f)
         session.add(f)
         session.flush()
+        if hasattr(self, '_file_cache'):
+            self._file_cache[f.path] = f
         return f
+
+    def getFile(self, path):
+        if not hasattr(self, '_file_cache'):
+            self._file_cache = {}
+            for f in self.files:
+                self._file_cache[f.path] = f
+        return self._file_cache.get(path, None)
 
     def getPendingMessage(self):
         for m in self.messages:
@@ -410,13 +409,12 @@ class Message(object):
         return author_name
 
 class Comment(object):
-    def __init__(self, revision, id, author, in_reply_to, created, file, parent, line, message, draft=False):
-        self.revision_key = revision.key
+    def __init__(self, file, id, author, in_reply_to, created, parent, line, message, draft=False):
+        self.file_key = file.key
         self.account_key = author.key
         self.id = id
         self.in_reply_to = in_reply_to
         self.created = created
-        self.file = file
         self.parent = parent
         self.line = line
         self.message = message
@@ -489,7 +487,22 @@ class File(object):
                 break
         post = ''.join(post)
         mid = '{%s => %s}' % (self.old_path[start:0-end+1], self.path[start:0-end+1])
-        return pre + mid + post
+        if pre and post:
+            mid = '{%s => %s}' % (self.old_path[start:0-end+1],
+                                  self.path[start:0-end+1])
+            return pre + mid + post
+        else:
+            return '%s => %s' % (self.old_path, self.path)
+
+    def createComment(self, *args, **kw):
+        session = Session.object_session(self)
+        args = [self] + list(args)
+        c = Comment(*args, **kw)
+        self.comments.append(c)
+        session.add(c)
+        session.flush()
+        return c
+
 
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
@@ -535,20 +548,22 @@ mapper(Change, change_table, properties=dict(
         ))
 mapper(Revision, revision_table, properties=dict(
         messages=relationship(Message, backref='revision'),
-        comments=relationship(Comment, backref='revision',
-                              order_by=(comment_table.c.line,
-                                        comment_table.c.created)),
-        draft_comments=relationship(Comment,
-                                    primaryjoin=and_(revision_table.c.key==comment_table.c.revision_key,
-                                                     comment_table.c.draft==True),
-                                    order_by=(comment_table.c.line,
-                                              comment_table.c.created)),
         files=relationship(File, backref='revision'),
         pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
         ))
 mapper(Message, message_table, properties=dict(
         author=relationship(Account)))
-mapper(File, file_table)
+mapper(File, file_table, properties=dict(
+       comments=relationship(Comment, backref='file',
+                             order_by=(comment_table.c.line,
+                                       comment_table.c.created)),
+       draft_comments=relationship(Comment,
+                                   primaryjoin=and_(file_table.c.key==comment_table.c.file_key,
+                                                    comment_table.c.draft==True),
+                                   order_by=(comment_table.c.line,
+                                             comment_table.c.created)),
+       ))
+
 mapper(Comment, comment_table, properties=dict(
         author=relationship(Account)))
 mapper(Label, label_table)
@@ -745,6 +760,12 @@ class DatabaseSession(object):
     def getRevisionByNumber(self, change, number):
         try:
             return self.session().query(Revision).filter_by(change_key=change.key, number=number).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
+    def getFile(self, key):
+        try:
+            return self.session().query(File).filter_by(key=key).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
