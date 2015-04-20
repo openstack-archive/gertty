@@ -14,6 +14,7 @@
 # under the License.
 
 import collections
+import errno
 import logging
 import math
 import os
@@ -1158,6 +1159,89 @@ class UploadReviewTask(Task):
                 sync.post('changes/%s/submit' % (change_id,), {})
         sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
+class PruneDatabaseTask(Task):
+    def __init__(self, age, priority=NORMAL_PRIORITY):
+        super(PruneDatabaseTask, self).__init__(priority)
+        self.age = age
+
+    def __repr__(self):
+        return '<PruneDatabaseTask %s>' % (self.age,)
+
+    def __eq__(self, other):
+        if (other.__class__ == self.__class__ and
+            other.age == self.age):
+            return True
+        return False
+
+    def run(self, sync):
+        if not self.age:
+            return
+        app = sync.app
+        with app.db.getSession() as session:
+            for change in session.getChanges('status:closed age:%s' % self.age):
+                t = PruneChangeTask(change.key, priority=self.priority)
+                self.tasks.append(t)
+                sync.submitTask(t)
+        t = VacuumDatabaseTask(priority=self.priority)
+        self.tasks.append(t)
+        sync.submitTask(t)
+
+class PruneChangeTask(Task):
+    def __init__(self, key, priority=NORMAL_PRIORITY):
+        super(PruneChangeTask, self).__init__(priority)
+        self.key = key
+
+    def __repr__(self):
+        return '<PruneChangeTask %s>' % (self.key,)
+
+    def __eq__(self, other):
+        if (other.__class__ == self.__class__ and
+            other.key == self.key):
+            return True
+        return False
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            change = session.getChange(self.key)
+            if not change:
+                return
+            repo = app.getRepo(change.project.name)
+            self.log.info("Pruning %s change %s status:%s updated:%s" % (
+                change.project.name, change.number, change.status, change.updated))
+            change_ref = None
+            for revision in change.revisions:
+                if change_ref is None:
+                    change_ref = '/'.join(revision.fetch_ref.split('/')[:-1])
+                self.log.info("Deleting %s ref %s" % (
+                    change.project.name, revision.fetch_ref))
+                repo.deleteRef(revision.fetch_ref)
+            self.log.info("Deleting %s ref %s" % (
+                change.project.name, change_ref))
+            try:
+                repo.deleteRef(change_ref)
+            except OSError, e:
+                if e.errno != errno.EISDIR:
+                    raise
+            session.delete(change)
+
+class VacuumDatabaseTask(Task):
+    def __init__(self, priority=NORMAL_PRIORITY):
+        super(VacuumDatabaseTask, self).__init__(priority)
+
+    def __repr__(self):
+        return '<VacuumDatabaseTask>'
+
+    def __eq__(self, other):
+        if other.__class__ == self.__class__:
+            return True
+        return False
+
+    def run(self, sync):
+        app = sync.app
+        with app.db.getSession() as session:
+            session.vacuum()
+
 class Sync(object):
     def __init__(self, app):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.version_string(),
@@ -1181,15 +1265,21 @@ class Sync(object):
         self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
         self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
         self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
+        self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
         self.periodic_thread = threading.Thread(target=self.periodicSync)
         self.periodic_thread.daemon = True
         self.periodic_thread.start()
 
     def periodicSync(self):
+        hourly = time.time()
         while True:
             try:
                 time.sleep(60)
                 self.syncSubscribedProjects()
+                now = time.time()
+                if now-hourly > 3600:
+                    hourly = now
+                    self.pruneDatabase()
             except Exception:
                 self.log.exception('Exception in periodicSync')
 
@@ -1297,6 +1387,13 @@ class Sync(object):
 
     def syncSubscribedProjects(self):
         task = SyncSubscribedProjectsTask(LOW_PRIORITY)
+        self.submitTask(task)
+        if task.wait():
+            for subtask in task.tasks:
+                subtask.wait()
+
+    def pruneDatabase(self):
+        task = PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY)
         self.submitTask(task)
         if task.wait():
             for subtask in task.tasks:

@@ -507,9 +507,11 @@ class File(object):
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
         branches=relationship(Branch, backref='project',
-                              order_by=branch_table.c.name),
+                              order_by=branch_table.c.name,
+                              cascade='all, delete-orphan'),
         changes=relationship(Change, backref='project',
-                             order_by=change_table.c.number),
+                             order_by=change_table.c.number,
+                             cascade='all, delete-orphan'),
         unreviewed_changes=relationship(Change,
                                         primaryjoin=and_(project_table.c.key==change_table.c.project_key,
                                                          change_table.c.hidden==False,
@@ -529,17 +531,23 @@ mapper(Branch, branch_table)
 mapper(Change, change_table, properties=dict(
         owner=relationship(Account),
         revisions=relationship(Revision, backref='change',
-                               order_by=revision_table.c.number),
+                               order_by=revision_table.c.number,
+                               cascade='all, delete-orphan'),
         messages=relationship(Message,
                               secondary=revision_table,
-                              order_by=message_table.c.created),
-        labels=relationship(Label, backref='change', order_by=(label_table.c.category,
-                                                               label_table.c.value)),
+                              order_by=message_table.c.created,
+                              viewonly=True),
+        labels=relationship(Label, backref='change',
+                            order_by=(label_table.c.category, label_table.c.value),
+                            cascade='all, delete-orphan'),
         permitted_labels=relationship(PermittedLabel, backref='change',
                                       order_by=(permitted_label_table.c.category,
-                                                permitted_label_table.c.value)),
-        approvals=relationship(Approval, backref='change', order_by=(approval_table.c.category,
-                                                                     approval_table.c.value)),
+                                                permitted_label_table.c.value),
+                                      cascade='all, delete-orphan'),
+        approvals=relationship(Approval, backref='change',
+                               order_by=(approval_table.c.category,
+                                         approval_table.c.value),
+                               cascade='all, delete-orphan'),
         draft_approvals=relationship(Approval,
                                      primaryjoin=and_(change_table.c.key==approval_table.c.change_key,
                                                       approval_table.c.draft==True),
@@ -547,16 +555,20 @@ mapper(Change, change_table, properties=dict(
                                                approval_table.c.value))
         ))
 mapper(Revision, revision_table, properties=dict(
-        messages=relationship(Message, backref='revision'),
-        files=relationship(File, backref='revision'),
-        pending_cherry_picks=relationship(PendingCherryPick, backref='revision'),
+        messages=relationship(Message, backref='revision',
+                              cascade='all, delete-orphan'),
+        files=relationship(File, backref='revision',
+                           cascade='all, delete-orphan'),
+        pending_cherry_picks=relationship(PendingCherryPick, backref='revision',
+                                          cascade='all, delete-orphan'),
         ))
 mapper(Message, message_table, properties=dict(
         author=relationship(Account)))
 mapper(File, file_table, properties=dict(
        comments=relationship(Comment, backref='file',
                              order_by=(comment_table.c.line,
-                                       comment_table.c.created)),
+                                       comment_table.c.created),
+                             cascade='all, delete-orphan'),
        draft_comments=relationship(Comment,
                                    primaryjoin=and_(file_table.c.key==comment_table.c.file_key,
                                                     comment_table.c.draft==True),
@@ -651,6 +663,9 @@ class DatabaseSession(object):
 
     def delete(self, obj):
         self.session().delete(obj)
+
+    def vacuum(self):
+        self.session().execute("VACUUM")
 
     def getProjects(self, subscribed=False, unreviewed=False):
         """Retrieve projects.

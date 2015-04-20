@@ -67,7 +67,7 @@ class SearchCompiler(object):
 if __name__ == '__main__':
     class Dummy(object):
         pass
-    query = 'status:open limit:50'
+    query = 'status:open limit:50 age:2months'
     lexer = tokenizer.SearchTokenizer()
     lexer.input(query)
     while True:
