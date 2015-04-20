@@ -267,6 +267,10 @@ class Repo(object):
         except AssertionError:
             repo.git.fetch(url, refspec)
 
+    def deleteRef(self, ref):
+        repo = git.Repo(self.path)
+        git.Reference.delete(repo, ref)
+
     def checkout(self, ref):
         repo = git.Repo(self.path)
         try:

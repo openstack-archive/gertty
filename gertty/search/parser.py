@@ -92,20 +92,20 @@ def SearchParser():
         now = datetime.datetime.utcnow()
         delta = p[2]
         unit = p[3]
-        if unit == ['seconds', 'second', 'sec', 's']:
+        if unit in ['seconds', 'second', 'sec', 's']:
             pass
-        elif unit == ['minutes', 'minute', 'min', 'm']:
+        elif unit in ['minutes', 'minute', 'min', 'm']:
             delta = delta * 60
-        elif unit == ['hours', 'hour', 'hr', 'h']:
+        elif unit in ['hours', 'hour', 'hr', 'h']:
             delta = delta * 60 * 60
         elif unit in ['days', 'day', 'd']:
-            delta = delta * 60 * 60 * 60
-        elif unit == ['weeks', 'week', 'w']:
-            delta = delta * 60 * 60 * 60 * 7
-        elif unit == ['months', 'month', 'mon']:
-            delta = delta * 60 * 60 * 60 * 30
-        elif unit == ['years', 'year', 'y']:
-            delta = delta * 60 * 60 * 60 * 365
+            delta = delta * 60 * 60 * 24
+        elif unit in ['weeks', 'week', 'w']:
+            delta = delta * 60 * 60 * 24 * 7
+        elif unit in ['months', 'month', 'mon']:
+            delta = delta * 60 * 60 * 24 * 30
+        elif unit in ['years', 'year', 'y']:
+            delta = delta * 60 * 60 * 24 * 365
         p[0] = gertty.db.change_table.c.updated < (now-datetime.timedelta(seconds=delta))
 
     def p_change_term(p):

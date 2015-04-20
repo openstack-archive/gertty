@@ -159,6 +159,15 @@ commentlinks:
 # them in UTC instead, uncomment the following line:
 # display-times-in-utc: true
 
+# Closed changes that are older than two months are removed from the
+# local database (and their refs are removed from the local git repos
+# so that git may garbage collect them).  If you would like to change
+# the expiration delay or disable it, uncomment the following line.
+# The time interval is specified in the same way as the "age:" term in
+# Gerrit's search syntax.  To disable it altogether, set the value to
+# the empty string.
+# expire_age: '2 months'
+
 # Uncomment the following lines to Hide comments by default that match
 # certain criteria.  You can toggle their display with 't'.  Currently
 # the only supported criterion is "author".

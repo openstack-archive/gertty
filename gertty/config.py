@@ -117,6 +117,7 @@ class ConfigSchema(object):
                            'thread-changes': bool,
                            'display-times-in-utc': bool,
                            'change-list-options': self.change_list_options,
+                           'expire-age': str,
                            })
         return schema
 
@@ -226,6 +227,8 @@ class Config(object):
         self.change_list_options = {
             'sort-by': change_list_options.get('sort-by', 'number'),
             'reverse': change_list_options.get('reverse', False)}
+
+        self.expire_age = self.config.get('expire-age', '2 months')
 
     def getServer(self, name=None):
         for server in self.config['servers']:
