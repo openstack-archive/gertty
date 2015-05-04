@@ -999,7 +999,7 @@ class UploadReviewTask(Task):
 
 class Sync(object):
     def __init__(self, app):
-        self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.version_string(),
+        self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.release_string(),
                                             requests.utils.default_user_agent())
         self.offline = False
         self.account_id = None
