@@ -377,7 +377,7 @@ class BaseDiffView(urwid.WidgetWrap):
             elif diff.newname in self.old_file_keys:
                 old_key = self.old_file_keys[diff.newname]
         if not diff.new_empty:
-            new_key = self.new_file_keys[diff.newname]
+            new_key = self.new_file_keys.get(diff.newname)
         return LineContext(
             old_key, new_key,
             diff.oldname, diff.newname,

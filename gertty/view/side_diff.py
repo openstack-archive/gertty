@@ -31,16 +31,18 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
         self.old = urwid.Edit(edit_text=old, multiline=True)
         self.new = urwid.Edit(edit_text=new, multiline=True)
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
-        if context.old_ln is not None or context.header:
+        if context.old_file_key and (context.old_ln is not None or context.header):
             self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
         else:
             self.contents.append((urwid.Text(u''), ('weight', 1, False)))
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
-        if context.new_ln is not None or context.header:
+        if context.new_file_key and (context.new_ln is not None or context.header):
             self.contents.append((urwid.AttrMap(self.new, 'draft-comment'), ('weight', 1, False)))
+            new_editable = True
         else:
             self.contents.append((urwid.Text(u''), ('weight', 1, False)))
-        if context.new_ln is not None or context.header:
+            new_editable = False
+        if new_editable:
             self.focus_position = 3
         else:
             self.focus_position = 1
