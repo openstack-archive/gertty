@@ -480,8 +480,10 @@ class Repo(object):
                 # There is no diff, possibly because this is simply a
                 # rename.  Include context lines so that comments may
                 # appear.
-                newc = repo.commit(new)
-                blob = newc.tree[f.newname]
+                if not f.new_empty:
+                    blob = newc.tree[f.newname]
+                else:
+                    blob = oldc.tree[f.oldname]
                 f.old_lineno = 1
                 f.new_lineno = 1
                 for line in blob.data_stream.read().splitlines():
