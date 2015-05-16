@@ -15,6 +15,7 @@
 import urwid
 
 from gertty import keymap
+from gertty.view import mouse_scroll_decorator
 
 GLOBAL_HELP = (
     (keymap.HELP,
@@ -73,6 +74,7 @@ class Table(urwid.WidgetWrap):
         for i, widget in enumerate(cells):
             self._w.contents[i][0].contents.append((widget, ('pack', None)))
 
+@mouse_scroll_decorator.ScrollByWheel
 class ButtonDialog(urwid.WidgetWrap):
     def __init__(self, title, message, entry_prompt=None, entry_text='', buttons=[]):
         button_widgets = []
@@ -88,9 +90,8 @@ class ButtonDialog(urwid.WidgetWrap):
             self.entry = None
         rows.append(urwid.Divider())
         rows.append(button_columns)
-        pile = urwid.Pile(rows)
-        fill = urwid.Filler(pile, valign='top')
-        super(ButtonDialog, self).__init__(urwid.LineBox(fill, title))
+        listbox = urwid.ListBox(rows)
+        super(ButtonDialog, self).__init__(urwid.LineBox(listbox, title))
 
 class TextEditDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
