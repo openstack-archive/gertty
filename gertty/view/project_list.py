@@ -79,7 +79,7 @@ class ProjectListView(urwid.WidgetWrap):
             (key(keymap.TOGGLE_SUBSCRIBED),
              "Toggle the subscription flag for the currently selected project"),
             (key(keymap.REFRESH),
-             "Sync all projects")
+             "Sync subscribed projects")
             ]
 
     def __init__(self, app):
