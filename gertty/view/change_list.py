@@ -154,6 +154,10 @@ class ChangeListHeader(urwid.WidgetWrap):
 class ChangeListView(urwid.WidgetWrap):
     def help(self):
         key = self.app.config.keymap.formatKeys
+        if self.project_key:
+            refresh_help = "Sync current project"
+        else:
+            refresh_help = "Sync subscribed projects"
         return [
             (key(keymap.TOGGLE_HELD),
              "Toggle the held flag for the currently selected change"),
@@ -168,7 +172,7 @@ class ChangeListView(urwid.WidgetWrap):
             (key(keymap.TOGGLE_STARRED),
              "Toggle the starred flag for the currently selected change"),
             (key(keymap.REFRESH),
-             "Sync all projects"),
+             refresh_help),
             (key(keymap.SORT_BY_NUMBER),
              "Sort changes by number"),
             (key(keymap.SORT_BY_UPDATED),
@@ -455,8 +459,12 @@ class ChangeListView(urwid.WidgetWrap):
                 row.update(change, self.categories)
             return None
         if keymap.REFRESH in commands:
-            self.app.sync.submitTask(
-                sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
+            if self.project_key:
+                self.app.sync.submitTask(
+                    sync.SyncProjectTask(self.project_key, sync.HIGH_PRIORITY))
+            else:
+                self.app.sync.submitTask(
+                    sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
         if keymap.SORT_BY_NUMBER in commands:
