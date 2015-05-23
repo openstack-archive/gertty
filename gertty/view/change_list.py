@@ -408,6 +408,12 @@ class ChangeListView(urwid.WidgetWrap):
             self.log.debug("Set change %s to %s", change_key, hidden_str)
         return ret
 
+    def advance(self):
+        pos = self.listbox.focus_position
+        if pos < len(self.listbox.body)-1:
+            pos += 1
+            self.listbox.focus_position = pos
+
     def keypress(self, size, key):
         r = super(ChangeListView, self).keypress(size, key)
         commands = self.app.config.keymap.getCommands(r)
@@ -433,6 +439,7 @@ class ChangeListView(urwid.WidgetWrap):
                 # where we're not just popping a row from the list of unreviewed
                 # changes.
                 self.refresh()
+                self.advance()
             return None
         if keymap.TOGGLE_HIDDEN in commands:
             if not len(self.listbox.body):
@@ -450,6 +457,7 @@ class ChangeListView(urwid.WidgetWrap):
                 # Just fall back on doing a full refresh if we're in a situation
                 # where we're not just popping a row from the list of changes.
                 self.refresh()
+                self.advance()
             return None
         if keymap.TOGGLE_HELD in commands:
             if not len(self.listbox.body):
@@ -461,6 +469,7 @@ class ChangeListView(urwid.WidgetWrap):
             with self.app.db.getSession() as session:
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
+            self.advance()
             return None
         if keymap.TOGGLE_STARRED in commands:
             if not len(self.listbox.body):
@@ -472,6 +481,7 @@ class ChangeListView(urwid.WidgetWrap):
             with self.app.db.getSession() as session:
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
+            self.advance()
             return None
         if keymap.TOGGLE_MARK in commands:
             if not len(self.listbox.body):
@@ -483,9 +493,7 @@ class ChangeListView(urwid.WidgetWrap):
             with self.app.db.getSession() as session:
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
-            if pos < len(self.listbox.body)-1:
-                pos += 1
-                self.listbox.focus_position = pos
+            self.advance()
             return None
         if keymap.REFRESH in commands:
             if self.project_key:
