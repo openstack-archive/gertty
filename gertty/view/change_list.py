@@ -62,11 +62,12 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, app, change, categories, project=False, owner=False,
-                 updated=False, callback=None):
+    def __init__(self, app, change, prefix, categories, project=False,
+                 owner=False, updated=False, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
         self.app = app
         self.change_key = change.key
+        self.prefix = prefix
         self.subject = urwid.Text(u'', wrap='clip')
         self.number = urwid.Text(u'')
         self.updated = urwid.Text(u'')
@@ -91,10 +92,7 @@ class ChangeRow(urwid.Button):
             style = 'reviewed-change'
         else:
             style = 'unreviewed-change'
-        if hasattr(change, '_subject'):
-            subject = change._subject
-        else:
-            subject = change.subject
+        subject = '%s%s' % (self.prefix, change.subject)
         flag = ' '
         if change.starred:
             flag = '*'
@@ -253,7 +251,9 @@ class ChangeListView(urwid.WidgetWrap):
             if self.reverse:
                 change_list.reverse()
             if self.app.config.thread_changes:
-                change_list = self._threadChanges(change_list)
+                change_list, prefixes = self._threadChanges(change_list)
+            else:
+                prefixes = {}
             new_rows = []
             if len(self.listbox.body):
                 focus_pos = self.listbox.focus_position
@@ -264,7 +264,9 @@ class ChangeListView(urwid.WidgetWrap):
             for change in change_list:
                 row = self.change_rows.get(change.key)
                 if not row:
-                    row = ChangeRow(self.app, change, self.categories,
+                    row = ChangeRow(self.app, change,
+                                    prefixes.get(change.key),
+                                    self.categories,
                                     self.display_project,
                                     self.display_owner,
                                     self.display_updated,
@@ -290,6 +292,7 @@ class ChangeListView(urwid.WidgetWrap):
 
     def _threadChanges(self, changes):
         ret = []
+        prefixes = {}
         stack = ThreadStack()
         children = {}
         commits = {}
@@ -337,6 +340,7 @@ class ChangeListView(urwid.WidgetWrap):
                     prefix += u' '
             subject = '%s%s' % (prefix, change.subject)
             change._subject = subject
+            prefixes[change.key] = prefix
             ret.append(change)
             if change in children:
                 stack.push(change, children[change])
@@ -344,7 +348,7 @@ class ChangeListView(urwid.WidgetWrap):
             if (not change) and orphans:
                 change = orphans.pop(0)
         assert len(ret) == len(changes)
-        return ret
+        return (ret, prefixes)
 
     def clearChangeList(self):
         for key, value in self.change_rows.iteritems():
