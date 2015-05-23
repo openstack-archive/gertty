@@ -84,10 +84,9 @@ class CherryPickDialog(urwid.WidgetWrap):
 
 class ReviewDialog(urwid.WidgetWrap):
     signals = ['submit', 'save', 'cancel']
-    def __init__(self, revision_row):
-        self.revision_row = revision_row
-        self.change_view = revision_row.change_view
-        self.app = self.change_view.app
+    def __init__(self, app, revision_key):
+        self.revision_key = revision_key
+        self.app = app
         save_button = mywid.FixedButton(u'Save')
         submit_button = mywid.FixedButton(u'Save and Submit')
         cancel_button = mywid.FixedButton(u'Cancel')
@@ -98,11 +97,6 @@ class ReviewDialog(urwid.WidgetWrap):
         urwid.connect_signal(cancel_button, 'click',
             lambda button:self._emit('cancel'))
 
-        buttons = [('pack', save_button)]
-        if revision_row.can_submit:
-            buttons.append(('pack', submit_button))
-        buttons.append(('pack', cancel_button))
-        buttons = urwid.Columns(buttons, dividechars=2)
         rows = []
         categories = []
         values = {}
@@ -110,8 +104,13 @@ class ReviewDialog(urwid.WidgetWrap):
         self.button_groups = {}
         message = ''
         with self.app.db.getSession() as session:
-            revision = session.getRevision(self.revision_row.revision_key)
+            revision = session.getRevision(self.revision_key)
             change = revision.change
+            buttons = [('pack', save_button)]
+            if revision.can_submit:
+                buttons.append(('pack', submit_button))
+            buttons.append(('pack', cancel_button))
+            buttons = urwid.Columns(buttons, dividechars=2)
             if revision == change.revisions[-1]:
                 for label in change.labels:
                     d = descriptions.setdefault(label.category, {})
@@ -174,15 +173,14 @@ class ReviewDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile, valign='top')
         super(ReviewDialog, self).__init__(urwid.LineBox(fill, 'Review'))
 
-    def save(self, upload=False, submit=False):
+    def getValues(self):
         approvals = {}
         for category, group in self.button_groups.items():
             for button in group:
                 if button.state:
                     approvals[category] = button._value
         message = self.message.edit_text.strip()
-        self.change_view.saveReview(self.revision_row.revision_key, approvals,
-                                    message, upload, submit)
+        return (approvals, message)
 
     def keypress(self, size, key):
         r = super(ReviewDialog, self).keypress(size, key)
@@ -201,7 +199,8 @@ class ReviewButton(mywid.FixedButton):
             lambda button: self.openReview())
 
     def openReview(self):
-        self.dialog = ReviewDialog(self.revision_row)
+        self.dialog = ReviewDialog(self.change_view.app,
+                                   self.revision_row.revision_key)
         urwid.connect_signal(self.dialog, 'save',
             lambda button: self.closeReview(True, False))
         urwid.connect_signal(self.dialog, 'submit',
@@ -213,7 +212,9 @@ class ReviewButton(mywid.FixedButton):
                                    min_width=60, min_height=20)
 
     def closeReview(self, upload, submit):
-        self.dialog.save(upload, submit)
+        approvals, message = self.dialog.getValues()
+        self.change_view.saveReview(self.revision_row.revision_key, approvals,
+                                    message, upload, submit)
         self.change_view.app.backScreen()
 
 class RevisionRow(urwid.WidgetWrap):
@@ -1037,46 +1038,10 @@ class ChangeView(urwid.WidgetWrap):
         self.saveReview(row.revision_key, approvals, '', True, submit)
 
     def saveReview(self, revision_key, approvals, message, upload, submit):
-        message_key = None
-        with self.app.db.getSession() as session:
-            account = session.getAccountByUsername(self.app.config.username)
-            revision = session.getRevision(revision_key)
-            change = revision.change
-            draft_approvals = {}
-            for approval in change.draft_approvals:
-                draft_approvals[approval.category] = approval
-
-            categories = set()
-            for label in change.permitted_labels:
-                categories.add(label.category)
-            for category in categories:
-                value = approvals.get(category, 0)
-                approval = draft_approvals.get(category)
-                if not approval:
-                    approval = change.createApproval(account, category, 0, draft=True)
-                    draft_approvals[category] = approval
-                approval.value = value
-            draft_message = revision.getPendingMessage()
-            if not draft_message:
-                draft_message = revision.getDraftMessage()
-            if not draft_message:
-                if message or upload:
-                    draft_message = revision.createMessage(None, account,
-                                                           datetime.datetime.utcnow(),
-                                                           '', draft=True)
-            if draft_message:
-                draft_message.created = datetime.datetime.utcnow()
-                draft_message.message = message
-                draft_message.pending = upload
-                message_key = draft_message.key
-            if upload:
-                change.reviewed = True
-            if submit:
-                change.status = 'SUBMITTED'
-                change.pending_status = True
-                change.pending_status_message = None
-        # Outside of db session
+        message_keys = self.app.saveReviews([revision_key], approvals,
+                                            message, upload, submit)
         if upload:
-            self.app.sync.submitTask(
-                sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
+            for message_key in message_keys:
+                self.app.sync.submitTask(
+                    sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
         self.refresh()
