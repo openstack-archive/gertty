@@ -86,6 +86,8 @@ DEFAULT_PALETTE={
     'focused-starred-change': ['light cyan,standout', ''],
     'held-change': ['light red', ''],
     'focused-held-change': ['light red,standout', ''],
+    'marked-change': ['dark cyan', ''],
+    'focused-marked-change': ['dark cyan,standout', ''],
     }
 
 # A delta from the default palette

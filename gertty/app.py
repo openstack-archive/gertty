@@ -14,6 +14,7 @@
 # under the License.
 
 import argparse
+import datetime
 import dateutil
 import logging
 import os
@@ -601,6 +602,58 @@ class App(object):
         urwid.connect_signal(dialog, 'close',
             lambda button: self.backScreen())
         self.popup(dialog, min_height=min_height)
+
+    def saveReviews(self, revision_keys, approvals, message, upload, submit):
+        message_keys = []
+        with self.db.getSession() as session:
+            account = session.getAccountByUsername(self.config.username)
+            for revision_key in revision_keys:
+                k = self._saveReview(session, account, revision_key,
+                                     approvals, message, upload, submit)
+            if k:
+                message_keys.append(k)
+        return message_keys
+
+    def _saveReview(self, session, account, revision_key,
+                    approvals, message, upload, submit):
+        message_key = None
+        revision = session.getRevision(revision_key)
+        change = revision.change
+        draft_approvals = {}
+        for approval in change.draft_approvals:
+            draft_approvals[approval.category] = approval
+
+        categories = set()
+        for label in change.permitted_labels:
+            categories.add(label.category)
+        for category in categories:
+            value = approvals.get(category, 0)
+            approval = draft_approvals.get(category)
+            if not approval:
+                approval = change.createApproval(account, category, 0, draft=True)
+                draft_approvals[category] = approval
+            approval.value = value
+        draft_message = revision.getPendingMessage()
+        if not draft_message:
+            draft_message = revision.getDraftMessage()
+        if not draft_message:
+            if message or upload:
+                draft_message = revision.createMessage(None, account,
+                                                       datetime.datetime.utcnow(),
+                                                       '', draft=True)
+        if draft_message:
+            draft_message.created = datetime.datetime.utcnow()
+            draft_message.message = message
+            draft_message.pending = upload
+            message_key = draft_message.key
+        if upload:
+            change.reviewed = True
+        if submit:
+            change.status = 'SUBMITTED'
+            change.pending_status = True
+            change.pending_status_message = None
+        return message_key
+
 
 
 def version():

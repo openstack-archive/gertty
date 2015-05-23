@@ -45,12 +45,14 @@ class ThreadStack(object):
     def countChildren(self):
         return [len(x[1]) for x in self.stack]
 
+
 class ChangeRow(urwid.Button):
     change_focus_map = {None: 'focused',
                         'unreviewed-change': 'focused-unreviewed-change',
                         'reviewed-change': 'focused-reviewed-change',
                         'starred-change': 'focused-starred-change',
                         'held-change': 'focused-held-change',
+                        'marked-change': 'focused-marked-change',
                         'positive-label': 'focused-positive-label',
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
@@ -70,6 +72,7 @@ class ChangeRow(urwid.Button):
         self.updated = urwid.Text(u'')
         self.project = urwid.Text(u'', wrap='clip')
         self.owner = urwid.Text(u'', wrap='clip')
+        self.mark = False
         cols = [(6, self.number), ('weight', 4, self.subject)]
         if project:
             cols.append(('weight', 1, self.project))
@@ -99,6 +102,9 @@ class ChangeRow(urwid.Button):
         if change.held:
             flag = '!'
             style = 'held-change'
+        if self.mark:
+            flag = '%'
+            style = 'marked-change'
         subject = flag + subject
         self.row_style.set_attr_map({None: style})
         self.subject.set_text(subject)
@@ -107,6 +113,7 @@ class ChangeRow(urwid.Button):
         self.owner.set_text(change.owner_name)
         self.project_name = change.project.name
         self.commit_sha = change.revisions[-1].commit
+        self.current_revision_key = change.revisions[-1].key
         today = self.app.time(datetime.datetime.utcnow()).date()
         updated_time = self.app.time(change.updated)
         if today == updated_time.date():
@@ -171,8 +178,12 @@ class ChangeListView(urwid.WidgetWrap):
              "Toggle the reviewed flag for the currently selected change"),
             (key(keymap.TOGGLE_STARRED),
              "Toggle the starred flag for the currently selected change"),
+            (key(keymap.TOGGLE_MARK),
+             "Toggle the process mark for the currently selected change"),
             (key(keymap.REFRESH),
              refresh_help),
+            (key(keymap.REVIEW),
+             "Leave reviews for the marked changes"),
             (key(keymap.SORT_BY_NUMBER),
              "Sort changes by number"),
             (key(keymap.SORT_BY_UPDATED),
@@ -458,6 +469,20 @@ class ChangeListView(urwid.WidgetWrap):
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
             return None
+        if keymap.TOGGLE_MARK in commands:
+            if not len(self.listbox.body):
+                return None
+            pos = self.listbox.focus_position
+            change_key = self.listbox.body[pos].change_key
+            row = self.change_rows[change_key]
+            row.mark = not row.mark
+            with self.app.db.getSession() as session:
+                change = session.getChange(change_key)
+                row.update(change, self.categories)
+            if pos < len(self.listbox.body)-1:
+                pos += 1
+                self.listbox.focus_position = pos
+            return None
         if keymap.REFRESH in commands:
             if self.project_key:
                 self.app.sync.submitTask(
@@ -466,6 +491,11 @@ class ChangeListView(urwid.WidgetWrap):
                 self.app.sync.submitTask(
                     sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
+            return None
+        if keymap.REVIEW in commands:
+            marked = [row for row in self.change_rows.values() if row.mark]
+            if marked:
+                self.openReview(marked)
             return None
         if keymap.SORT_BY_NUMBER in commands:
             if not len(self.listbox.body):
@@ -513,3 +543,27 @@ class ChangeListView(urwid.WidgetWrap):
             self.app.changeScreen(view)
         except gertty.view.DisplayError as e:
             self.app.error(e.message)
+
+    def openReview(self, rows):
+        dialog = view_change.ReviewDialog(self.app, rows[0].current_revision_key)
+        urwid.connect_signal(dialog, 'save',
+            lambda button: self.closeReview(dialog, rows, True, False))
+        urwid.connect_signal(dialog, 'submit',
+            lambda button: self.closeReview(dialog, rows, True, True))
+        urwid.connect_signal(dialog, 'cancel',
+            lambda button: self.closeReview(dialog, rows, False, False))
+        self.app.popup(dialog,
+                       relative_width=50, relative_height=75,
+                       min_width=60, min_height=20)
+
+    def closeReview(self, dialog, rows, upload, submit):
+        approvals, message = dialog.getValues()
+        revision_keys = [row.current_revision_key for row in rows]
+        message_keys = self.app.saveReviews(revision_keys, approvals,
+                                            message, upload, submit)
+        if upload:
+            for message_key in message_keys:
+                self.app.sync.submitTask(
+                    sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
+        self.refresh()
+        self.app.backScreen()
