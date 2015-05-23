@@ -497,9 +497,11 @@ class ChangeListView(urwid.WidgetWrap):
             self.app.status.update()
             return None
         if keymap.REVIEW in commands:
-            marked = [row for row in self.change_rows.values() if row.mark]
-            if marked:
-                self.openReview(marked)
+            rows = [row for row in self.change_rows.values() if row.mark]
+            if not rows:
+                pos = self.listbox.focus_position
+                rows = [self.listbox.body[pos]]
+            self.openReview(rows)
             return None
         if keymap.SORT_BY_NUMBER in commands:
             if not len(self.listbox.body):
