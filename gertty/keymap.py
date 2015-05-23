@@ -41,6 +41,7 @@ TOGGLE_REVIEWED = 'toggle reviewed'
 TOGGLE_HIDDEN = 'toggle hidden'
 TOGGLE_STARRED = 'toggle starred'
 TOGGLE_HELD = 'toggle held'
+TOGGLE_MARK = 'toggle process mark'
 REVIEW = 'review'
 DIFF = 'diff'
 LOCAL_CHECKOUT = 'local checkout'
@@ -92,6 +93,7 @@ DEFAULT_KEYMAP = {
     TOGGLE_HIDDEN: 'k',
     TOGGLE_STARRED: '*',
     TOGGLE_HELD: '!',
+    TOGGLE_MARK: '%',
     REVIEW: 'r',
     DIFF: 'd',
     LOCAL_CHECKOUT: 'c',
