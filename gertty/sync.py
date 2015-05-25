@@ -89,13 +89,16 @@ class MultiQueue(object):
         try:
             for queue in self.queues.values():
                 for qitem in queue:
-                    if isinstance(qitem, item):
+                    if str(qitem) == str(item):
                         return True
         finally:
             self.condition.release()
         return False
 
 class UpdateEvent(object):
+    def __repr__(self):
+        return '<UpdateEvent>'
+
     def updateRelatedChanges(self, session, change):
         related_change_keys = set()
         related_change_keys.add(change.key)
@@ -142,6 +145,9 @@ class ChangeUpdatedEvent(UpdateEvent):
         self.held_changed = False
 
 class Task(object):
+    def __repr__(self):
+        return '<Task>'
+
     def __init__(self, priority=NORMAL_PRIORITY):
         self.log = logging.getLogger('gertty.sync')
         self.priority = priority
@@ -1034,7 +1040,10 @@ class Sync(object):
 
     def submitTask(self, task):
         if not self.offline:
-            self.queue.put(task, task.priority)
+            if not self.queue.has(task):
+                self.queue.put(task, task.priority)
+            else:
+                self.log.debug("Task %s already queued." % task)
 
     def run(self, pipe):
         task = None
@@ -1051,8 +1060,7 @@ class Sync(object):
         except requests.ConnectionError, e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
-                if not self.queue.has(UploadReviewsTask):
-                    self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+                self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.offline = True
             self.app.status.update(offline=True, refresh=False)
             os.write(pipe, 'refresh\n')
