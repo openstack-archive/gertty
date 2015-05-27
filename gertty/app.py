@@ -59,6 +59,8 @@ require you to press function-F1 or alt-F1 instead.
 
 """
 
+SYNC_THREADS = 5
+
 class StatusHeader(urwid.WidgetWrap):
     def __init__(self, app):
         super(StatusHeader, self).__init__(urwid.Columns([]))
@@ -240,11 +242,14 @@ class App(object):
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
         if not disable_sync:
-            self.sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
-            self.sync_thread.daemon = True
-            self.sync_thread.start()
+            self.sync_threads = []
+            for x in xrange(SYNC_THREADS):
+                sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
+                sync_thread.daemon = True
+                sync_thread.start()
+                self.sync_threads.append(sync_thread)
         else:
-            self.sync_thread = None
+            self.sync_threads = []
             self.sync.offline = True
             self.status.update(offline=True)
 
