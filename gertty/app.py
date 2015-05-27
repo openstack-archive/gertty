@@ -657,7 +657,7 @@ class App(object):
 
 
 def version():
-    return "Gertty version: %s" % gertty.version.version_info.version_string()
+    return "Gertty version: %s" % gertty.version.version_info.release_string()
 
 class PrintKeymapAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
