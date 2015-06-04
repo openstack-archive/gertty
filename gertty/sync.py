@@ -64,13 +64,16 @@ class MultiQueue(object):
         return count
 
     def put(self, item, priority):
+        added = False
         self.condition.acquire()
         try:
             if item not in self.queues[priority]:
                 self.queues[priority].append(item)
+                added = True
             self.condition.notify()
         finally:
             self.condition.release()
+        return added
 
     def get(self):
         self.condition.acquire()
