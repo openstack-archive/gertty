@@ -474,13 +474,13 @@ class File(object):
             return self.path
         pre = []
         post = []
-        for start in range(len(self.old_path)):
+        for start in range(min(len(self.old_path), len(self.path))):
             if self.path[start] == self.old_path[start]:
                 pre.append(self.old_path[start])
             else:
                 break
         pre = ''.join(pre)
-        for end in range(1, len(self.old_path)-1):
+        for end in range(1, min(len(self.old_path), len(self.path))-1):
             if self.path[0-end] == self.old_path[0-end]:
                 post.insert(0, self.old_path[0-end])
             else:
