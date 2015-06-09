@@ -95,7 +95,8 @@ class ConfigSchema(object):
     hide_comments = [hide_comment]
 
     change_list_options = {'sort-by': v.Any('number', 'updated'),
-                           'reverse': bool}
+                           'reverse': bool,
+                           'exclude-wip': bool}
 
     keymap = {v.Required('name'): str,
               v.Match('(?!name)'): v.Any([str], str)}
@@ -226,7 +227,8 @@ class Config(object):
         change_list_options = self.config.get('change-list-options', {})
         self.change_list_options = {
             'sort-by': change_list_options.get('sort-by', 'number'),
-            'reverse': change_list_options.get('reverse', False)}
+            'reverse': change_list_options.get('reverse', False),
+            'exclude-wip': change_list_options.get('exclude-wip', False)}
 
         self.expire_age = self.config.get('expire-age', '2 months')
 

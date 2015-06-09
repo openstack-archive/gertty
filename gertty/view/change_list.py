@@ -190,6 +190,8 @@ class ChangeListView(urwid.WidgetWrap):
              "Reverse the sort"),
             (key(keymap.LOCAL_CHERRY_PICK),
              "Cherry-pick the most recent revision of the selected change onto the local repo"),
+            (key(keymap.TOGGLE_WIP),
+             "Toggle whether WIP review are displayed"),
             ]
 
     def __init__(self, app, query, query_desc=None, project_key=None,
@@ -208,6 +210,7 @@ class ChangeListView(urwid.WidgetWrap):
             self.display_project = False
         self.sort_by = app.config.change_list_options['sort-by']
         self.reverse = app.config.change_list_options['reverse']
+        self.exclude_wip = app.config.change_list_options['exclude-wip']
         self.header = ChangeListHeader(self.display_project, self.display_owner,
                                        self.display_updated)
         self.categories = []
@@ -238,6 +241,8 @@ class ChangeListView(urwid.WidgetWrap):
         with self.app.db.getSession() as session:
             change_list = session.getChanges(self.query, self.unreviewed,
                                              sort_by=self.sort_by)
+            if self.exclude_wip:
+                change_list = list(exclude_wip_filter(change_list))
             if self.unreviewed:
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
@@ -399,6 +404,10 @@ class ChangeListView(urwid.WidgetWrap):
     def toggleHeld(self, change_key):
         return self.app.toggleHeldChange(change_key)
 
+    def toggleWip(self):
+        self.exclude_wip = not self.exclude_wip
+        self.refresh()
+
     def toggleHidden(self, change_key):
         with self.app.db.getSession() as session:
             change = session.getChange(change_key)
@@ -495,6 +504,9 @@ class ChangeListView(urwid.WidgetWrap):
                 row.update(change, self.categories)
             self.advance()
             return None
+        if keymap.TOGGLE_WIP in commands:
+            self.toggleWip()
+            return None
         if keymap.REFRESH in commands:
             if self.project_key:
                 self.app.sync.submitTask(
@@ -581,3 +593,10 @@ class ChangeListView(urwid.WidgetWrap):
                     sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
         self.refresh()
         self.app.backScreen()
+
+
+def exclude_wip_filter(changes):
+    for change in changes:
+        is_wip = change.getMaxForCategory('Workflow') == -1
+        if not is_wip:
+            yield change
