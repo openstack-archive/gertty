@@ -1224,7 +1224,7 @@ class PruneChangeTask(Task):
             try:
                 repo.deleteRef(change_ref)
             except OSError, e:
-                if e.errno != errno.EISDIR:
+                if e.errno not in [errno.EISDIR, errno.EPERM]:
                     raise
             session.delete(change)
 
