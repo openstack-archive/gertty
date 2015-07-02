@@ -178,6 +178,8 @@ class ChangeListView(urwid.WidgetWrap):
              "Toggle the starred flag for the currently selected change"),
             (key(keymap.TOGGLE_MARK),
              "Toggle the process mark for the currently selected change"),
+            (key(keymap.EDIT_TOPIC),
+             "Set the topic of the marked changes"),
             (key(keymap.REFRESH),
              refresh_help),
             (key(keymap.REVIEW),
@@ -495,6 +497,9 @@ class ChangeListView(urwid.WidgetWrap):
                 row.update(change, self.categories)
             self.advance()
             return None
+        if keymap.EDIT_TOPIC in commands:
+            self.editTopic()
+            return None
         if keymap.REFRESH in commands:
             if self.project_key:
                 self.app.sync.submitTask(
@@ -581,3 +586,28 @@ class ChangeListView(urwid.WidgetWrap):
                     sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
         self.refresh()
         self.app.backScreen()
+
+    def editTopic(self):
+        dialog = view_change.EditTopicDialog(self.app, '')
+        urwid.connect_signal(dialog, 'save',
+            lambda button: self.closeEditTopic(dialog, True))
+        urwid.connect_signal(dialog, 'cancel',
+            lambda button: self.closeEditTopic(dialog, False))
+        self.app.popup(dialog)
+
+    def closeEditTopic(self, dialog, save):
+        if save:
+            rows = [row for row in self.change_rows.values() if row.mark]
+            if not rows:
+                pos = self.listbox.focus_position
+                rows = [self.listbox.body[pos]]
+            change_keys = [row.change_key for row in rows]
+            with self.app.db.getSession() as session:
+                for change_key in change_keys:
+                    change = session.getChange(change_key)
+                    change.topic = dialog.entry.edit_text
+                    change.pending_topic = True
+                    self.app.sync.submitTask(
+                        sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
