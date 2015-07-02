@@ -20,6 +20,7 @@ palettes:
   - name: default
     test-SUCCESS: ['light green', '']
     test-FAILURE: ['light red', '']
+    test-UNSTABLE: ['yellow', '']
 
 # Uncomment the next line if your terminal has a white background
 # palette: light
