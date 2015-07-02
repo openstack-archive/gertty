@@ -516,7 +516,7 @@ class App(object):
         elif keymap.CHANGE_SEARCH in commands:
             self.searchDialog()
         elif keymap.LIST_HELD in commands:
-            self.doSearch("status:open is:held")
+            self.doSearch("is:held")
         elif key in self.config.dashboards:
             d = self.config.dashboards[key]
             view = view_change_list.ChangeListView(self, d['query'], d['name'])
