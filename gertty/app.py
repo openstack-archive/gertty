@@ -128,7 +128,7 @@ class StatusHeader(urwid.WidgetWrap):
 
 class SearchDialog(mywid.ButtonDialog):
     signals = ['search', 'cancel']
-    def __init__(self, app):
+    def __init__(self, app, default):
         self.app = app
         search_button = mywid.FixedButton('Search')
         cancel_button = mywid.FixedButton('Cancel')
@@ -139,6 +139,7 @@ class SearchDialog(mywid.ButtonDialog):
         super(SearchDialog, self).__init__("Search",
                                            "Enter a change number or search string.",
                                            entry_prompt="Search: ",
+                                           entry_text=default,
                                            buttons=[search_button,
                                                     cancel_button])
 
@@ -435,8 +436,8 @@ class App(object):
         except gertty.view.DisplayError as e:
             return self.error(e.message)
 
-    def searchDialog(self):
-        dialog = SearchDialog(self)
+    def searchDialog(self, default):
+        dialog = SearchDialog(self, default)
         urwid.connect_signal(dialog, 'cancel',
             lambda button: self.backScreen())
         urwid.connect_signal(dialog, 'search',
@@ -514,7 +515,11 @@ class App(object):
         elif keymap.QUIT in commands:
             self.quit()
         elif keymap.CHANGE_SEARCH in commands:
-            self.searchDialog()
+            if hasattr(self.loop.widget, 'getQueryString'):
+                default = self.loop.widget.getQueryString()
+            else:
+                default = ''
+            self.searchDialog(default)
         elif keymap.LIST_HELD in commands:
             self.doSearch("status:open is:held")
         elif key in self.config.dashboards:

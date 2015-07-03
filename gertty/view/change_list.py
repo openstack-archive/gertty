@@ -290,6 +290,11 @@ class ChangeListView(urwid.WidgetWrap):
             row = self.change_rows[key]
             del self.change_rows[key]
 
+    def getQueryString(self):
+        if self.project_key is not None:
+            return "project:%s %s" % (self.query_desc, self.app.config.project_change_list_query)
+        return self.query
+
     def _threadChanges(self, changes):
         ret = []
         prefixes = {}
