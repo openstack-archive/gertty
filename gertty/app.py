@@ -177,7 +177,6 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
 
 class App(object):
     simple_change_search = re.compile('^(\d+|I[a-fA-F0-9]{40})$')
-    url_change_search = re.compile('^https?://.*$')
 
     def __init__(self, server=None, palette='default', keymap='default',
                  debug=False, verbose=False, disable_sync=False,
@@ -457,11 +456,9 @@ class App(object):
 
     trailing_filename_re = re.compile('.*(,[a-z]+)')
     def parseInternalURL(self, url):
-        if not self.url_change_search.match(url):
+        if not url.startswith(self.config.url):
             return None
         result = urlparse.urlparse(url)
-        if result.netloc != self.config.hostname:
-            return None
         change = patchset = filename = None
         path = [x for x in result.path.split('/') if x]
         if path:
