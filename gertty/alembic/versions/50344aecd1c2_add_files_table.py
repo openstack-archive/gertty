@@ -55,7 +55,7 @@ def upgrade():
         sys.stdout.flush()
         ires = conn.execute(insert, revision_key=rkey, path='/COMMIT_MSG', old_path=None,
                             status=None, inserted=None, deleted=None)
-        repo = gertty.gitrepo.get_repo(pname, context.config.gertty_app)
+        repo = gertty.gitrepo.get_repo(pname, context.config.gertty_app.config)
         try:
             stats = repo.diffstat(parent, commit)
         except git.exc.GitCommandError:
