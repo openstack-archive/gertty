@@ -530,6 +530,7 @@ class App(object):
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)
         webbrowser.open_new_tab(url)
+        self.loop.screen.clear()
 
     def time(self, dt):
         utc = dt.replace(tzinfo=dateutil.tz.tzutc())
