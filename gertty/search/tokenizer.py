@@ -64,7 +64,7 @@ tokens = [
 def SearchTokenizer():
     t_LPAREN = r'\('   # NOQA
     t_RPAREN = r'\)'   # NOQA
-    t_NEG    = r'!'    # NOQA
+    t_NEG    = r'[-!]' # NOQA
     t_ignore = ' \t'   # NOQA (and intentionally not using r'' due to tab char)
 
     def t_OP(t):
@@ -109,7 +109,7 @@ def SearchTokenizer():
         return t
 
     def t_USTRING(t):
-        r'([^\s\(\)!]+)'
+        r'([^\s\(\)!-][^\s\(\)!]*)'
         t.value=t.value.decode("string-escape")
         return t
 
