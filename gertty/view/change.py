@@ -446,7 +446,7 @@ class ChangeView(urwid.WidgetWrap):
         self.created_label = urwid.Text(u'', wrap='clip')
         self.updated_label = urwid.Text(u'', wrap='clip')
         self.status_label = urwid.Text(u'', wrap='clip')
-        self.permalink_label = urwid.Text(u'', wrap='clip')
+        self.permalink_label = mywid.TextButton(u'', on_press=self.openPermalink)
         change_info = []
         change_info_map={'change-data': 'focused-change-data'}
         for l, v in [("Change-Id", urwid.Padding(urwid.AttrMap(self.change_id_label, None,
@@ -465,7 +465,9 @@ class ChangeView(urwid.WidgetWrap):
                      ("Created", self.created_label),
                      ("Updated", self.updated_label),
                      ("Status", self.status_label),
-                     ("Permalink", self.permalink_label),
+                     ("Permalink", urwid.Padding(urwid.AttrMap(self.permalink_label, None,
+                                                               focus_map=change_info_map),
+                                                 width='pack')),
                      ]:
             row = urwid.Columns([(12, urwid.Text(('change-header', l), wrap='clip')), v])
             change_info.append(row)
@@ -570,8 +572,8 @@ class ChangeView(urwid.WidgetWrap):
             self.created_label.set_text(('change-data', str(self.app.time(change.created))))
             self.updated_label.set_text(('change-data', str(self.app.time(change.updated))))
             self.status_label.set_text(('change-data', change.status))
-            url = urlparse.urljoin(self.app.config.url, str(change.number))
-            self.permalink_label.set_text(('change-data', url))
+            self.permalink_url = urlparse.urljoin(self.app.config.url, str(change.number))
+            self.permalink_label.text.set_text(('change-data', self.permalink_url))
             self.commit_message.set_text(change.revisions[-1].message)
 
             categories = []
@@ -1013,6 +1015,9 @@ class ChangeView(urwid.WidgetWrap):
                 sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
         self.app.backScreen()
         self.refresh()
+
+    def openPermalink(self, widget):
+        self.app.openURL(self.permalink_url)
 
     def searchChangeId(self, widget):
         self.app.doSearch("status:open change:%s" % (self.change_id,))
