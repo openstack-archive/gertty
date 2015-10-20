@@ -515,11 +515,7 @@ class App(object):
         elif keymap.QUIT in commands:
             self.quit()
         elif keymap.CHANGE_SEARCH in commands:
-            if hasattr(self.loop.widget, 'getQueryString'):
-                default = self.loop.widget.getQueryString()
-            else:
-                default = ''
-            self.searchDialog(default)
+            self.searchDialog('')
         elif keymap.LIST_HELD in commands:
             self.doSearch("is:held")
         elif key in self.config.dashboards:

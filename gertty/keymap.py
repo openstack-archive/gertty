@@ -35,6 +35,7 @@ TOP_SCREEN = 'top screen'
 HELP = 'help'
 QUIT = 'quit'
 CHANGE_SEARCH = 'change search'
+REFINE_CHANGE_SEARCH = 'refine change search'
 LIST_HELD = 'list held changes'
 # Change screen:
 TOGGLE_REVIEWED = 'toggle reviewed'
@@ -87,6 +88,7 @@ DEFAULT_KEYMAP = {
     HELP: ['f1', '?'],
     QUIT: 'ctrl q',
     CHANGE_SEARCH: 'ctrl o',
+    REFINE_CHANGE_SEARCH: 'meta o',
     LIST_HELD: 'f12',
 
     TOGGLE_REVIEWED: 'v',
