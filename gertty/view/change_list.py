@@ -178,6 +178,8 @@ class ChangeListView(urwid.WidgetWrap):
              "Toggle the starred flag for the currently selected change"),
             (key(keymap.TOGGLE_MARK),
              "Toggle the process mark for the currently selected change"),
+            (key(keymap.REFINE_CHANGE_SEARCH),
+             "Refine the current search query"),
             (key(keymap.EDIT_TOPIC),
              "Set the topic of the marked changes"),
             (key(keymap.REFRESH),
@@ -558,6 +560,10 @@ class ChangeListView(urwid.WidgetWrap):
             pos = self.listbox.focus_position
             row = self.listbox.body[pos]
             self.app.localCherryPickCommit(row.project_name, row.commit_sha)
+            return None
+        if keymap.REFINE_CHANGE_SEARCH in commands:
+            default = self.getQueryString()
+            self.app.searchDialog(default)
             return None
         return key
 
