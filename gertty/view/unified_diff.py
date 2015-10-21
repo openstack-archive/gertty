@@ -90,7 +90,7 @@ class UnifiedDiffLine(BaseDiffLine):
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
     def search(self, search, attribute):
-        self.text_widget.search(search, attribute)
+        return self.text_widget.search(search, attribute)
 
 class UnifiedFileHeader(BaseFileHeader):
     def __init__(self, app, context, oldnew, old, new, callback=None):
