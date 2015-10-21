@@ -47,6 +47,7 @@ DEFAULT_PALETTE={
     'comment-name': ['white', 'dark gray'],
     'line-number': ['dark gray', ''],
     'focused-line-number': ['dark gray,standout', ''],
+    'search-result': ['default,standout', ''],
     # Change view
     'change-data': ['dark cyan', ''],
     'focused-change-data': ['light cyan', ''],

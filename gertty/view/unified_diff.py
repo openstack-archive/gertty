@@ -73,7 +73,8 @@ class UnifiedDiffLine(BaseDiffLine):
             columns = [(LN_COL_WIDTH, urwid.Text(u'')), (LN_COL_WIDTH, new_ln_col)]
         if new_action == ' ':
             columns = [(LN_COL_WIDTH, old_ln_col), (LN_COL_WIDTH, new_ln_col)]
-        line_col = urwid.Text(line)
+        line_col = mywid.SearchableText(line)
+        self.text_widget = line_col
         if action == '':
             line_col = urwid.AttrMap(line_col, 'nonexistent')
         columns += [line_col]
@@ -87,6 +88,9 @@ class UnifiedDiffLine(BaseDiffLine):
                'line-number': 'focused-line-number',
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
+
+    def search(self, search, attribute):
+        self.text_widget.search(search, attribute)
 
 class UnifiedFileHeader(BaseFileHeader):
     def __init__(self, app, context, oldnew, old, new, callback=None):
