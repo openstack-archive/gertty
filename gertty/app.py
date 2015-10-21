@@ -141,7 +141,8 @@ class SearchDialog(mywid.ButtonDialog):
                                            entry_prompt="Search: ",
                                            entry_text=default,
                                            buttons=[search_button,
-                                                    cancel_button])
+                                                    cancel_button],
+                                           ring=app.ring)
 
     def keypress(self, size, key):
         r = super(SearchDialog, self).keypress(size, key)
@@ -207,6 +208,7 @@ class App(object):
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
 
+        self.ring = mywid.KillRing()
         webbrowser.register('xdg-open', None, BackgroundBrowser("xdg-open"))
 
         self.fetch_missing_refs = fetch_missing_refs

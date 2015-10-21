@@ -74,9 +74,58 @@ class Table(urwid.WidgetWrap):
         for i, widget in enumerate(cells):
             self._w.contents[i][0].contents.append((widget, ('pack', None)))
 
+class KillRing(object):
+    def __init__(self):
+        self.ring = []
+
+    def kill(self, text):
+        self.ring.append(text)
+
+    def yank(self, repeat=False):
+        if not self.ring:
+            return None
+        if repeat:
+            t = self.ring.pop()
+            self.ring.insert(0, t)
+        return self.ring[-1]
+
+class MyEdit(urwid.Edit):
+    def __init__(self, *args, **kw):
+        self.ring = kw.pop('ring', None)
+        if not self.ring:
+            self.ring = KillRing()
+        self.last_yank = None
+        super(MyEdit, self).__init__(*args, **kw)
+
+    def keypress(self, size, key):
+        (maxcol,) = size
+        if self._command_map[key] == keymap.YANK:
+            text = self.ring.yank()
+            if text:
+                self.last_yank = (self.edit_pos, self.edit_pos+len(text))
+                self.insert_text(text)
+            return
+        if self._command_map[key] == keymap.YANK_POP:
+            if not self.last_yank:
+                return
+            text = self.ring.yank(True)
+            if text:
+                self.edit_text = (self.edit_text[:self.last_yank[0]] +
+                                  self.edit_text[self.last_yank[1]:])
+                self.last_yank = (self.edit_pos, self.edit_pos+len(text))
+                self.insert_text(text)
+            return
+        self.last_yank = None
+        if self._command_map[key] == keymap.KILL:
+            text = self.edit_text[self.edit_pos:]
+            self.edit_text = self.edit_text[:self.edit_pos]
+            self.ring.kill(text)
+        return super(MyEdit, self).keypress(size, key)
+
 @mouse_scroll_decorator.ScrollByWheel
 class ButtonDialog(urwid.WidgetWrap):
-    def __init__(self, title, message, entry_prompt=None, entry_text='', buttons=[]):
+    def __init__(self, title, message, entry_prompt=None,
+                 entry_text='', buttons=[], ring=None):
         button_widgets = []
         for button in buttons:
             button_widgets.append(('pack', button))
@@ -84,7 +133,7 @@ class ButtonDialog(urwid.WidgetWrap):
         rows = []
         rows.append(urwid.Text(message))
         if entry_prompt:
-            self.entry = urwid.Edit(entry_prompt, edit_text=entry_text)
+            self.entry = MyEdit(entry_prompt, edit_text=entry_text, ring=ring)
             rows.append(self.entry)
         else:
             self.entry = None
@@ -95,7 +144,7 @@ class ButtonDialog(urwid.WidgetWrap):
 
 class TextEditDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
-    def __init__(self, title, prompt, button, text):
+    def __init__(self, title, prompt, button, text, ring=None):
         save_button = FixedButton(button)
         cancel_button = FixedButton('Cancel')
         urwid.connect_signal(save_button, 'click',
@@ -106,7 +155,7 @@ class TextEditDialog(urwid.WidgetWrap):
                           ('pack', cancel_button)]
         button_columns = urwid.Columns(button_widgets, dividechars=2)
         rows = []
-        self.entry = urwid.Edit(edit_text=text, multiline=True)
+        self.entry = urwid.Edit(edit_text=text, multiline=True, ring=ring)
         rows.append(urwid.Text(prompt))
         rows.append(self.entry)
         rows.append(urwid.Divider())
