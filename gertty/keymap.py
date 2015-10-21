@@ -73,6 +73,7 @@ TOGGLE_SUBSCRIBED = 'toggle subscribed'
 SELECT_PATCHSETS = 'select patchsets'
 NEXT_SELECTABLE = 'next selectable'
 PREV_SELECTABLE = 'prev selectable'
+INTERACTIVE_SEARCH = 'interactive search'
 
 DEFAULT_KEYMAP = {
     REDRAW_SCREEN: 'ctrl l',
@@ -129,7 +130,8 @@ DEFAULT_KEYMAP = {
     SELECT_PATCHSETS: 'p',
     NEXT_SELECTABLE: 'tab',
     PREV_SELECTABLE: 'shift tab',
-    }
+    INTERACTIVE_SEARCH: 'ctrl s',
+}
 
 URWID_COMMANDS = frozenset((
     urwid.REDRAW_SCREEN,
