@@ -204,10 +204,12 @@ class SearchableText(urwid.Text):
             return
         (text, attrs) = urwid.util.decompose_tagmarkup(self._markup)
         last = 0
+        found = False
         while True:
             start = text.find(search, last)
             if start < 0:
                 break
+            found = True
             end = start + len(search)
             i = 0
             newattrs = []
@@ -238,6 +240,7 @@ class SearchableText(urwid.Text):
         self._text = text
         self._attrib = attrs
         self._invalidate()
+        return found
 
 class HyperText(urwid.Text):
     _selectable = True

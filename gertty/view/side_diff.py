@@ -109,8 +109,11 @@ class SideDiffLine(BaseDiffLine):
         self._w = urwid.AttrMap(col, None, focus_map=map)
 
     def search(self, search, attribute):
+        ret = False
         for w in self.text_widgets:
-            w.search(search, attribute)
+            if w.search(search, attribute):
+                ret = True
+        return ret
 
 class SideFileHeader(BaseFileHeader):
     def __init__(self, app, context, old, new, callback=None):

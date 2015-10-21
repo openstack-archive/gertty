@@ -177,6 +177,8 @@ class BaseDiffView(urwid.WidgetWrap):
     def _init(self):
         del self._w.contents[:]
         self.search = None
+        self.results = []
+        self.current_result = None
         with self.app.db.getSession() as session:
             new_revision = session.getRevision(self.new_revision_key)
             old_comments = []
@@ -447,12 +449,17 @@ class BaseDiffView(urwid.WidgetWrap):
                 self.interactiveSearch(self.search)
                 return None
             else:
-                self.app.status.update(title=self.title)
-                if not self.search:
-                    self.interactiveSearch(None)
-                self.search = None
-                if key in ['enter', 'esc']:
+                commands = self.app.config.keymap.getCommands(key)
+                if keymap.INTERACTIVE_SEARCH in commands:
+                    self.nextSearchResult()
                     return None
+                else:
+                    self.app.status.update(title=self.title)
+                    if not self.search:
+                        self.interactiveSearch(None)
+                    self.search = None
+                    if key in ['enter', 'esc']:
+                        return None
 
         old_focus = self.listbox.focus
         r = super(BaseDiffView, self).keypress(size, key)
@@ -474,7 +481,7 @@ class BaseDiffView(urwid.WidgetWrap):
             return None
         if keymap.INTERACTIVE_SEARCH in commands:
             self.search = ''
-            self.interactiveSearch(self.search)
+            self.app.status.update(title=("Search: "))
             return None
         return r
 
@@ -549,6 +556,19 @@ class BaseDiffView(urwid.WidgetWrap):
     def interactiveSearch(self, search):
         if search is not None:
             self.app.status.update(title=("Search: " + search))
-        for line in self.listbox.body:
+        self.results = []
+        self.current_result = 0
+        for i, line in enumerate(self.listbox.body):
             if hasattr(line, 'search'):
-                line.search(search, 'search-result')
+                if line.search(search, 'search-result'):
+                    self.results.append(i)
+
+    def nextSearchResult(self):
+        if not self.results:
+            return
+        dest = self.results[self.current_result]
+        self.listbox.set_focus(dest)
+        self.listbox._invalidate()
+        self.current_result += 1
+        if self.current_result >= len(self.results):
+            self.current_result = 0
