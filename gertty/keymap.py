@@ -29,6 +29,9 @@ CURSOR_PAGE_DOWN = urwid.CURSOR_PAGE_DOWN
 CURSOR_MAX_LEFT = urwid.CURSOR_MAX_LEFT
 CURSOR_MAX_RIGHT = urwid.CURSOR_MAX_RIGHT
 ACTIVATE = urwid.ACTIVATE
+KILL = 'kill'
+YANK = 'yank'
+YANK_POP = 'yank pop'
 # Global gertty commands:
 PREV_SCREEN = 'previous screen'
 TOP_SCREEN = 'top screen'
@@ -79,9 +82,12 @@ DEFAULT_KEYMAP = {
     CURSOR_RIGHT: 'right',
     CURSOR_PAGE_UP: 'page up',
     CURSOR_PAGE_DOWN: 'page down',
-    CURSOR_MAX_LEFT: 'home',
-    CURSOR_MAX_RIGHT: 'end',
+    CURSOR_MAX_LEFT: ['home', 'ctrl a'],
+    CURSOR_MAX_RIGHT: ['end', 'ctrl e'],
     ACTIVATE: 'enter',
+    KILL: 'ctrl k',
+    YANK: 'ctrl y',
+    YANK_POP: 'meta y',
 
     PREV_SCREEN: 'esc',
     TOP_SCREEN: 'meta home',
@@ -136,6 +142,9 @@ URWID_COMMANDS = frozenset((
     urwid.CURSOR_MAX_LEFT,
     urwid.CURSOR_MAX_RIGHT,
     urwid.ACTIVATE,
+    KILL,
+    YANK,
+    YANK_POP,
 ))
 
 FORMAT_SUBS = (

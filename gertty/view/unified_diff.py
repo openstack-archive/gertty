@@ -16,19 +16,21 @@
 import urwid
 
 from gertty import gitrepo
+from gertty import mywid
 from gertty.view.diff import BaseDiffCommentEdit, BaseDiffComment, BaseDiffLine
 from gertty.view.diff import BaseFileHeader, BaseFileReminder, BaseDiffView
 
 LN_COL_WIDTH = 5
 
 class UnifiedDiffCommentEdit(BaseDiffCommentEdit):
-    def __init__(self, context, oldnew, key=None, comment=u''):
+    def __init__(self, app, context, oldnew, key=None, comment=u''):
         super(UnifiedDiffCommentEdit, self).__init__([])
         self.context = context
         self.oldnew = oldnew
         # If we save a comment, the resulting key will be stored here
         self.key = key
-        self.comment = urwid.Edit(edit_text=comment, multiline=True)
+        self.comment = mywid.MyEdit(edit_text=comment, multiline=True,
+                                    ring=app.ring)
         self.contents.append((urwid.Text(u''), ('given', 8, False)))
         self.contents.append((urwid.AttrMap(self.comment, 'draft-comment'),
                               ('weight', 1, False)))
@@ -135,7 +137,8 @@ class UnifiedDiffView(BaseDiffView):
             old_list = comment_lists.pop(key, [])
             while old_list:
                 (old_comment_key, old_comment) = old_list.pop(0)
-                lines.append(UnifiedDiffCommentEdit(context,
+                lines.append(UnifiedDiffCommentEdit(self.app,
+                                                    context,
                                                     gitrepo.OLD,
                                                     old_comment_key,
                                                     old_comment))
@@ -154,7 +157,8 @@ class UnifiedDiffView(BaseDiffView):
             new_list = comment_lists.pop(key, [])
             while new_list:
                 (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(UnifiedDiffCommentEdit(context,
+                lines.append(UnifiedDiffCommentEdit(self.app,
+                                                    context,
                                                     gitrepo.NEW,
                                                     new_comment_key,
                                                     new_comment))
@@ -180,7 +184,8 @@ class UnifiedDiffView(BaseDiffView):
         old_list = comment_lists.pop(key, [])
         while old_list:
             (old_comment_key, old_comment) = old_list.pop(0)
-            lines.append(UnifiedDiffCommentEdit(context,
+            lines.append(UnifiedDiffCommentEdit(self.app,
+                                                context,
                                                 gitrepo.OLD,
                                                 old_comment_key,
                                                 old_comment))
@@ -200,14 +205,16 @@ class UnifiedDiffView(BaseDiffView):
         new_list = comment_lists.pop(key, [])
         while new_list:
             (new_comment_key, new_comment) = new_list.pop(0)
-            lines.append(UnifiedDiffCommentEdit(context,
+            lines.append(UnifiedDiffCommentEdit(self.app,
+                                                context,
                                                 gitrepo.NEW,
                                                 new_comment_key,
                                                 new_comment))
         return lines
 
     def makeCommentEdit(self, edit):
-        return UnifiedDiffCommentEdit(edit.context,
+        return UnifiedDiffCommentEdit(self.app,
+                                      edit.context,
                                       edit.oldnew)
 
     def cleanupEdit(self, edit):

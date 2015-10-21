@@ -43,7 +43,8 @@ class EditTopicDialog(mywid.ButtonDialog):
                                               entry_prompt="Topic: ",
                                               entry_text=topic,
                                               buttons=[save_button,
-                                                       cancel_button])
+                                                       cancel_button],
+                                              ring=app.ring)
 
     def keypress(self, size, key):
         r = super(EditTopicDialog, self).keypress(size, key)
@@ -55,7 +56,7 @@ class EditTopicDialog(mywid.ButtonDialog):
 
 class CherryPickDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
-    def __init__(self, change):
+    def __init__(self, app, change):
         save_button = mywid.FixedButton('Propose Change')
         cancel_button = mywid.FixedButton('Cancel')
         urwid.connect_signal(save_button, 'click',
@@ -66,7 +67,8 @@ class CherryPickDialog(urwid.WidgetWrap):
                           ('pack', cancel_button)]
         button_columns = urwid.Columns(button_widgets, dividechars=2)
         rows = []
-        self.entry = urwid.Edit(edit_text=change.revisions[-1].message, multiline=True)
+        self.entry = mywid.MyEdit(edit_text=change.revisions[-1].message,
+                                  multiline=True, ring=app.ring)
         self.branch_buttons = []
         rows.append(urwid.Text(u"Branch:"))
         for branch in change.project.branches:
@@ -166,7 +168,8 @@ class ReviewDialog(urwid.WidgetWrap):
                 m = revision.getDraftMessage()
             if m:
                 message = m.message
-        self.message = urwid.Edit("Message: \n", edit_text=message, multiline=True)
+        self.message = mywid.MyEdit("Message: \n", edit_text=message,
+                                    multiline=True, ring=app.ring)
         rows.append(self.message)
         rows.append(urwid.Divider())
         rows.append(buttons)
@@ -956,7 +959,7 @@ class ChangeView(urwid.WidgetWrap):
     def cherryPickChange(self):
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
-            dialog = CherryPickDialog(change)
+            dialog = CherryPickDialog(self.app, change)
         urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
         urwid.connect_signal(dialog, 'save', lambda button:
                                  self.doCherryPickChange(dialog))

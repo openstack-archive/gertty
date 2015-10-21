@@ -15,6 +15,7 @@
 import urwid
 
 from gertty import keymap
+from gertty import mywid
 from gertty.view.diff import BaseDiffComment, BaseDiffCommentEdit, BaseDiffLine
 from gertty.view.diff import BaseFileHeader, BaseFileReminder, BaseDiffView
 
@@ -28,8 +29,8 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
         # If we save a comment, the resulting key will be stored here
         self.old_key = old_key
         self.new_key = new_key
-        self.old = urwid.Edit(edit_text=old, multiline=True)
-        self.new = urwid.Edit(edit_text=new, multiline=True)
+        self.old = mywid.MyEdit(edit_text=old, multiline=True, ring=app.ring)
+        self.new = mywid.MyEdit(edit_text=new, multiline=True, ring=app.ring)
         self.contents.append((urwid.Text(u''), ('given', LN_COL_WIDTH, False)))
         if context.old_file_key and (context.old_ln is not None or context.header):
             self.contents.append((urwid.AttrMap(self.old, 'draft-comment'), ('weight', 1, False)))
