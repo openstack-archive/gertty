@@ -106,9 +106,15 @@ class BaseDiffLine(urwid.Button):
     def selectable(self):
         return True
 
+    def search(self, search, attribute):
+        pass
+
 class BaseFileHeader(urwid.Button):
     def selectable(self):
         return True
+
+    def search(self, search, attribute):
+        pass
 
 class BaseFileReminder(urwid.WidgetWrap):
     pass
@@ -170,6 +176,7 @@ class BaseDiffView(urwid.WidgetWrap):
 
     def _init(self):
         del self._w.contents[:]
+        self.search = None
         with self.app.db.getSession() as session:
             new_revision = session.getRevision(self.new_revision_key)
             old_comments = []
@@ -427,7 +434,26 @@ class BaseDiffView(urwid.WidgetWrap):
             context = item.context
         return context
 
+    def search_valid_char(self, ch):
+        return urwid.util.is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
+
     def keypress(self, size, key):
+        if self.search is not None:
+            if self.search_valid_char(key) or key == 'backspace':
+                if key == 'backspace':
+                    self.search = self.search[:-1]
+                else:
+                    self.search += key
+                self.interactiveSearch(self.search)
+                return None
+            else:
+                self.app.status.update(title=self.title)
+                if not self.search:
+                    self.interactiveSearch(None)
+                self.search = None
+                if key in ['enter', 'esc']:
+                    return None
+
         old_focus = self.listbox.focus
         r = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
@@ -445,6 +471,10 @@ class BaseDiffView(urwid.WidgetWrap):
             self.cleanupEdit(old_focus)
         if keymap.SELECT_PATCHSETS in commands:
             self.openPatchsetDialog()
+            return None
+        if keymap.INTERACTIVE_SEARCH in commands:
+            self.search = ''
+            self.interactiveSearch(self.search)
             return None
         return r
 
@@ -515,3 +545,10 @@ class BaseDiffView(urwid.WidgetWrap):
         self.app.backScreen()
         self.old_revision_key, self.new_revision_key = dialog.getSelected()
         self._init()
+
+    def interactiveSearch(self, search):
+        if search is not None:
+            self.app.status.update(title=("Search: " + search))
+        for line in self.listbox.body:
+            if hasattr(line, 'search'):
+                line.search(search, 'search-result')

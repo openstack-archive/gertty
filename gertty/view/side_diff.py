@@ -82,6 +82,7 @@ class SideDiffLine(BaseDiffLine):
     def __init__(self, app, context, old, new, callback=None):
         super(SideDiffLine, self).__init__('', on_press=callback)
         self.context = context
+        self.text_widgets = []
         columns = []
         for (ln, action, line) in (old, new):
             if ln is None:
@@ -90,7 +91,9 @@ class SideDiffLine(BaseDiffLine):
                 ln = '%*i' % (LN_COL_WIDTH-1, ln)
             ln_col = urwid.Text(('line-number', ln))
             ln_col.set_wrap_mode('clip')
-            line_col = urwid.Text(line)
+            line_col = mywid.SearchableText(line)
+            self.text_widgets.append(line_col)
+
             if action == '':
                 line_col = urwid.AttrMap(line_col, 'nonexistent')
             columns += [(LN_COL_WIDTH, ln_col), line_col]
@@ -104,6 +107,10 @@ class SideDiffLine(BaseDiffLine):
                'line-number': 'focused-line-number',
                }
         self._w = urwid.AttrMap(col, None, focus_map=map)
+
+    def search(self, search, attribute):
+        for w in self.text_widgets:
+            w.search(search, attribute)
 
 class SideFileHeader(BaseFileHeader):
     def __init__(self, app, context, old, new, callback=None):

@@ -193,6 +193,52 @@ class YesNoDialog(ButtonDialog):
             return None
         return r
 
+class SearchableText(urwid.Text):
+    def set_text(self, markup):
+        self._markup = markup
+        super(SearchableText, self).set_text(markup)
+
+    def search(self, search, attribute):
+        if not search:
+            self.set_text(self._markup)
+            return
+        (text, attrs) = urwid.util.decompose_tagmarkup(self._markup)
+        last = 0
+        while True:
+            start = text.find(search, last)
+            if start < 0:
+                break
+            end = start + len(search)
+            i = 0
+            newattrs = []
+            for attr, al in attrs:
+                if i + al <= start:
+                    i += al
+                    newattrs.append((attr, al))
+                    continue
+                if i >= end:
+                    i += al
+                    newattrs.append((attr, al))
+                    continue
+                before = max(start - i, 0)
+                after = max(i + al - end, 0)
+                if before:
+                    newattrs.append((attr, before))
+                newattrs.append((attribute, len(search)))
+                if after:
+                    newattrs.append((attr, after))
+                i += al
+            if i < start:
+                newattrs.append((None, start-i))
+                i += start-i
+            if i < end:
+                newattrs.append((attribute, len(search)))
+            last = start + 1
+            attrs = newattrs
+        self._text = text
+        self._attrib = attrs
+        self._invalidate()
+
 class HyperText(urwid.Text):
     _selectable = True
 
