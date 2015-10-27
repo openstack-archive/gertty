@@ -164,6 +164,8 @@ class BaseDiffView(urwid.WidgetWrap):
              "Add an inline comment"),
             (key(keymap.SELECT_PATCHSETS),
              "Select old/new patchsets to diff"),
+            (key(keymap.INTERACTIVE_SEARCH),
+             "Interactive search"),
             ]
 
     def __init__(self, app, new_revision_key):
