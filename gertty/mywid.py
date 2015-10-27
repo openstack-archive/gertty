@@ -30,6 +30,12 @@ GLOBAL_HELP = (
      "Search for changes"),
     (keymap.LIST_HELD,
      "List held changes"),
+    (keymap.KILL,
+     "Kill to end of line (editing)"),
+    (keymap.YANK,
+     "Yank from kill ring (editing)"),
+    (keymap.YANK_POP,
+     "Replace previous yank from kill ring (editing)"),
     )
 
 class TextButton(urwid.Button):
