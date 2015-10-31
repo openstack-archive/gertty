@@ -47,12 +47,14 @@ class EditTopicDialog(mywid.ButtonDialog):
                                               ring=app.ring)
 
     def keypress(self, size, key):
-        r = super(EditTopicDialog, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(EditTopicDialog, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
         if keymap.ACTIVATE in commands:
             self._emit('save')
             return None
-        return r
+        return key
 
 class CherryPickDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
@@ -187,12 +189,14 @@ class ReviewDialog(urwid.WidgetWrap):
         return (approvals, message)
 
     def keypress(self, size, key):
-        r = super(ReviewDialog, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(ReviewDialog, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
         if keymap.PREV_SCREEN in commands:
             self._emit('cancel')
             return None
-        return r
+        return key
 
 class ReviewButton(mywid.FixedButton):
     def __init__(self, revision_row):
@@ -786,8 +790,10 @@ class ChangeView(urwid.WidgetWrap):
         return self.app.toggleHeldChange(self.change_key)
 
     def keypress(self, size, key):
-        r = super(ChangeView, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(ChangeView, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
         if keymap.TOGGLE_REVIEWED in commands:
             self.toggleReviewed()
             self.refresh()
@@ -870,10 +876,10 @@ class ChangeView(urwid.WidgetWrap):
         if keymap.CHERRY_PICK_CHANGE in commands:
             self.cherryPickChange()
             return None
-        if r in self.app.config.reviewkeys:
-            self.reviewKey(self.app.config.reviewkeys[r])
+        if key in self.app.config.reviewkeys:
+            self.reviewKey(self.app.config.reviewkeys[key])
             return None
-        return r
+        return key
 
     def diff(self, revision_key):
         if self.app.config.diff_view == 'unified':

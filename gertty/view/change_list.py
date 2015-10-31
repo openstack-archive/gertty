@@ -424,8 +424,10 @@ class ChangeListView(urwid.WidgetWrap):
             self.listbox.focus_position = pos
 
     def keypress(self, size, key):
-        r = super(ChangeListView, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(ChangeListView, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
         if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
