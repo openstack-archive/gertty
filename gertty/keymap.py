@@ -15,6 +15,7 @@
 
 import re
 import string
+import logging
 
 import urwid
 
@@ -29,10 +30,10 @@ CURSOR_PAGE_DOWN = urwid.CURSOR_PAGE_DOWN
 CURSOR_MAX_LEFT = urwid.CURSOR_MAX_LEFT
 CURSOR_MAX_RIGHT = urwid.CURSOR_MAX_RIGHT
 ACTIVATE = urwid.ACTIVATE
+# Global gertty commands:
 KILL = 'kill'
 YANK = 'yank'
 YANK_POP = 'yank pop'
-# Global gertty commands:
 PREV_SCREEN = 'previous screen'
 TOP_SCREEN = 'top screen'
 HELP = 'help'
@@ -74,6 +75,8 @@ SELECT_PATCHSETS = 'select patchsets'
 NEXT_SELECTABLE = 'next selectable'
 PREV_SELECTABLE = 'prev selectable'
 INTERACTIVE_SEARCH = 'interactive search'
+# Special:
+FURTHER_INPUT = 'further input'
 
 DEFAULT_KEYMAP = {
     REDRAW_SCREEN: 'ctrl l',
@@ -93,7 +96,7 @@ DEFAULT_KEYMAP = {
     PREV_SCREEN: 'esc',
     TOP_SCREEN: 'meta home',
     HELP: ['f1', '?'],
-    QUIT: 'ctrl q',
+    QUIT: ['ctrl q'],
     CHANGE_SEARCH: 'ctrl o',
     REFINE_CHANGE_SEARCH: 'meta o',
     LIST_HELD: 'f12',
@@ -157,15 +160,32 @@ FORMAT_SUBS = (
     )
 
 def formatKey(key):
+    if type(key) == type([]):
+        return  ''.join([formatKey(k) for k in key])
     for subre, repl in FORMAT_SUBS:
         key = subre.sub(repl, key)
     return key
 
+class Key(object):
+    def __init__(self, key):
+        self.key = key
+        self.keys = {}
+        self.commands = []
+
+    def addKey(self, key):
+        if key not in self.keys:
+            self.keys[key] = Key(key)
+        return self.keys[key]
+
+    def __repr__(self):
+        return '%s %s %s' % (self.__class__.__name__, self.key, self.keys.keys())
+
 class KeyMap(object):
     def __init__(self, config):
         # key -> [commands]
-        self.keymap = {}
+        self.keytree = Key(None)
         self.commandmap = {}
+        self.multikeys = ''
         self.update(DEFAULT_KEYMAP)
         self.update(config)
 
@@ -178,26 +198,42 @@ class KeyMap(object):
             if type(keys) != type([]):
                 keys = [keys]
             self.commandmap[command] = keys
-        self.keymap = {}
+        self.keytree = Key(None)
         for command, keys in self.commandmap.items():
             for key in keys:
-                if key in self.keymap:
-                    self.keymap[key].append(command)
+                if isinstance(key, list):
+                    # This is a command series
+                    tree = self.keytree
+                    for i, innerkey in enumerate(key):
+                        tree = tree.addKey(innerkey)
+                        if i+1 == len(key):
+                            tree.commands.append(command)
                 else:
-                    self.keymap[key] = [command]
+                    tree = self.keytree.addKey(key)
+                    tree.commands.append(command)
 
-    def getCommands(self, key):
-        return self.keymap.get(key, [])
+    def getCommands(self, keys):
+        if not keys:
+            return []
+        tree = self.keytree
+        for key in keys:
+            tree = tree.keys.get(key)
+            if not tree:
+                return []
+        ret = tree.commands[:]
+        if tree.keys:
+            ret.append(FURTHER_INPUT)
+        return ret
 
     def getKeys(self, command):
         return self.commandmap.get(command, [])
 
     def updateCommandMap(self):
         "Update the urwid command map with this keymap"
-        for key, commands in self.keymap.items():
-            for command in commands:
+        for key in self.keytree.keys.values():
+            for command in key.commands:
                 if command in URWID_COMMANDS:
-                    urwid.command_map[key]=command
+                    urwid.command_map[key.key]=command
 
     def formatKeys(self, command):
         keys = self.getKeys(command)

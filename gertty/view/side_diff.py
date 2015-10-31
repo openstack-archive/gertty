@@ -49,8 +49,11 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
             self.focus_position = 1
 
     def keypress(self, size, key):
-        r = super(SideDiffCommentEdit, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(SideDiffCommentEdit, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
+
         if ((keymap.NEXT_SELECTABLE in commands) or
             (keymap.PREV_SELECTABLE in commands)):
             if ((self.context.old_ln is not None and
@@ -61,7 +64,7 @@ class SideDiffCommentEdit(BaseDiffCommentEdit):
                 else:
                     self.focus_position = 3
             return None
-        return r
+        return key
 
 class SideDiffComment(BaseDiffComment):
     def __init__(self, context, old, new):

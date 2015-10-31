@@ -451,7 +451,7 @@ class BaseDiffView(urwid.WidgetWrap):
                 self.interactiveSearch(self.search)
                 return None
             else:
-                commands = self.app.config.keymap.getCommands(key)
+                commands = self.app.config.keymap.getCommands([key])
                 if keymap.INTERACTIVE_SEARCH in commands:
                     self.nextSearchResult()
                     return None
@@ -464,8 +464,11 @@ class BaseDiffView(urwid.WidgetWrap):
                         return None
 
         old_focus = self.listbox.focus
-        r = super(BaseDiffView, self).keypress(size, key)
+        if not self.app.input_buffer:
+            r = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
+        keys = self.app.input_buffer + [r]
+        commands = self.app.config.keymap.getCommands(keys)
 
         context = self.getContextAtTop(size)
         if context:
@@ -474,7 +477,6 @@ class BaseDiffView(urwid.WidgetWrap):
         else:
             self.file_reminder.set('', '')
 
-        commands = self.app.config.keymap.getCommands(r)
         if (isinstance(old_focus, BaseDiffCommentEdit) and
             (old_focus != new_focus or (keymap.PREV_SCREEN in commands))):
             self.cleanupEdit(old_focus)

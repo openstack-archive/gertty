@@ -152,8 +152,12 @@ class ProjectListView(urwid.WidgetWrap):
                 project_name, project_key=project_key, unreviewed=True))
 
     def keypress(self, size, key):
-        r = super(ProjectListView, self).keypress(size, key)
-        commands = self.app.config.keymap.getCommands(r)
+        if not self.app.input_buffer:
+            key = super(ProjectListView, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
+        if not self.app.input_buffer and keymap.FURTHER_INPUT not in commands:
+            self.app.clearInputBuffer()
         if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
@@ -177,4 +181,4 @@ class ProjectListView(urwid.WidgetWrap):
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             return None
-        return r
+        return key
