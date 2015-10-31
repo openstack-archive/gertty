@@ -77,18 +77,23 @@ class StatusHeader(urwid.WidgetWrap):
         self.error = None
         self.offline = None
         self.title = None
+        self.message = None
         self.sync = None
         self.held = None
         self._error = False
         self._offline = False
         self._title = ''
+        self._message = ''
         self._sync = 0
         self._held = 0
         self.held_key = self.app.config.keymap.formatKeys(keymap.LIST_HELD)
 
-    def update(self, title=None, error=None, offline=None, refresh=True, held=None):
+    def update(self, title=None, message=None, error=None,
+               offline=None, refresh=True, held=None):
         if title is not None:
             self.title = title
+        if message is not None:
+            self.message = message
         if error is not None:
             self.error = error
         if offline is not None:
@@ -100,9 +105,11 @@ class StatusHeader(urwid.WidgetWrap):
             self.refresh()
 
     def refresh(self):
-        if self._title != self.title:
+        if (self._title != self.title or self._message != self.message):
             self._title = self.title
-            self.title_widget.set_text(self._title)
+            self._message = self.message
+            t = self.message or self.title
+            self.title_widget.set_text(t)
         if self._held != self.held:
             self._held = self.held
             if self._held:
@@ -209,6 +216,7 @@ class App(object):
         self.log.debug("Starting")
 
         self.ring = mywid.KillRing()
+        self.input_buffer = []
         webbrowser.register('xdg-open', None, BackgroundBrowser("xdg-open"))
 
         self.fetch_missing_refs = fetch_missing_refs
@@ -268,11 +276,17 @@ class App(object):
 
         self.popup(dialog)
 
+    def clearInputBuffer(self):
+        if self.input_buffer:
+            self.input_buffer = []
+            self.status.update(message='')
+
     def changeScreen(self, widget, push=True):
         self.log.debug("Changing screen to %s" % (widget,))
         self.status.update(error=False, title=widget.title)
         if push:
             self.screens.append(self.loop.widget)
+        self.clearInputBuffer()
         self.loop.widget = widget
 
     def backScreen(self, target_widget=None):
@@ -285,6 +299,7 @@ class App(object):
         self.log.debug("Popping screen to %s" % (widget,))
         if hasattr(widget, 'title'):
             self.status.update(title=widget.title)
+        self.clearInputBuffer()
         self.loop.widget = widget
         self.refresh(force=True)
 
@@ -298,6 +313,7 @@ class App(object):
         self.log.debug("Clearing screen history")
         while self.screens:
             widget = self.screens.pop()
+            self.clearInputBuffer()
             self.loop.widget = widget
 
     def refresh(self, data=None, force=False):
@@ -329,6 +345,7 @@ class App(object):
     def popup(self, widget,
               relative_width=50, relative_height=25,
               min_width=20, min_height=8):
+        self.clearInputBuffer()
         overlay = urwid.Overlay(widget, self.loop.widget,
                                 'center', ('relative', relative_width),
                                 'middle', ('relative', relative_height),
@@ -506,7 +523,9 @@ class App(object):
         return None
 
     def unhandledInput(self, key):
-        commands = self.config.keymap.getCommands(key)
+        # get commands from buffer
+        keys = self.input_buffer + [key]
+        commands = self.config.keymap.getCommands(keys)
         if keymap.PREV_SCREEN in commands:
             self.backScreen()
         elif keymap.TOP_SCREEN in commands:
@@ -524,6 +543,11 @@ class App(object):
             d = self.config.dashboards[key]
             view = view_change_list.ChangeListView(self, d['query'], d['name'])
             self.changeScreen(view)
+        elif keymap.FURTHER_INPUT in commands:
+            self.input_buffer.append(key)
+            self.status.update(message=''.join(self.input_buffer))
+            return
+        self.clearInputBuffer()
 
     def openURL(self, url):
         self.log.debug("Open URL %s" % url)

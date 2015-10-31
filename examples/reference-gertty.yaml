@@ -99,6 +99,10 @@ keymaps:
     review: ['r', 'R']
   - name: osx #OS X blocks ctrl+o
     change-search: 'ctrl s'
+# To specify a sequence of keys, they must be a list of keystrokes
+# within a list of key series.  For example:
+  - name: vi
+    quit: [[':', 'q']]
 
 # The default keymap may be selected with the '-k KEYMAP' command line
 # option, or with the following line:
