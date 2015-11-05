@@ -1,0 +1,11 @@
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Jenkins
+Code-Review+1: Erno Kuvaja <jokke@usr.fi>
+Code-Review+1: Bradley Jones <jones.bradley@me.com>
+Code-Review+1: Clint Adams <clint@gcfm.net>
+Submitted-by: Jenkins
+Submitted-at: Thu, 05 Nov 2015 16:19:21 +0000
+Reviewed-on: https://review.openstack.org/233566
+Project: openstack/gertty
+Branch: refs/heads/master
