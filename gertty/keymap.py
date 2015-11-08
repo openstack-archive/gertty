@@ -70,6 +70,12 @@ SORT_BY_REVERSE = 'reverse the sort'
 TOGGLE_LIST_REVIEWED = 'toggle list reviewed'
 TOGGLE_LIST_SUBSCRIBED = 'toggle list subscribed'
 TOGGLE_SUBSCRIBED = 'toggle subscribed'
+NEW_PROJECT_TOPIC = 'new project topic'
+DELETE_PROJECT_TOPIC = 'delete project topic'
+MOVE_PROJECT_TOPIC = 'move to project topic'
+COPY_PROJECT_TOPIC = 'copy to project topic'
+REMOVE_PROJECT_TOPIC = 'remove from project topic'
+RENAME_PROJECT_TOPIC = 'rename project topic'
 # Diff screens:
 SELECT_PATCHSETS = 'select patchsets'
 NEXT_SELECTABLE = 'next selectable'
@@ -129,6 +135,12 @@ DEFAULT_KEYMAP = {
     TOGGLE_LIST_REVIEWED: 'l',
     TOGGLE_LIST_SUBSCRIBED: 'L',
     TOGGLE_SUBSCRIBED: 's',
+    NEW_PROJECT_TOPIC: [['T', 'n']],
+    DELETE_PROJECT_TOPIC: [['T', 'delete']],
+    MOVE_PROJECT_TOPIC: [['T', 'm']],
+    COPY_PROJECT_TOPIC: [['T', 'c']],
+    REMOVE_PROJECT_TOPIC: [['T', 'D']],
+    RENAME_PROJECT_TOPIC: [['T', 'r']],
 
     SELECT_PATCHSETS: 'p',
     NEXT_SELECTABLE: 'tab',
@@ -161,7 +173,7 @@ FORMAT_SUBS = (
 
 def formatKey(key):
     if type(key) == type([]):
-        return  ''.join([formatKey(k) for k in key])
+        return  ' '.join([formatKey(k) for k in key])
     for subre, repl in FORMAT_SUBS:
         key = subre.sub(repl, key)
     return key

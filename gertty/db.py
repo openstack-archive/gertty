@@ -21,7 +21,7 @@ import threading
 import alembic
 import alembic.config
 import sqlalchemy
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, UniqueConstraint
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import mapper, sessionmaker, relationship, scoped_session
 from sqlalchemy.orm.session import Session
@@ -42,6 +42,20 @@ branch_table = Table(
     Column('key', Integer, primary_key=True),
     Column('project_key', Integer, ForeignKey("project.key"), index=True),
     Column('name', String(255), index=True, nullable=False),
+    )
+topic_table = Table(
+    'topic', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('name', String(255), index=True, nullable=False),
+    Column('sequence', Integer, index=True, unique=True, nullable=False),
+    )
+project_topic_table = Table(
+    'project_topic', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('project_key', Integer, ForeignKey("project.key"), index=True),
+    Column('topic_key', Integer, ForeignKey("topic.key"), index=True),
+    Column('sequence', Integer, nullable=False),
+    UniqueConstraint('topic_key', 'sequence', name='topic_key_sequence_const'),
     )
 change_table = Table(
     'change', metadata,
@@ -199,6 +213,35 @@ class Branch(object):
     def __init__(self, project, name):
         self.project_key = project.key
         self.name = name
+
+class ProjectTopic(object):
+    def __init__(self, project, topic, sequence):
+        self.project_key = project.key
+        self.topic_key = topic.key
+        self.sequence = sequence
+
+class Topic(object):
+    def __init__(self, name, sequence):
+        self.name = name
+        self.sequence = sequence
+
+    def addProject(self, project):
+        session = Session.object_session(self)
+        seq = max([x.sequence for x in self.project_topics] + [0])
+        pt = ProjectTopic(project, self, seq+1)
+        self.project_topics.append(pt)
+        self.projects.append(project)
+        session.add(pt)
+        session.flush()
+
+    def removeProject(self, project):
+        session = Session.object_session(self)
+        for pt in self.project_topics:
+            if pt.project_key == project.key:
+                self.project_topics.remove(pt)
+                session.delete(pt)
+        self.projects.remove(project)
+        session.flush()
 
 class Change(object):
     def __init__(self, project, id, owner, number, branch, change_id,
@@ -506,28 +549,40 @@ class File(object):
 
 mapper(Account, account_table)
 mapper(Project, project_table, properties=dict(
-        branches=relationship(Branch, backref='project',
-                              order_by=branch_table.c.name,
-                              cascade='all, delete-orphan'),
-        changes=relationship(Change, backref='project',
-                             order_by=change_table.c.number,
-                             cascade='all, delete-orphan'),
-        unreviewed_changes=relationship(Change,
-                                        primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                         change_table.c.hidden==False,
-                                                         change_table.c.status!='MERGED',
-                                                         change_table.c.status!='ABANDONED',
-                                                         change_table.c.reviewed==False),
-                                        order_by=change_table.c.number,
-                                        ),
-        open_changes=relationship(Change,
-                                  primaryjoin=and_(project_table.c.key==change_table.c.project_key,
-                                                   change_table.c.status!='MERGED',
-                                                   change_table.c.status!='ABANDONED'),
-                                  order_by=change_table.c.number,
-                                  ),
-        ))
+    branches=relationship(Branch, backref='project',
+                          order_by=branch_table.c.name,
+                          cascade='all, delete-orphan'),
+    changes=relationship(Change, backref='project',
+                         order_by=change_table.c.number,
+                         cascade='all, delete-orphan'),
+    topics=relationship(Topic,
+                        secondary=project_topic_table,
+                        order_by=topic_table.c.name,
+                        viewonly=True),
+    unreviewed_changes=relationship(Change,
+                                    primaryjoin=and_(project_table.c.key==change_table.c.project_key,
+                                                     change_table.c.hidden==False,
+                                                     change_table.c.status!='MERGED',
+                                                     change_table.c.status!='ABANDONED',
+                                                     change_table.c.reviewed==False),
+                                    order_by=change_table.c.number,
+                                ),
+    open_changes=relationship(Change,
+                              primaryjoin=and_(project_table.c.key==change_table.c.project_key,
+                                               change_table.c.status!='MERGED',
+                                               change_table.c.status!='ABANDONED'),
+                              order_by=change_table.c.number,
+                          ),
+))
 mapper(Branch, branch_table)
+mapper(Topic, topic_table, properties=dict(
+    projects=relationship(Project,
+                          secondary=project_topic_table,
+                          order_by=project_table.c.name,
+                          viewonly=True),
+    project_topics=relationship(ProjectTopic),
+))
+mapper(ProjectTopic, project_topic_table)
 mapper(Change, change_table, properties=dict(
         owner=relationship(Account),
         revisions=relationship(Revision, backref='change',
@@ -668,19 +723,25 @@ class DatabaseSession(object):
     def vacuum(self):
         self.session().execute("VACUUM")
 
-    def getProjects(self, subscribed=False, unreviewed=False):
+    def getProjects(self, subscribed=False, unreviewed=False, topicless=False):
         """Retrieve projects.
 
         :param subscribed: If True limit to only subscribed projects.
         :param unreviewed: If True limit to only projects with unreviewed
             changes.
+        :param topicless: If True limit to only projects without topics.
         """
         query = self.session().query(Project)
         if subscribed:
             query = query.filter_by(subscribed=subscribed)
             if unreviewed:
                 query = query.filter(exists().where(Project.unreviewed_changes))
+        if topicless:
+            query = query.filter_by(topics=None)
         return query.order_by(Project.name).all()
+
+    def getTopics(self):
+        return self.session().query(Topic).order_by(Topic.sequence).all()
 
     def getProject(self, key):
         try:
@@ -691,6 +752,18 @@ class DatabaseSession(object):
     def getProjectByName(self, name):
         try:
             return self.session().query(Project).filter_by(name=name).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
+    def getTopic(self, key):
+        try:
+            return self.session().query(Topic).filter_by(key=key).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            return None
+
+    def getTopicByName(self, name):
+        try:
+            return self.session().query(Topic).filter_by(name=name).one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
@@ -869,6 +942,12 @@ class DatabaseSession(object):
 
     def createSyncQuery(self, *args, **kw):
         o = SyncQuery(*args, **kw)
+        self.session().add(o)
+        self.session().flush()
+        return o
+
+    def createTopic(self, *args, **kw):
+        o = Topic(*args, **kw)
         self.session().add(o)
         self.session().flush()
         return o
