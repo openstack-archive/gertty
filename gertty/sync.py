@@ -653,6 +653,8 @@ class SyncChangeTask(Task):
                             if remote_comment.get('side', '') == 'PARENT':
                                 parent = True
                             fileobj = revision.getFile(remote_file)
+                            if fileobj is None:
+                                fileobj = revision.createFile(remote_file, 'M')
                             comment = fileobj.createComment(remote_comment['id'], account,
                                                             remote_comment.get('in_reply_to'),
                                                             created,
