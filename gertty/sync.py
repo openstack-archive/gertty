@@ -186,6 +186,20 @@ class SyncOwnAccountTask(Task):
                                    remote.get('username'),
                                    remote.get('email'))
 
+class GetVersionTask(Task):
+    def __repr__(self):
+        return '<GetVersionTask>'
+
+    def __eq__(self, other):
+        if other.__class__ == self.__class__:
+            return True
+        return False
+
+    def run(self, sync):
+        app = sync.app
+        version = sync.get('config/server/version')
+        sync.setRemoteVersion(version)
+
 class SyncProjectListTask(Task):
     def __repr__(self):
         return '<SyncProjectListTask>'
@@ -1080,9 +1094,17 @@ class ChangeCommitMessageTask(Task):
             revision.pending_message = False
             data = dict(message=revision.message)
             # Inside db session for rollback
-            sync.post('changes/%s/revisions/%s/message' %
-                      (revision.change.id, revision.commit),
-                      data)
+            if sync.version < (2,11,0):
+                sync.post('changes/%s/revisions/%s/message' %
+                          (revision.change.id, revision.commit),
+                          data)
+            else:
+                edit = sync.get('changes/%s/edit' % revision.change.id)
+                if edit is not None:
+                    raise Exception("Edit already in progress on change %s" %
+                                    (revision.change.number,))
+                sync.put('changes/%s/edit:message' % (revision.change.id,), data)
+                sync.post('changes/%s/edit:publish' % (revision.change.id,), {})
             change_id = revision.change.id
         sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
 
@@ -1251,6 +1273,7 @@ class Sync(object):
     def __init__(self, app):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.release_string(),
                                             requests.utils.default_user_agent())
+        self.version = (0, 0, 0)
         self.offline = False
         self.account_id = None
         self.app = app
@@ -1264,6 +1287,7 @@ class Sync(object):
             authclass = requests.auth.HTTPDigestAuth
         self.auth = authclass(
             self.app.config.username, self.app.config.password)
+        self.submitTask(GetVersionTask(HIGH_PRIORITY))
         self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
         self.submitTask(CheckReposTask(HIGH_PRIORITY))
         self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
@@ -1310,6 +1334,7 @@ class Sync(object):
         except requests.ConnectionError, e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
+                self.submitTask(GetVersionTask(HIGH_PRIORITY))
                 self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.offline = True
             self.app.status.update(offline=True, refresh=False)
@@ -1415,3 +1440,16 @@ class Sync(object):
                 return
         task = SyncChangesByCommitsTask([commit], priority)
         self.submitTask(task)
+
+    def setRemoteVersion(self, version):
+        base = version.split('-')[0]
+        parts = base.split('.')
+        major = minor = micro = 0
+        if len(parts) > 0:
+            major = int(parts[0])
+        if len(parts) > 1:
+            minor = int(parts[1])
+        if len(parts) > 2:
+            micro = int(parts[2])
+        self.version = (major, minor, micro)
+        self.log.info("Remote version is: %s (parsed as %s)" % (version, self.version))
