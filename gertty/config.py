@@ -98,7 +98,7 @@ class ConfigSchema(object):
                            'reverse': bool}
 
     keymap = {v.Required('name'): str,
-              v.Match('(?!name)'): v.Any([str], str)}
+              v.Match('(?!name)'): v.Any([[str], str], [str], str)}
 
     keymaps = [keymap]
 
