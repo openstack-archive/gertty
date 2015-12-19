@@ -571,6 +571,7 @@ class SyncChangeTask(Task):
                 result = ChangeAddedEvent(change)
             else:
                 result = ChangeUpdatedEvent(change)
+            app.project_cache.clear(change.project)
             self.results.append(result)
             change.owner = account
             if change.status != remote_change['status']:
@@ -829,6 +830,7 @@ class SyncChangeTask(Task):
                     if change.reviewed:
                         change.reviewed = False
                         result.review_flag_changed = True
+                        app.project_cache.clear(change.project)
         for url, refs in fetches.items():
             self.log.debug("Fetching from %s with refs %s", url, refs)
             try:
