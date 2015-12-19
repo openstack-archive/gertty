@@ -185,6 +185,22 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
         except OSError:
             return False
 
+class ProjectCache(object):
+    def __init__(self):
+        self.projects = {}
+
+    def get(self, project):
+        if project.key not in self.projects:
+            self.projects[project.key] = dict(
+                unreviewed_changes = len(project.unreviewed_changes),
+                open_changes = len(project.open_changes),
+            )
+        return self.projects[project.key]
+
+    def clear(self, project):
+        if project.name in self.projects:
+            del self.projects[project.key]
+
 class App(object):
     simple_change_search = re.compile('^(\d+|I[a-fA-F0-9]{40})$')
 
@@ -216,6 +232,7 @@ class App(object):
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
 
+        self.project_cache = ProjectCache()
         self.ring = mywid.KillRing()
         self.input_buffer = []
         webbrowser.register('xdg-open', None, BackgroundBrowser("xdg-open"))

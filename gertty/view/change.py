@@ -772,11 +772,13 @@ class ChangeView(urwid.WidgetWrap):
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
             change.reviewed = not change.reviewed
+            self.app.project_cache.clear(change.project)
 
     def toggleHidden(self):
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
             change.hidden = not change.hidden
+            self.app.project_cache.clear(change.project)
 
     def toggleStarred(self):
         with self.app.db.getSession() as session:

@@ -571,6 +571,7 @@ class SyncChangeTask(Task):
                 result = ChangeAddedEvent(change)
             else:
                 result = ChangeUpdatedEvent(change)
+            app.project_cache.clear(change.project)
             self.results.append(result)
             change.owner = account
             if change.status != remote_change['status']:
