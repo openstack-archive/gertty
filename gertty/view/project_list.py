@@ -41,9 +41,10 @@ class ProjectRow(urwid.Button):
             name = ' '+name
         self.name.set_text(name)
 
-    def __init__(self, project, topic, callback=None):
+    def __init__(self, app, project, topic, callback=None):
         super(ProjectRow, self).__init__('', on_press=callback,
                                          user_data=(project.key, project.name))
+        self.app = app
         self.mark = False
         self._style = None
         self.project_key = project.key
@@ -67,8 +68,9 @@ class ProjectRow(urwid.Button):
         self.update(project)
 
     def update(self, project):
+        cache = self.app.project_cache.get(project)
         if project.subscribed:
-            if len(project.unreviewed_changes) > 0:
+            if cache['unreviewed_changes'] > 0:
                 style = 'unreviewed-project'
             else:
                 style = 'subscribed-project'
@@ -78,8 +80,8 @@ class ProjectRow(urwid.Button):
         if self.mark:
             style = 'marked-project'
         self.row_style.set_attr_map({None: style})
-        self.unreviewed_changes.set_text('%i ' % len(project.unreviewed_changes))
-        self.open_changes.set_text('%i ' % len(project.open_changes))
+        self.unreviewed_changes.set_text('%i ' % cache['unreviewed_changes'])
+        self.open_changes.set_text('%i ' % cache['open_changes'])
 
     def toggleMark(self):
         self.mark = not self.mark
@@ -247,7 +249,7 @@ class ProjectListView(urwid.WidgetWrap):
                 break
             self._deleteRow(current_row)
         if not row:
-            row = ProjectRow(project, topic, self.onSelect)
+            row = ProjectRow(self.app, project, topic, self.onSelect)
             self.listbox.body.insert(i, row)
             self.project_rows[key] = row
         else:
@@ -293,12 +295,13 @@ class ProjectListView(urwid.WidgetWrap):
                 topic_open = 0
                 for project in topic.projects:
                     #self.log.debug("  project: %s" % project.name)
-                    topic_unreviewed += len(project.unreviewed_changes)
-                    topic_open += len(project.open_changes)
+                    cache = self.app.project_cache.get(project)
+                    topic_unreviewed += cache['unreviewed_changes']
+                    topic_open += cache['open_changes']
                     if self.subscribed:
                         if not project.subscribed:
                             continue
-                        if self.unreviewed and not project.unreviewed_changes:
+                        if self.unreviewed and not cache['unreviewed_changes']:
                             continue
                     if topic.key in self.open_topics:
                         i = self._projectRow(i, project, topic)
