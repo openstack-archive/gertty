@@ -390,6 +390,7 @@ class ChangeListView(urwid.WidgetWrap):
         with self.app.db.getSession() as session:
             change = session.getChange(change_key)
             change.reviewed = not change.reviewed
+            self.app.project_cache.clear(change.project)
             ret = change.reviewed
             reviewed_str = 'reviewed' if change.reviewed else 'unreviewed'
             self.log.debug("Set change %s to %s", change_key, reviewed_str)
