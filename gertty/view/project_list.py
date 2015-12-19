@@ -137,13 +137,6 @@ class ProjectListView(urwid.WidgetWrap):
             self.listbox.body.remove(row)
             del self.project_rows[key]
 
-    def toggleSubscribed(self, project_key):
-        with self.app.db.getSession() as session:
-            project = session.getProject(project_key)
-            project.subscribed = not project.subscribed
-            ret = project.subscribed
-        return ret
-
     def onSelect(self, button, data):
         project_key, project_name = data
         self.app.changeScreen(view_change_list.ChangeListView(
@@ -156,16 +149,22 @@ class ProjectListView(urwid.WidgetWrap):
             key = super(ProjectListView, self).keypress(size, key)
         keys = self.app.input_buffer + [key]
         commands = self.app.config.keymap.getCommands(keys)
-        if not self.app.input_buffer and keymap.FURTHER_INPUT not in commands:
-            self.app.clearInputBuffer()
+        ret = self.handleCommands(commands)
+        if ret is True:
+            if keymap.FURTHER_INPUT not in commands:
+                self.app.clearInputBuffer()
+            return None
+        return key
+
+    def handleCommands(self, commands):
         if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
-            return None
+            return True
         if keymap.TOGGLE_LIST_SUBSCRIBED in commands:
             self.subscribed = not self.subscribed
             self.refresh()
-            return None
+            return True
         if keymap.TOGGLE_SUBSCRIBED in commands:
             if not len(self.listbox.body):
                 return None
@@ -180,5 +179,6 @@ class ProjectListView(urwid.WidgetWrap):
             self.app.sync.submitTask(
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
-            return None
-        return key
+            self.refresh()
+            return True
+        return False
