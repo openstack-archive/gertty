@@ -75,9 +75,11 @@ DEFAULT_PALETTE={
     'unreviewed-project': ['white', ''],
     'subscribed-project': ['default', ''],
     'unsubscribed-project': ['dark gray', ''],
+    'marked-project': ['light cyan', ''],
     'focused-unreviewed-project': ['white,standout', ''],
     'focused-subscribed-project': ['default,standout', ''],
     'focused-unsubscribed-project': ['dark gray,standout', ''],
+    'focused-marked-project': ['light cyan,standout', ''],
     # change list
     'unreviewed-change': ['default', ''],
     'reviewed-change': ['dark gray', ''],

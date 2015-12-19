@@ -27,25 +27,38 @@ class ProjectRow(urwid.Button):
                          'unreviewed-project': 'focused-unreviewed-project',
                          'subscribed-project': 'focused-subscribed-project',
                          'unsubscribed-project': 'focused-unsubscribed-project',
-                         }
+                         'marked-project': 'focused-marked-project',
+    }
 
     def selectable(self):
         return True
 
+    def _setName(self, name):
+        self.project_name = name
+        if self.mark:
+            name = '%'+name
+        else:
+            name = ' '+name
+        self.name.set_text(name)
+
     def __init__(self, project, topic, callback=None):
         super(ProjectRow, self).__init__('', on_press=callback,
                                          user_data=(project.key, project.name))
+        self.mark = False
+        self._style = None
         self.project_key = project.key
         if topic:
             self.topic_key = topic.key
         else:
             self.topic_key = None
-        name = urwid.Text(project.name)
-        name.set_wrap_mode('clip')
+        self.project_name = project.name
+        self.name = urwid.Text('')
+        self._setName(project.name)
+        self.name.set_wrap_mode('clip')
         self.unreviewed_changes = urwid.Text(u'', align=urwid.RIGHT)
         self.open_changes = urwid.Text(u'', align=urwid.RIGHT)
         col = urwid.Columns([
-                name,
+                self.name,
                 ('fixed', 11, self.unreviewed_changes),
                 ('fixed', 5, self.open_changes),
                 ])
@@ -61,24 +74,45 @@ class ProjectRow(urwid.Button):
                 style = 'subscribed-project'
         else:
             style = 'unsubscribed-project'
+        self._style = style
+        if self.mark:
+            style = 'marked-project'
         self.row_style.set_attr_map({None: style})
         self.unreviewed_changes.set_text('%i ' % len(project.unreviewed_changes))
         self.open_changes.set_text('%i ' % len(project.open_changes))
 
+    def toggleMark(self):
+        self.mark = not self.mark
+        if self.mark:
+            style = 'marked-project'
+        else:
+            style = self._style
+        self.row_style.set_attr_map({None: style})
+        self._setName(self.project_name)
+
 class TopicRow(urwid.Button):
     project_focus_map = {None: 'focused',
                          'subscribed-project': 'focused-subscribed-project',
-                         }
+                         'marked-project': 'focused-marked-project',
+    }
 
     def selectable(self):
         return True
 
     def _setName(self, name):
-        self.name.set_text('[[ '+name+' ]]')
+        self.topic_name = name
+        name = '[[ '+name+' ]]'
+        if self.mark:
+            name = '%'+name
+        else:
+            name = ' '+name
+        self.name.set_text(name)
 
     def __init__(self, topic, callback=None):
         super(TopicRow, self).__init__('', on_press=callback,
                                        user_data=(topic.key, topic.name))
+        self.mark = False
+        self._style = None
         self.topic_key = topic.key
         self.name = urwid.Text('')
         self._setName(topic.name)
@@ -92,7 +126,8 @@ class TopicRow(urwid.Button):
                 ])
         self.row_style = urwid.AttrMap(col, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.project_focus_map)
-        self.row_style.set_attr_map({None: 'subscribed-project'})
+        self._style = 'subscribed-project'
+        self.row_style.set_attr_map({None: self._style})
         self.update(topic)
 
     def update(self, topic, unreviewed_changes=None, open_changes=None):
@@ -106,9 +141,18 @@ class TopicRow(urwid.Button):
         else:
             self.open_changes.set_text('%i ' % open_changes)
 
+    def toggleMark(self):
+        self.mark = not self.mark
+        if self.mark:
+            style = 'marked-project'
+        else:
+            style = self._style
+        self.row_style.set_attr_map({None: style})
+        self._setName(self.topic_name)
+
 class ProjectListHeader(urwid.WidgetWrap):
     def __init__(self):
-        cols = [urwid.Text(u'Project'),
+        cols = [urwid.Text(u' Project'),
                 (11, urwid.Text(u'Unreviewed')),
                 (5, urwid.Text(u'Open'))]
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
@@ -123,9 +167,11 @@ class ProjectListView(urwid.WidgetWrap):
             (key(keymap.TOGGLE_LIST_REVIEWED),
              "Toggle listing of projects with unreviewed changes"),
             (key(keymap.TOGGLE_SUBSCRIBED),
-             "Toggle the subscription flag for the currently selected project"),
+             "Toggle the subscription flag for the selected project"),
             (key(keymap.REFRESH),
              "Sync subscribed projects"),
+            (key(keymap.TOGGLE_MARK),
+             "Toggle the process mark for the selected project"),
             (key(keymap.NEW_PROJECT_TOPIC),
              "Create project topic"),
             (key(keymap.DELETE_PROJECT_TOPIC),
@@ -169,6 +215,12 @@ class ProjectListView(urwid.WidgetWrap):
             return False
         self.log.debug("Refreshing project list due to event %s" % (event,))
         return True
+
+    def advance(self):
+        pos = self.listbox.focus_position
+        if pos < len(self.listbox.body)-1:
+            pos += 1
+            self.listbox.focus_position = pos
 
     def _deleteRow(self, row):
         if row in self.listbox.body:
@@ -256,13 +308,6 @@ class ProjectListView(urwid.WidgetWrap):
             current_row = self.listbox.body[i]
             self._deleteRow(current_row)
 
-    def toggleSubscribed(self, project_key):
-        with self.app.db.getSession() as session:
-            project = session.getProject(project_key)
-            project.subscribed = not project.subscribed
-            ret = project.subscribed
-        return ret
-
     def onSelect(self, button, data):
         project_key, project_name = data
         self.app.changeScreen(view_change_list.ChangeListView(
@@ -274,6 +319,14 @@ class ProjectListView(urwid.WidgetWrap):
         topic_key = data[0]
         self.open_topics ^= set([topic_key])
         self.refresh()
+
+    def toggleMark(self):
+        if not len(self.listbox.body):
+            return
+        pos = self.listbox.focus_position
+        row = self.listbox.body[pos]
+        row.toggleMark()
+        self.advance()
 
     def createTopic(self):
         dialog = mywid.LineEditDialog(self.app, 'Topic', 'Create a new topic.',
@@ -300,13 +353,13 @@ class ProjectListView(urwid.WidgetWrap):
         self.app.backScreen()
 
     def deleteTopic(self):
-        pos = self.listbox.focus_position
-        row = self.listbox.body[pos]
-        if not isinstance(row, TopicRow):
+        rows = self.getSelectedRows(TopicRow)
+        if not rows:
             return
         with self.app.db.getSession() as session:
-            topic = session.getTopic(row.topic_key)
-            session.delete(topic)
+            for row in rows:
+                topic = session.getTopic(row.topic_key)
+                session.delete(topic)
         self.refresh()
 
     def renameTopic(self):
@@ -333,39 +386,52 @@ class ProjectListView(urwid.WidgetWrap):
                 topic.name = dialog.entry.edit_text
         self.app.backScreen()
 
+    def getSelectedRows(self, cls):
+        ret = []
+        for row in self.listbox.body:
+            if isinstance(row, cls) and row.mark:
+                ret.append(row)
+        if ret:
+            return ret
+        pos = self.listbox.focus_position
+        row = self.listbox.body[pos]
+        if isinstance(row, cls):
+            return [row]
+        return []
+
     def copyMoveToTopic(self, move):
         if move:
             verb = 'Move'
         else:
             verb = 'Copy'
-        pos = self.listbox.focus_position
-        row = self.listbox.body[pos]
-        if not isinstance(row, ProjectRow):
+        rows = self.getSelectedRows(ProjectRow)
+        if not rows:
             return
         dialog = mywid.LineEditDialog(self.app, 'Topic', '%s to topic.' % verb,
                                       'Topic: ', '', self.app.ring)
         urwid.connect_signal(dialog, 'save',
-            lambda button: self.closeCopyMoveToTopic(dialog, True, row, move))
+            lambda button: self.closeCopyMoveToTopic(dialog, True, rows, move))
         urwid.connect_signal(dialog, 'cancel',
-            lambda button: self.closeCopyMoveToTopic(dialog, False, row, move))
+            lambda button: self.closeCopyMoveToTopic(dialog, False, rows, move))
         self.app.popup(dialog)
 
-    def closeCopyMoveToTopic(self, dialog, save, row, move):
+    def closeCopyMoveToTopic(self, dialog, save, rows, move):
         error = None
         if save:
             with self.app.db.getSession() as session:
-                project = session.getProject(row.project_key)
                 topic_name = dialog.entry.edit_text
                 new_topic = session.getTopicByName(topic_name)
                 if not new_topic:
                     error = "Unable to find topic %s" % topic_name
                 else:
-                    if move and row.topic_key:
-                        old_topic = session.getTopic(row.topic_key)
-                        self.log.debug("Remove %s from %s" % (project, old_topic))
-                        old_topic.removeProject(project)
-                    self.log.debug("Add %s to %s" % (project, new_topic))
-                    new_topic.addProject(project)
+                    for row in rows:
+                        project = session.getProject(row.project_key)
+                        if move and row.topic_key:
+                            old_topic = session.getTopic(row.topic_key)
+                            self.log.debug("Remove %s from %s" % (project, old_topic))
+                            old_topic.removeProject(project)
+                        self.log.debug("Add %s to %s" % (project, new_topic))
+                        new_topic.addProject(project)
         self.app.backScreen()
         if error:
             self.app.error(error)
@@ -377,17 +443,35 @@ class ProjectListView(urwid.WidgetWrap):
         self.copyMoveToTopic(False)
 
     def removeFromTopic(self):
-        pos = self.listbox.focus_position
-        row = self.listbox.body[pos]
-        if not isinstance(row, ProjectRow):
-            return
-        if not row.topic_key:
+        rows = self.getSelectedRows(ProjectRow)
+        rows = [r for r in rows if r.topic_key]
+        if not rows:
             return
         with self.app.db.getSession() as session:
-            project = session.getProject(row.project_key)
-            topic = session.getTopic(row.topic_key)
-            self.log.debug("Remove %s from %s" % (project, topic))
-            topic.removeProject(project)
+            for row in rows:
+                project = session.getProject(row.project_key)
+                topic = session.getTopic(row.topic_key)
+                self.log.debug("Remove %s from %s" % (project, topic))
+                topic.removeProject(project)
+        self.refresh()
+
+    def toggleSubscribed(self):
+        rows = self.getSelectedRows(ProjectRow)
+        if not rows:
+            return
+        keys = [row.project_key for row in rows]
+        subscribed_keys = []
+        with self.app.db.getSession() as session:
+            for key in keys:
+                project = session.getProject(key)
+                project.subscribed = not project.subscribed
+                if project.subscribed:
+                    subscribed_keys.append(key)
+        for row in rows:
+            if row.mark:
+                row.toggleMark()
+        for key in subscribed_keys:
+            self.app.sync.submitTask(sync.SyncProjectTask(key))
         self.refresh()
 
     def keypress(self, size, key):
@@ -406,14 +490,10 @@ class ProjectListView(urwid.WidgetWrap):
             self.refresh()
             return None
         if keymap.TOGGLE_SUBSCRIBED in commands:
-            if not len(self.listbox.body):
-                return None
-            pos = self.listbox.focus_position
-            project_key = self.listbox.body[pos].project_key
-            subscribed = self.toggleSubscribed(project_key)
-            self.refresh()
-            if subscribed:
-                self.app.sync.submitTask(sync.SyncProjectTask(project_key))
+            self.toggleSubscribed()
+            return None
+        if keymap.TOGGLE_MARK in commands:
+            self.toggleMark()
             return None
         if keymap.NEW_PROJECT_TOPIC in commands:
             self.createTopic()
