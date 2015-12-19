@@ -353,8 +353,11 @@ class SyncProjectTask(Task):
             for batch in responses:
                 changes += batch
                 if batch and '_more_changes' in batch[-1]:
-                    sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
                     done = False
+                    if '_sortkey' in batch[-1]:
+                        sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
+                    else:
+                        sortkey = '&start=%s' % (len(batch))
         change_ids = [c['id'] for c in changes]
         with app.db.getSession() as session:
             # Winnow the list of IDs to only the ones in the local DB.
