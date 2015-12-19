@@ -479,44 +479,50 @@ class ProjectListView(urwid.WidgetWrap):
             key = super(ProjectListView, self).keypress(size, key)
         keys = self.app.input_buffer + [key]
         commands = self.app.config.keymap.getCommands(keys)
-        if keymap.FURTHER_INPUT not in commands:
-            self.app.clearInputBuffer()
+        ret = self.handleCommands(commands)
+        if ret is True:
+            if keymap.FURTHER_INPUT not in commands:
+                self.app.clearInputBuffer()
+            return None
+        return key
+
+    def handleCommands(self, commands):
         if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
-            return None
+            return True
         if keymap.TOGGLE_LIST_SUBSCRIBED in commands:
             self.subscribed = not self.subscribed
             self.refresh()
-            return None
+            return True
         if keymap.TOGGLE_SUBSCRIBED in commands:
             self.toggleSubscribed()
-            return None
+            return True
         if keymap.TOGGLE_MARK in commands:
             self.toggleMark()
-            return None
+            return True
         if keymap.NEW_PROJECT_TOPIC in commands:
             self.createTopic()
-            return None
+            return True
         if keymap.DELETE_PROJECT_TOPIC in commands:
             self.deleteTopic()
-            return None
+            return True
         if keymap.COPY_PROJECT_TOPIC in commands:
             self.copyToTopic()
-            return None
+            return True
         if keymap.MOVE_PROJECT_TOPIC in commands:
             self.moveToTopic()
-            return None
+            return True
         if keymap.REMOVE_PROJECT_TOPIC in commands:
             self.removeFromTopic()
-            return None
+            return True
         if keymap.RENAME_PROJECT_TOPIC in commands:
             self.renameTopic()
-            return None
+            return True
         if keymap.REFRESH in commands:
             self.app.sync.submitTask(
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             self.refresh()
-            return None
-        return key
+            return True
+        return False
