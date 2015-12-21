@@ -465,9 +465,9 @@ class BaseDiffView(urwid.WidgetWrap):
 
         old_focus = self.listbox.focus
         if not self.app.input_buffer:
-            r = super(BaseDiffView, self).keypress(size, key)
+            key = super(BaseDiffView, self).keypress(size, key)
         new_focus = self.listbox.focus
-        keys = self.app.input_buffer + [r]
+        keys = self.app.input_buffer + [key]
         commands = self.app.config.keymap.getCommands(keys)
 
         context = self.getContextAtTop(size)
@@ -487,7 +487,7 @@ class BaseDiffView(urwid.WidgetWrap):
             self.search = ''
             self.app.status.update(title=("Search: "))
             return None
-        return r
+        return key
 
     def mouse_event(self, size, event, button, x, y, focus):
         old_focus = self.listbox.focus
