@@ -319,7 +319,11 @@ class HyperText(urwid.Text):
     def getPosAtCoords(self, maxcol, col, row):
         trans = self.get_line_translation(maxcol)
         colpos = 0
-        line = trans[row]
+        line = None
+        try:
+            line = trans[row]
+        except IndexError:
+            return None
         for t in line:
             if len(t) == 2:
                 width, pos = t
