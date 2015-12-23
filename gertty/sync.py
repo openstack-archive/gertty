@@ -20,7 +20,6 @@ import math
 import os
 import re
 import threading
-import urllib
 import urlparse
 import json
 import time
@@ -34,6 +33,8 @@ except:
     pass
 import requests
 import requests.utils
+
+from six.moves.urllib import parse as urllib_parse
 
 import gertty.version
 from gertty import gitrepo
@@ -262,7 +263,7 @@ class SyncProjectBranchesTask(Task):
 
     def run(self, sync):
         app = sync.app
-        remote = sync.get('projects/%s/branches/' % urllib.quote_plus(self.project_name))
+        remote = sync.get('projects/%s/branches/' % urllib_parse.quote_plus(self.project_name))
         remote_branches = set()
         for x in remote:
             m = self.branch_re.match(x['ref'])
@@ -597,8 +598,8 @@ class SyncChangeTask(Task):
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(sync.app.config.url + change.project.name))
                     url[1] = '%s:%s@%s' % (
-                        urllib.quote_plus(sync.app.config.username),
-                        urllib.quote_plus(sync.app.config.password), url[1])
+                        urllib_parse.quote_plus(sync.app.config.username),
+                        urllib_parse.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
                 elif 'ssh' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['ssh']['ref']
