@@ -28,7 +28,13 @@ Installation
 Debian
 ~~~~~~
 
-Gertty is packaged in Debian sid/testing.  You can install it with::
+Gertty is packaged in Debian:
+
+ * sid / unstable
+ * stretch / testing
+ * jessie / stable
+
+You can install it with::
 
   apt-get install gertty
 
