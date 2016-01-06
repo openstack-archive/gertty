@@ -303,6 +303,7 @@ class BaseDiffView(urwid.WidgetWrap):
                         lines += self.makeLines(diff, chunk.lines[-10:], comment_lists)
                         del chunk.lines[-10:]
                     chunk.calcRange()
+                    chunk.button.update()
                     if not chunk.lines:
                         lines.remove(button)
                 else:
@@ -352,7 +353,7 @@ class BaseDiffView(urwid.WidgetWrap):
                     if from_start:
                         self.expandChunk(diff, chunk, comment_lists, from_start=i+10)
                     else:
-                        self.expandChunk(diff, chunk, comment_lists, from_end=i-10)
+                        self.expandChunk(diff, chunk, comment_lists, from_end=0-(len(chunk.lines)-i)-10)
                     break
 
     def expandChunk(self, diff, chunk, comment_lists={}, from_start=None, from_end=None,
