@@ -148,6 +148,11 @@ DEFAULT_KEYMAP = {
     INTERACTIVE_SEARCH: 'ctrl s',
 }
 
+# Hi vi users!  Add more things here!
+VI_KEYMAP = {
+    QUIT: [[':', 'q']],
+}
+
 URWID_COMMANDS = frozenset((
     urwid.REDRAW_SCREEN,
     urwid.CURSOR_UP,

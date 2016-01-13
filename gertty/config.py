@@ -186,7 +186,8 @@ class Config(object):
                 self.palettes[p['name']].update(p)
         self.palette = self.palettes[self.config.get('palette', palette)]
 
-        self.keymaps = {'default': gertty.keymap.KeyMap({})}
+        self.keymaps = {'default': gertty.keymap.KeyMap({}),
+                        'vi': gertty.keymap.KeyMap(gertty.keymap.VI_KEYMAP)}
         for p in self.config.get('keymaps', []):
             if p['name'] not in self.keymaps:
                 self.keymaps[p['name']] = gertty.keymap.KeyMap(p)
