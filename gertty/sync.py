@@ -20,11 +20,8 @@ import math
 import os
 import re
 import threading
-import urllib
-import urlparse
 import json
 import time
-import Queue
 import datetime
 
 import dateutil.parser
@@ -34,6 +31,10 @@ except:
     pass
 import requests
 import requests.utils
+import six
+from six.moves import queue
+from six.moves import urllib
+from six.moves.urllib import parse as urlparse
 
 import gertty.version
 from gertty import gitrepo
@@ -1249,7 +1250,7 @@ class PruneChangeTask(Task):
                 change.project.name, change_ref))
             try:
                 repo.deleteRef(change_ref)
-            except OSError, e:
+            except OSError as e:
                 if e.errno not in [errno.EISDIR, errno.EPERM]:
                     raise
             session.delete(change)
@@ -1281,7 +1282,7 @@ class Sync(object):
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
-        self.result_queue = Queue.Queue()
+        self.result_queue = queue.Queue()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
@@ -1333,7 +1334,7 @@ class Sync(object):
         try:
             task.run(self)
             task.complete(True)
-        except requests.ConnectionError, e:
+        except requests.ConnectionError as e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
                 self.submitTask(GetVersionTask(HIGH_PRIORITY))
@@ -1351,7 +1352,7 @@ class Sync(object):
         self.app.status.update(offline=False, refresh=False)
         for r in task.results:
             self.result_queue.put(r)
-        os.write(pipe, 'refresh\n')
+        os.write(pipe, six.b('refresh\n'))
         return None
 
     def url(self, path):
