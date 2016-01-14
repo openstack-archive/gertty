@@ -173,6 +173,8 @@ class Config(object):
         self.git_root = os.path.expanduser(server['git-root'])
         self.dburi = server.get('dburi',
                                 'sqlite:///' + os.path.expanduser('~/.gertty.db'))
+        socket_path = server.get('socket', '~/.gertty.sock')
+        self.socket_path = os.path.expanduser(socket_path)
         log_file = server.get('log-file', '~/.gertty.log')
         self.log_file = os.path.expanduser(log_file)
 
