@@ -21,6 +21,7 @@ import re
 
 import git
 import gitdb
+import six
 
 OLD = 0
 NEW = 1
@@ -83,14 +84,14 @@ class CommitContext(object):
             commit.authored_date, commit.author_tz_offset)
         commit_date = self.decorateGitTime(
             commit.committed_date, commit.committer_tz_offset)
-        if type(author.email) is unicode:
+        if isinstance(author.email, six.text_type):
             author_email = author.email
         else:
-            author_email = unicode(author.email, 'utf8')
-        if type(committer.email) is unicode:
+            author_email = six.u(author.email)
+        if isinstance(committer.email, six.text_type):
             committer_email = committer.email
         else:
-            committer_email = unicode(committer.email, 'utf8')
+            committer_email = six.u(committer.email)
         return [u"Parent: %s\n" % parentsha,
                 u"Author: %s <%s>\n" % (author.name, author_email),
                 u"AuthorDate: %s\n" % author_date,
@@ -181,8 +182,9 @@ class DiffFile(object):
     def finalize(self):
         if not self.current_chunk:
             return
-        self.current_chunk.lines = zip(self.current_chunk.oldlines,
-                                       self.current_chunk.newlines)
+        self.current_chunk.lines = list(
+                six.moves.zip(self.current_chunk.oldlines,
+                              self.current_chunk.newlines))
         if not self.chunks:
             self.current_chunk.first = True
         else:
@@ -407,7 +409,11 @@ class Repo(object):
             oldchunk = []
             newchunk = []
             prev_key = ''
-            diff_lines = diff_context.diff.split('\n')
+            if isinstance(diff_context.diff, six.string_types):
+                diff_text = six.b(diff_context.diff).decode('utf-8')
+            else:
+                diff_text = diff_context.diff.decode('utf-8')
+            diff_lines = diff_text.split('\n')
             for i, line in enumerate(diff_lines):
                 last_line = (i == len(diff_lines)-1)
                 if line.startswith('---'):
