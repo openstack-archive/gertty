@@ -251,6 +251,7 @@ class App(object):
         self.status.update(title=screen.title)
         self.updateStatusQueries()
         self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
+                                   handle_mouse=self.config.handle_mouse,
                                    unhandled_input=self.unhandledInput)
 
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
