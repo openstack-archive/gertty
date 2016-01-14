@@ -15,8 +15,8 @@
 
 import datetime
 import logging
-import urlparse
 
+from six.moves.urllib import parse as urlparse
 import urwid
 
 from gertty import gitrepo
