@@ -156,7 +156,7 @@ FORMAT_SUBS = (
     (re.compile('ctrl '), 'CTRL-'),
     (re.compile('meta '), 'META-'),
     (re.compile('f(\d+)'), 'F\\1'),
-    (re.compile('([a-z][a-z]+)'), lambda x: string.upper(x.group(1))),
+    (re.compile('([a-z][a-z]+)'), lambda x: x.group(1).upper()),
     )
 
 def formatKey(key):
