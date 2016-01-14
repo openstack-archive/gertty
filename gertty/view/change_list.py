@@ -575,7 +575,7 @@ class ChangeListView(urwid.WidgetWrap):
             view = view_change.ChangeView(self.app, change_key)
             self.app.changeScreen(view)
         except gertty.view.DisplayError as e:
-            self.app.error(e.message)
+            self.app.error(str(e))
 
     def openReview(self, rows):
         dialog = view_change.ReviewDialog(self.app, rows[0].current_revision_key)

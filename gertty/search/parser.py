@@ -20,8 +20,7 @@ from sqlalchemy.sql.expression import and_, or_, not_, select, func
 
 import gertty.db
 import gertty.search
-
-from tokenizer import tokens  # NOQA
+from gertty.search.tokenizer import tokens  # NOQA
 
 def SearchParser():
     precedence = (  # NOQA
