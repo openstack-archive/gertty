@@ -74,11 +74,11 @@ if __name__ == '__main__':
         token = lexer.token()
         if not token:
             break
-        print token
+        print(token)
 
     app = Dummy()
     app.config = Dummy()
     app.config.username = 'bob'
     search = SearchCompiler(app.config.username)
     x = search.parse(query)
-    print x
+    print(x)

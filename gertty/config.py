@@ -21,9 +21,9 @@ try:
     import ordereddict
 except:
     pass
-import urlparse
 import yaml
 
+from six.moves.urllib import parse as urlparse
 import voluptuous as v
 
 import gertty.commentlink
@@ -238,11 +238,11 @@ class Config(object):
 
     def printSample(self):
         filename = 'share/gertty/examples'
-        print """Gertty requires a configuration file at ~/.gertty.yaml
+        print("""Gertty requires a configuration file at ~/.gertty.yaml
 If the file contains a password then permissions must be set to 0600.
 
 Several sample configuration files were installed with Gertty and are
 available in %s in the root of the installation.
 
 For more information, please see the README.
-""" % (filename,)
+""" % (filename,))

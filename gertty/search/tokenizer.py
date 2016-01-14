@@ -13,6 +13,7 @@
 # under the License.
 
 import ply.lex as lex
+import six
 
 operators = {
     'age': 'OP_AGE',
@@ -59,7 +60,7 @@ tokens = [
     'USTRING',
     #'REGEX',
     #'SHA',
-    ] + operators.values()
+    ] + list(operators.values())
 
 def SearchTokenizer():
     t_LPAREN = r'\('   # NOQA
@@ -110,7 +111,7 @@ def SearchTokenizer():
 
     def t_USTRING(t):
         r'([^\s\(\)!-][^\s\(\)!]*)'
-        t.value=t.value.decode("string-escape")
+        t.value = six.b(t.value).decode("unicode_escape")
         return t
 
     def t_newline(t):
@@ -118,7 +119,7 @@ def SearchTokenizer():
         t.lexer.lineno += len(t.value)
 
     def t_error(t):
-        print "Illegal character '%s'" % t.value[0]
+        print("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
 
     return lex.lex()
