@@ -19,6 +19,7 @@ import dateutil
 import logging
 import os
 import re
+import socket
 import subprocess
 import sys
 import textwrap
@@ -256,6 +257,8 @@ class App(object):
         self.error_queue = queue.Queue()
         self.error_pipe = self.loop.watch_pipe(self._errorPipeInput)
         self.logged_warnings = set()
+        self.command_pipe = self.loop.watch_pipe(self._commandPipeInput)
+        self.command_queue = queue.Queue()
 
         warnings.showwarning = self._showWarning
 
@@ -268,6 +271,9 @@ class App(object):
 
         self.loop.screen.tty_signal_keys(start='undefined', stop='undefined')
         #self.loop.screen.set_terminal_properties(colors=88)
+
+        self.startSocketListener()
+
         if not disable_sync:
             self.sync_thread = threading.Thread(target=self.sync.run, args=(self.sync_pipe,))
             self.sync_thread.daemon = True
@@ -293,6 +299,35 @@ class App(object):
         urwid.connect_signal(dialog, 'yes', self._quit)
 
         self.popup(dialog)
+
+    def startSocketListener(self):
+        if os.path.exists(self.config.socket_path):
+            os.unlink(self.config.socket_path)
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.socket.bind(self.config.socket_path)
+        self.socket.listen(1)
+        self.socket_thread = threading.Thread(target=self._socketListener)
+        self.socket_thread.daemon = True
+        self.socket_thread.start()
+
+    def _socketListener(self):
+        while True:
+            try:
+                s, addr = self.socket.accept()
+                self.log.debug("Accepted socket connection %s" % (s,))
+                buf = ''
+                while True:
+                    buf += s.recv(1)
+                    if buf[-1] == '\n':
+                        break
+                buf = buf.strip()
+                self.log.debug("Received %s from socket" % (buf,))
+                s.close()
+                parts = buf.split()
+                self.command_queue.put((parts[0], parts[1:]))
+                os.write(self.command_pipe, 'command\n')
+            except Exception:
+                self.log.exception("Exception in socket handler")
 
     def clearInputBuffer(self):
         if self.input_buffer:
@@ -600,6 +635,17 @@ class App(object):
         self.error_queue.put(('Warning', m))
         os.write(self.error_pipe, 'error\n')
 
+    def _commandPipeInput(self, data=None):
+        (command, data) = self.command_queue.get()
+        if command == 'open':
+            url = data[0]
+            self.log.debug("Opening URL %s" % (url,))
+            result = self.parseInternalURL(url)
+            if result is not None:
+                self.openInternalURL(result)
+        else:
+            self.log.error("Unable to parse command %s with data %s" % (command, data))
+
     def toggleHeldChange(self, change_key):
         with self.db.getSession() as session:
             change = session.getChange(change_key)
@@ -709,6 +755,21 @@ class PrintPaletteAction(argparse.Action):
             print(attr)
         sys.exit(0)
 
+class OpenChangeAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        cf = config.Config(namespace.server, namespace.palette,
+                           namespace.keymap, namespace.path)
+        url = values[0]
+        result = urlparse.urlparse(values[0])
+        if not url.startswith(cf.url):
+            print('Supplied URL must start with %s' % (cf.url,))
+            sys.exit(1)
+
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(cf.socket_path)
+        s.sendall('open %s\n' % url)
+        sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
@@ -728,6 +789,9 @@ def main():
                         help='print the keymap command names to stdout')
     parser.add_argument('--print-palette', nargs=0, action=PrintPaletteAction,
                         help='print the palette attribute names to stdout')
+    parser.add_argument('--open', nargs=1, action=OpenChangeAction,
+                        metavar='URL',
+                        help='open the given URL in a running Gertty')
     parser.add_argument('--version', dest='version', action='version',
                         version=version(),
                         help='show Gertty\'s version')

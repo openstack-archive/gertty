@@ -47,6 +47,9 @@ servers:
 # time it starts (so that it does not grow without bound).  If you
 # would like to log to a different location, you may specify it here.
 #    log-file: ~/.gertty.log
+# Gertty listens on a unix domain socket for remote commands at
+# ~/.gertty.sock.  You may change the path here:
+#    socket: ~/.gertty.sock
 
 # Gertty comes with two palettes defined internally.  The default
 # palette is suitable for use on a terminal with a dark background.
