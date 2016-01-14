@@ -20,11 +20,8 @@ import math
 import os
 import re
 import threading
-import urllib
-import urlparse
 import json
 import time
-import Queue
 import datetime
 
 import dateutil.parser
@@ -34,6 +31,9 @@ except:
     pass
 import requests
 import requests.utils
+import six
+from six.moves import queue
+from six.moves.urllib import parse as urlparse
 
 import gertty.version
 from gertty import gitrepo
@@ -262,7 +262,7 @@ class SyncProjectBranchesTask(Task):
 
     def run(self, sync):
         app = sync.app
-        remote = sync.get('projects/%s/branches/' % urllib.quote_plus(self.project_name))
+        remote = sync.get('projects/%s/branches/' % urlparse.quote_plus(self.project_name))
         remote_branches = set()
         for x in remote:
             m = self.branch_re.match(x['ref'])
@@ -597,8 +597,8 @@ class SyncChangeTask(Task):
                     ref = remote_revision['fetch']['http']['ref']
                     url = list(urlparse.urlsplit(sync.app.config.url + change.project.name))
                     url[1] = '%s:%s@%s' % (
-                        urllib.quote_plus(sync.app.config.username),
-                        urllib.quote_plus(sync.app.config.password), url[1])
+                        urlparse.quote_plus(sync.app.config.username),
+                        urlparse.quote_plus(sync.app.config.password), url[1])
                     url = urlparse.urlunsplit(url)
                 elif 'ssh' in remote_revision['fetch']:
                     ref = remote_revision['fetch']['ssh']['ref']
@@ -1249,7 +1249,7 @@ class PruneChangeTask(Task):
                 change.project.name, change_ref))
             try:
                 repo.deleteRef(change_ref)
-            except OSError, e:
+            except OSError as e:
                 if e.errno not in [errno.EISDIR, errno.EPERM]:
                     raise
             session.delete(change)
@@ -1281,7 +1281,7 @@ class Sync(object):
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
-        self.result_queue = Queue.Queue()
+        self.result_queue = queue.Queue()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
@@ -1333,14 +1333,14 @@ class Sync(object):
         try:
             task.run(self)
             task.complete(True)
-        except requests.ConnectionError, e:
+        except requests.ConnectionError as e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
                 self.submitTask(GetVersionTask(HIGH_PRIORITY))
                 self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.offline = True
             self.app.status.update(offline=True, refresh=False)
-            os.write(pipe, 'refresh\n')
+            os.write(pipe, six.b('refresh\n'))
             time.sleep(30)
             return task
         except Exception:
@@ -1351,7 +1351,7 @@ class Sync(object):
         self.app.status.update(offline=False, refresh=False)
         for r in task.results:
             self.result_queue.put(r)
-        os.write(pipe, 'refresh\n')
+        os.write(pipe, six.b('refresh\n'))
         return None
 
     def url(self, path):

@@ -15,6 +15,8 @@
 
 import datetime
 import logging
+
+import six
 import urwid
 
 from gertty import keymap
@@ -360,7 +362,7 @@ class ChangeListView(urwid.WidgetWrap):
         return (ret, prefixes)
 
     def clearChangeList(self):
-        for key, value in self.change_rows.iteritems():
+        for key, value in six.iteritems(self.change_rows):
             self.listbox.body.remove(value)
         self.change_rows = {}
 
@@ -574,7 +576,7 @@ class ChangeListView(urwid.WidgetWrap):
             view = view_change.ChangeView(self.app, change_key)
             self.app.changeScreen(view)
         except gertty.view.DisplayError as e:
-            self.app.error(e.message)
+            self.app.error(str(e))
 
     def openReview(self, rows):
         dialog = view_change.ReviewDialog(self.app, rows[0].current_revision_key)
