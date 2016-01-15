@@ -170,6 +170,25 @@ screen.
 To select text (e.g., to copy to the clipboard), hold Shift while
 selecting the text.
 
+Terminal Integration
+--------------------
+
+If you use rxvt-unicode, you can add something like the following to
+``.Xresources`` to make Gerrit URLs that are displayed in your
+terminal (perhaps in an email or irc client) clickable links that open
+in Gertty::
+
+  URxvt.perl-ext:           default,matcher
+  URxvt.url-launcher:       sensible-browser
+  URxvt.keysym.C-Delete:    perl:matcher:last
+  URxvt.keysym.M-Delete:    perl:matcher:list
+  URxvt.matcher.button:     1
+  URxvt.matcher.pattern.1:  https:\/\/review.example.org/(\\#\/c\/)?(\\d+)[\w]*
+  URxvt.matcher.launcher.1: gertty --open $0
+
+You will want to adjust the pattern to match the review site you are
+interested in; multiple patterns may be added as needed.
+
 Contributing
 ------------
 
