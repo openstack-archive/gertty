@@ -20,6 +20,7 @@ import threading
 
 import alembic
 import alembic.config
+import six
 import sqlalchemy
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, UniqueConstraint
 from sqlalchemy.schema import ForeignKey
@@ -839,7 +840,7 @@ class DatabaseSession(object):
             return None
 
     def getRevisionsByParent(self, parent):
-        if isinstance(parent, basestring):
+        if isinstance(parent, six.string_types):
             parent = (parent,)
         try:
             return self.session().query(Revision).filter(Revision.parent.in_(parent)).all()

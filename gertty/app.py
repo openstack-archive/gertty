@@ -18,16 +18,16 @@ import datetime
 import dateutil
 import logging
 import os
-import Queue
 import re
 import subprocess
 import sys
 import textwrap
 import threading
-import urlparse
 import warnings
 import webbrowser
 
+from six.moves import queue
+from six.moves.urllib import parse as urlparse
 import sqlalchemy.exc
 import urwid
 
@@ -253,7 +253,7 @@ class App(object):
                                    unhandled_input=self.unhandledInput)
 
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
-        self.error_queue = Queue.Queue()
+        self.error_queue = queue.Queue()
         self.error_pipe = self.loop.watch_pipe(self._errorPipeInput)
         self.logged_warnings = set()
 
@@ -347,7 +347,7 @@ class App(object):
                     interested = True
                 if hasattr(event, 'held_changed') and event.held_changed:
                     invalidate = True
-        except Queue.Empty:
+        except queue.Empty:
             pass
         if interested:
             widget.refresh()
@@ -700,13 +700,13 @@ def version():
 class PrintKeymapAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         for cmd in sorted(keymap.DEFAULT_KEYMAP.keys()):
-            print cmd.replace(' ', '-')
+            print(cmd.replace(' ', '-'))
         sys.exit(0)
 
 class PrintPaletteAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         for attr in sorted(palette.DEFAULT_PALETTE.keys()):
-            print attr
+            print(attr)
         sys.exit(0)
 
 def main():
