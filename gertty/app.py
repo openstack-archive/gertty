@@ -450,7 +450,7 @@ class App(object):
         self.popup(dialog, min_width=76, min_height=len(lines)+4)
 
     def _syncOneChangeFromQuery(self, query):
-        number = changeid = None
+        number = changeid = restid = None
         if query.startswith("change:"):
             number = query.split(':')[1].strip()
             try:
@@ -466,6 +466,7 @@ class App(object):
             elif changeid:
                 change = session.getChangeByChangeID(changeid)
             change_key = change and change.key or None
+            restid = change and change.id or None
         if change_key is None:
             if self.sync.offline:
                 raise Exception('Can not sync change while offline.')
@@ -491,6 +492,9 @@ class App(object):
                 elif changeid:
                     change = session.getChangeByChangeID(changeid)
                 change_key = change and change.key or None
+        elif restid:
+            task = sync.SyncChangeTask(restid, sync.HIGH_PRIORITY)
+            self.sync.submitTask(task)
         if change_key is None:
             raise Exception('Change is not in local database.')
 
