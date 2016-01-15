@@ -148,6 +148,33 @@ class ButtonDialog(urwid.WidgetWrap):
         listbox = urwid.ListBox(rows)
         super(ButtonDialog, self).__init__(urwid.LineBox(listbox, title))
 
+class LineEditDialog(ButtonDialog):
+    signals = ['save', 'cancel']
+    def __init__(self, app, title, message, entry_prompt=None,
+                 entry_text='', ring=None):
+        self.app = app
+        save_button = FixedButton('Save')
+        cancel_button = FixedButton('Cancel')
+        urwid.connect_signal(save_button, 'click',
+                             lambda button:self._emit('save'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        super(LineEditDialog, self).__init__(title, message, entry_prompt,
+                                             entry_text,
+                                             buttons=[save_button,
+                                                      cancel_button],
+                                             ring=ring)
+
+    def keypress(self, size, key):
+        if not self.app.input_buffer:
+            key = super(LineEditDialog, self).keypress(size, key)
+        keys = self.app.input_buffer + [key]
+        commands = self.app.config.keymap.getCommands(keys)
+        if keymap.ACTIVATE in commands:
+            self._emit('save')
+            return None
+        return key
+
 class TextEditDialog(urwid.WidgetWrap):
     signals = ['save', 'cancel']
     def __init__(self, title, prompt, button, text, ring=None):
