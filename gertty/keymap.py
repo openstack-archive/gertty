@@ -153,6 +153,10 @@ DEFAULT_KEYMAP = {
 # above.
 VI_KEYMAP = {
     QUIT: [[':', 'q']],
+    CURSOR_LEFT: 'h',
+    CURSOR_DOWN: 'j',
+    CURSOR_UP: 'k',
+    CURSOR_RIGHT: 'l',
 }
 
 URWID_COMMANDS = frozenset((
