@@ -398,11 +398,16 @@ class App(object):
 
     def popup(self, widget,
               relative_width=50, relative_height=25,
-              min_width=20, min_height=8):
+              min_width=20, min_height=8,
+              width=None, height=None):
         self.clearInputBuffer()
+        if width is None:
+            width = ('relative', relative_width)
+        if height is None:
+            height = ('relative', relative_height)
         overlay = urwid.Overlay(widget, self.loop.widget,
-                                'center', ('relative', relative_width),
-                                'middle', ('relative', relative_height),
+                                'center', width,
+                                'middle', height,
                                 min_width=min_width, min_height=min_height)
         self.log.debug("Overlaying %s on screen %s" % (widget, self.loop.widget))
         self.screens.append(self.loop.widget)
@@ -464,15 +469,22 @@ class App(object):
         if change_key is None:
             if self.sync.offline:
                 raise Exception('Can not sync change while offline.')
-            task = sync.SyncChangeByNumberTask(number or changeid, sync.HIGH_PRIORITY)
-            self.sync.submitTask(task)
-            succeeded = task.wait(300)
-            if not succeeded:
-                raise Exception('Unable to find change.')
-            for subtask in task.tasks:
-                succeeded = subtask.wait(300)
+            dialog = mywid.SystemMessage("Syncing change...")
+            self.popup(dialog, width=40, height=6)
+            self.loop.draw_screen()
+            try:
+                task = sync.SyncChangeByNumberTask(number or changeid, sync.HIGH_PRIORITY)
+                self.sync.submitTask(task)
+                succeeded = task.wait(300)
                 if not succeeded:
-                    raise Exception('Unable to sync change.')
+                    raise Exception('Unable to find change.')
+                for subtask in task.tasks:
+                    succeeded = subtask.wait(300)
+                    if not succeeded:
+                        raise Exception('Unable to sync change.')
+            finally:
+                # Remove "syncing..." popup
+                self.backScreen()
             with self.db.getSession() as session:
                 if number:
                     change = session.getChangeByNumber(number)
