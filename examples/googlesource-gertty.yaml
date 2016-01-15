@@ -2,7 +2,9 @@
 # Gerrit running on googlesource.com. Most of these options are not
 # required, rather, they customize Gertty to better deal with the
 # particulars of Google's Gerrit configuration.
-# See the reference-gertty.yaml file for more options.
+
+# This file does not list all of the available options.  For a full
+# list with explanations, see the 'reference-gertty.yaml' file.
 
 servers:
   - name: CHANGEME-review
