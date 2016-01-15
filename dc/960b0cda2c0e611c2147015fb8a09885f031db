@@ -1,0 +1,9 @@
+Code-Review+1: Craige McWhirter <craige@mcwhirter.io>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 15 Jan 2016 17:19:09 +0000
+Reviewed-on: https://review.openstack.org/260085
+Project: openstack/gertty
+Branch: refs/heads/master
