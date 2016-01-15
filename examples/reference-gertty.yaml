@@ -166,6 +166,10 @@ commentlinks:
 # them in UTC instead, uncomment the following line:
 # display-times-in-utc: true
 
+# Gertty handles mouse input by default.  If you don't want it messing
+# with your terminal's mouse handling, uncomment the following line:
+# handle-mouse: false
+
 # Closed changes that are older than two months are removed from the
 # local database (and their refs are removed from the local git repos
 # so that git may garbage collect them).  If you would like to change
