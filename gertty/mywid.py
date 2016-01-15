@@ -128,6 +128,11 @@ class MyEdit(urwid.Edit):
             self.ring.kill(text)
         return super(MyEdit, self).keypress(size, key)
 
+class SystemMessage(urwid.WidgetWrap):
+    def __init__(self, message):
+        w = urwid.Filler(urwid.Text(message, align='center'))
+        super(SystemMessage, self).__init__(urwid.LineBox(w))
+
 @mouse_scroll_decorator.ScrollByWheel
 class ButtonDialog(urwid.WidgetWrap):
     def __init__(self, title, message, entry_prompt=None,
