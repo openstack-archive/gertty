@@ -2,3 +2,4 @@
 *.egg*
 gertty-env
 .tox
+doc/build

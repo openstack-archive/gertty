@@ -79,7 +79,7 @@ To install from a git checkout::
 Gertty uses a YAML based configuration file that it looks for at
 ``~/.gertty.yaml``.  Several sample configuration files are included.
 You can find them in the examples/ directory of the
-`source distribution <https://git.openstack.org/cgit/stackforge/gertty/tree/examples>`_
+`source distribution <https://git.openstack.org/cgit/openstack/gertty/tree/examples>`_
 or the share/gertty/examples directory after installation.
 
 Select one of the sample config files, copy it to ~/.gertty.yaml and
@@ -144,8 +144,7 @@ outstanding tasks that Gertty must perform in order to be fully up to
 date.  Some of these tasks are more complicated than others, and some
 of them will end up creating new tasks (for instance, one task may be
 to search for new changes in a project which will then produce 5 new
-tasks if there are 5 new changes).  This will explain why the number
-of tasks displayed in the status bar sometimes changes rapidly.
+tasks if there are 5 new changes).
 
 If Gertty is offline, it will so indicate in the status bar.  It will
 retry requests if needed, and will switch between offline and online
@@ -158,7 +157,7 @@ and mark the change as "held" so that you may re-inspect the change
 and any new comments before uploading the review.  The status bar will
 alert you to any held changes and direct you to a list of them (the
 `F12` key by default).  When viewing a change, the "held" flag may be
-toggeled with the exclamation key (`!`).  Once held, a change must be
+toggled with the exclamation key (`!`).  Once held, a change must be
 explicitly un-held in this manner for your review to be uploaded.
 
 If Gertty encounters an error, this will also be indicated in the
