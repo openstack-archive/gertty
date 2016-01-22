@@ -27,6 +27,7 @@ import threading
 import warnings
 import webbrowser
 
+import six
 from six.moves import queue
 from six.moves.urllib import parse as urlparse
 import sqlalchemy.exc
