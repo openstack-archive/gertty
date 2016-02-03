@@ -12,6 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# Test changes:
+# https://review.openstack.org/275862
+# https://review.openstack.org/119302
+
 import datetime
 import logging
 import difflib
@@ -87,11 +91,11 @@ class CommitContext(object):
         if isinstance(author.email, six.text_type):
             author_email = author.email
         else:
-            author_email = six.u(author.email)
+            author_email = six.u(author.email.decode('utf8'))
         if isinstance(committer.email, six.text_type):
             committer_email = committer.email
         else:
-            committer_email = six.u(committer.email)
+            committer_email = six.u(committer.email.decode('utf8'))
         return [u"Parent: %s\n" % parentsha,
                 u"Author: %s <%s>\n" % (author.name, author_email),
                 u"AuthorDate: %s\n" % author_date,
@@ -409,11 +413,7 @@ class Repo(object):
             oldchunk = []
             newchunk = []
             prev_key = ''
-            if isinstance(diff_context.diff, six.string_types):
-                diff_text = six.b(diff_context.diff).decode('utf-8')
-            else:
-                diff_text = diff_context.diff.decode('utf-8')
-            diff_lines = diff_text.split('\n')
+            diff_lines = diff_context.diff.split('\n')
             for i, line in enumerate(diff_lines):
                 last_line = (i == len(diff_lines)-1)
                 if line.startswith('---'):
