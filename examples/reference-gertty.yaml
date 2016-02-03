@@ -177,7 +177,7 @@ commentlinks:
 # The time interval is specified in the same way as the "age:" term in
 # Gerrit's search syntax.  To disable it altogether, set the value to
 # the empty string.
-# expire_age: '2 months'
+# expire-age: '2 months'
 
 # Uncomment the following lines to Hide comments by default that match
 # certain criteria.  You can toggle their display with 't'.  Currently
