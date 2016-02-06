@@ -351,29 +351,7 @@ class SyncProjectTask(Task):
                 else:
                     query += ' status:open'
                 queries.append(query)
-        changes = []
-        sortkey = ''
-        done = False
-        offset = 0
-        while not done:
-            query = '&'.join(queries)
-            # We don't actually want to limit to 500, but that's the server-side default, and
-            # if we don't specify this, we won't get a _more_changes flag.
-            q = 'changes/?n=500%s&%s' % (sortkey, query)
-            self.log.debug('Query: %s ' % (q,))
-            responses = sync.get(q)
-            if len(queries) == 1:
-                responses = [responses]
-            done = True
-            for batch in responses:
-                changes += batch
-                if batch and '_more_changes' in batch[-1]:
-                    done = False
-                    if '_sortkey' in batch[-1]:
-                        sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
-                    else:
-                        offset += len(batch)
-                        sortkey = '&start=%s' % (offset,)
+        changes = sync.query(queries)
         change_ids = [c['id'] for c in changes]
         with app.db.getSession() as session:
             # Winnow the list of IDs to only the ones in the local DB.
@@ -566,6 +544,8 @@ class SyncChangeTask(Task):
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
+        remote_conflicts = sync.query(['q=status:open+is:mergeable+conflicts:%s' %
+                                       remote_change['_number']])
         fetches = collections.defaultdict(list)
         parent_commits = set()
         with app.db.getSession() as session:
@@ -600,6 +580,28 @@ class SyncChangeTask(Task):
             change.subject = remote_change['subject']
             change.updated = dateutil.parser.parse(remote_change['updated'])
             change.topic = remote_change.get('topic')
+            unseen_conflicts = [x.id for x in change.conflicts]
+            for remote_conflict in remote_conflicts:
+                conflict_id = remote_conflict['id']
+                conflict = session.getChangeByID(conflict_id)
+                if not conflict:
+                    self.log.info("Need to sync conflicting change %s for change %s.",
+                                  conflict_id, change.number)
+                    sync.submitTask(SyncChangeTask(conflict_id, priority=self.priority))
+                else:
+                    if conflict not in change.conflicts:
+                        self.log.info("Added conflict %s for change %s in local DB.",
+                                      conflict.number, change.number)
+                        change.addConflict(conflict)
+                        self.results.append(ChangeUpdatedEvent(conflict))
+                if conflict_id in unseen_conflicts:
+                    unseen_conflicts.remove(conflict_id)
+            for conflict_id in unseen_conflicts:
+                conflict = session.getChangeByID(conflict_id)
+                self.log.info("Deleted conflict %s for change %s in local DB.",
+                              conflict.number, change.number)
+                change.delConflict(conflict)
+                self.results.append(ChangeUpdatedEvent(conflict))
             repo = gitrepo.get_repo(change.project.name, app.config)
             new_revision = False
             for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
@@ -1290,6 +1292,8 @@ class VacuumDatabaseTask(Task):
             session.vacuum()
 
 class Sync(object):
+    _quiet_debug_mode = False
+
     def __init__(self, app):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.release_string(),
                                             requests.utils.default_user_agent())
@@ -1308,16 +1312,17 @@ class Sync(object):
         self.auth = authclass(
             self.app.config.username, self.app.config.password)
         self.submitTask(GetVersionTask(HIGH_PRIORITY))
-        self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
-        self.submitTask(CheckReposTask(HIGH_PRIORITY))
-        self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
-        self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
-        self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
-        self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
-        self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
-        self.periodic_thread = threading.Thread(target=self.periodicSync)
-        self.periodic_thread.daemon = True
-        self.periodic_thread.start()
+        if not self._quiet_debug_mode:
+            self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
+            self.submitTask(CheckReposTask(HIGH_PRIORITY))
+            self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+            self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
+            self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
+            self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
+            self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
+            self.periodic_thread = threading.Thread(target=self.periodicSync)
+            self.periodic_thread.daemon = True
+            self.periodic_thread.start()
 
     def periodicSync(self):
         hourly = time.time()
@@ -1475,3 +1480,29 @@ class Sync(object):
             micro = int(parts[2])
         self.version = (major, minor, micro)
         self.log.info("Remote version is: %s (parsed as %s)" % (version, self.version))
+
+    def query(self, queries):
+        changes = []
+        sortkey = ''
+        done = False
+        offset = 0
+        while not done:
+            query = '&'.join(queries)
+            # We don't actually want to limit to 500, but that's the server-side default, and
+            # if we don't specify this, we won't get a _more_changes flag.
+            q = 'changes/?n=500%s&%s' % (sortkey, query)
+            self.log.debug('Query: %s' % (q,))
+            responses = self.get(q)
+            if len(queries) == 1:
+                responses = [responses]
+            done = True
+            for batch in responses:
+                changes += batch
+                if batch and '_more_changes' in batch[-1]:
+                    done = False
+                    if '_sortkey' in batch[-1]:
+                        sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
+                    else:
+                        offset += len(batch)
+                        sortkey = '&start=%s' % (offset,)
+        return changes
