@@ -752,6 +752,8 @@ class ChangeView(urwid.WidgetWrap):
             subject = parent.change.subject
             if parent != parent.change.revisions[-1]:
                 subject += ' [OUTDATED]'
+            if parent.change.status == 'ABANDONED':
+                subject += ' [ABANDONED]'
             parents[parent.change.key] = subject
         self._updateDependenciesWidget(parents,
                                        self.depends_on, self.depends_on_rows,
@@ -762,6 +764,7 @@ class ChangeView(urwid.WidgetWrap):
         children.update((r.change.key, r.change.subject)
                         for r in session.getRevisionsByParent([revision.commit for revision in change.revisions])
                         if (r.change.status != 'MERGED' and
+                            r.change.status != 'ABANDONED' and
                             r == r.change.revisions[-1]))
         self._updateDependenciesWidget(children,
                                        self.needed_by, self.needed_by_rows,
