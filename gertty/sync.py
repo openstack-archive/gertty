@@ -1292,9 +1292,7 @@ class VacuumDatabaseTask(Task):
             session.vacuum()
 
 class Sync(object):
-    _quiet_debug_mode = False
-
-    def __init__(self, app):
+    def __init__(self, app, disable_background_sync):
         self.user_agent = 'Gertty/%s %s' % (gertty.version.version_info.release_string(),
                                             requests.utils.default_user_agent())
         self.version = (0, 0, 0)
@@ -1312,8 +1310,8 @@ class Sync(object):
         self.auth = authclass(
             self.app.config.username, self.app.config.password)
         self.submitTask(GetVersionTask(HIGH_PRIORITY))
-        if not self._quiet_debug_mode:
-            self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
+        self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
+        if not disable_background_sync:
             self.submitTask(CheckReposTask(HIGH_PRIORITY))
             self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
             self.submitTask(SyncProjectListTask(HIGH_PRIORITY))

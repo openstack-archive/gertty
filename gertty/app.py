@@ -206,9 +206,11 @@ class ProjectCache(object):
 class App(object):
     simple_change_search = re.compile('^(\d+|I[a-fA-F0-9]{40})$')
 
-    def __init__(self, server=None, palette='default', keymap='default',
-                 debug=False, verbose=False, disable_sync=False,
-                 fetch_missing_refs=False, path=config.DEFAULT_CONFIG_PATH):
+    def __init__(self, server=None, palette='default',
+                 keymap='default', debug=False, verbose=False,
+                 disable_sync=False, disable_background_sync=False,
+                 fetch_missing_refs=False,
+                 path=config.DEFAULT_CONFIG_PATH):
         self.server = server
         self.config = config.Config(server, palette, keymap, path)
         if debug:
@@ -243,7 +245,7 @@ class App(object):
         self.config.keymap.updateCommandMap()
         self.search = search.SearchCompiler(self.config.username)
         self.db = db.Database(self, self.config.dburi, self.search)
-        self.sync = sync.Sync(self)
+        self.sync = sync.Sync(self, disable_background_sync)
 
         self.screens = []
         self.status = StatusHeader(self)
@@ -800,6 +802,8 @@ def main():
                         help='enable debug logging')
     parser.add_argument('--no-sync', dest='no_sync', action='store_true',
                         help='disable remote syncing')
+    parser.add_argument('--debug-sync', dest='debug_sync', action='store_true',
+                        help='disable most background sync tasks for debugging')
     parser.add_argument('--fetch-missing-refs', dest='fetch_missing_refs',
                         action='store_true',
                         help='fetch any refs missing from local repos')
@@ -821,7 +825,7 @@ def main():
                         help='the server to use (as specified in config file)')
     args = parser.parse_args()
     g = App(args.server, args.palette, args.keymap, args.debug, args.verbose,
-            args.no_sync, args.fetch_missing_refs, args.path)
+            args.no_sync, args.debug_sync, args.fetch_missing_refs, args.path)
     g.run()
 
 
