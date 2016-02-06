@@ -82,6 +82,12 @@ change_table = Table(
     Column('pending_status', Boolean, index=True, nullable=False),
     Column('pending_status_message', Text),
     )
+change_conflict_table = Table(
+    'change_conflict', metadata,
+    Column('key', Integer, primary_key=True),
+    Column('change1_key', Integer, ForeignKey("change.key"), index=True),
+    Column('change2_key', Integer, ForeignKey("change.key"), index=True),
+    )
 revision_table = Table(
     'revision', metadata,
     Column('key', Integer, primary_key=True),
@@ -366,6 +372,30 @@ class Change(object):
                 owner_name = self.owner.email
         return owner_name
 
+    @property
+    def conflicts(self):
+        return tuple(set(self.conflicts1 + self.conflicts2))
+
+    def addConflict(self, other):
+        session = Session.object_session(self)
+        if other in self.conflicts1 or other in self.conflicts2:
+            return
+        if self in other.conflicts1 or self in other.conflicts2:
+            return
+        self.conflicts1.append(other)
+        session.flush()
+        session.expire(other, attribute_names=['conflicts2'])
+
+    def delConflict(self, other):
+        session = Session.object_session(self)
+        if other in self.conflicts1:
+            self.conflicts1.remove(other)
+            session.flush()
+            session.expire(other, attribute_names=['conflicts2'])
+        if self in other.conflicts1:
+            other.conflicts1.remove(self)
+            session.flush()
+            session.expire(self, attribute_names=['conflicts2'])
 
 class Revision(object):
     def __init__(self, change, number, message, commit, parent,
@@ -586,6 +616,16 @@ mapper(Topic, topic_table, properties=dict(
 mapper(ProjectTopic, project_topic_table)
 mapper(Change, change_table, properties=dict(
         owner=relationship(Account),
+        conflicts1=relationship(Change,
+                                secondary=change_conflict_table,
+                                primaryjoin=change_table.c.key==change_conflict_table.c.change1_key,
+                                secondaryjoin=change_table.c.key==change_conflict_table.c.change2_key,
+                                ),
+        conflicts2=relationship(Change,
+                                secondary=change_conflict_table,
+                                primaryjoin=change_table.c.key==change_conflict_table.c.change2_key,
+                                secondaryjoin=change_table.c.key==change_conflict_table.c.change1_key,
+                                ),
         revisions=relationship(Revision, backref='change',
                                order_by=revision_table.c.number,
                                cascade='all, delete-orphan'),

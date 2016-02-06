@@ -485,7 +485,9 @@ class ChangeView(urwid.WidgetWrap):
         self.depends_on_rows = {}
         self.needed_by = urwid.Pile([])
         self.needed_by_rows = {}
-        self.related_changes = urwid.Pile([self.depends_on, self.needed_by])
+        self.conflicts_with = urwid.Pile([])
+        self.conflicts_with_rows = {}
+        self.related_changes = urwid.Pile([self.depends_on, self.needed_by, self.conflicts_with])
         self.results = mywid.HyperText(u'') # because it scrolls better than a table
         self.grid = mywid.MyGridFlow([change_info, self.commit_message, votes, self.results],
                                      cell_width=80, h_sep=2, v_sep=1, align='left')
@@ -769,6 +771,16 @@ class ChangeView(urwid.WidgetWrap):
         self._updateDependenciesWidget(children,
                                        self.needed_by, self.needed_by_rows,
                                        header='Needed by:')
+
+        # Handle conflicts_with
+        conflicts = {}
+        conflicts.update((c.key, c.subject)
+                        for c in change.conflicts
+                        if (c.status != 'MERGED' and
+                            c.status != 'ABANDONED'))
+        self._updateDependenciesWidget(conflicts,
+                                       self.conflicts_with, self.conflicts_with_rows,
+                                       header='Conflicts with:')
 
 
     def toggleReviewed(self):
