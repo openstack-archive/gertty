@@ -81,6 +81,7 @@ change_table = Table(
     Column('pending_starred', Boolean, index=True, nullable=False),
     Column('pending_status', Boolean, index=True, nullable=False),
     Column('pending_status_message', Text),
+    Column('last_seen', DateTime, index=True),
     )
 change_conflict_table = Table(
     'change_conflict', metadata,

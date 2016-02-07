@@ -17,6 +17,7 @@ import six
 
 operators = {
     'age': 'OP_AGE',
+    'recentlyseen': 'OP_RECENTLYSEEN', # Gertty extension
     'change': 'OP_CHANGE',
     'owner': 'OP_OWNER',
     #'OP_OWNERIN', # needs local group membership
