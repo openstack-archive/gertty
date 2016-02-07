@@ -22,6 +22,23 @@ import gertty.db
 import gertty.search
 from gertty.search.tokenizer import tokens  # NOQA
 
+def age_to_delta(delta, unit):
+    if unit in ['seconds', 'second', 'sec', 's']:
+        pass
+    elif unit in ['minutes', 'minute', 'min', 'm']:
+        delta = delta * 60
+    elif unit in ['hours', 'hour', 'hr', 'h']:
+        delta = delta * 60 * 60
+    elif unit in ['days', 'day', 'd']:
+        delta = delta * 60 * 60 * 24
+    elif unit in ['weeks', 'week', 'w']:
+        delta = delta * 60 * 60 * 24 * 7
+    elif unit in ['months', 'month', 'mon']:
+        delta = delta * 60 * 60 * 24 * 30
+    elif unit in ['years', 'year', 'y']:
+        delta = delta * 60 * 60 * 24 * 365
+    return delta
+
 def SearchParser():
     precedence = (  # NOQA
         ('left', 'NOT', 'NEG'),
@@ -60,6 +77,7 @@ def SearchParser():
 
     def p_term(p):
         '''term : age_term
+                | recentlyseen_term
                 | change_term
                 | owner_term
                 | reviewer_term
@@ -91,21 +109,19 @@ def SearchParser():
         now = datetime.datetime.utcnow()
         delta = p[2]
         unit = p[3]
-        if unit in ['seconds', 'second', 'sec', 's']:
-            pass
-        elif unit in ['minutes', 'minute', 'min', 'm']:
-            delta = delta * 60
-        elif unit in ['hours', 'hour', 'hr', 'h']:
-            delta = delta * 60 * 60
-        elif unit in ['days', 'day', 'd']:
-            delta = delta * 60 * 60 * 24
-        elif unit in ['weeks', 'week', 'w']:
-            delta = delta * 60 * 60 * 24 * 7
-        elif unit in ['months', 'month', 'mon']:
-            delta = delta * 60 * 60 * 24 * 30
-        elif unit in ['years', 'year', 'y']:
-            delta = delta * 60 * 60 * 24 * 365
+        delta = age_to_delta(delta, unit)
         p[0] = gertty.db.change_table.c.updated < (now-datetime.timedelta(seconds=delta))
+
+    def p_recentlyseen_term(p):
+        '''recentlyseen_term : OP_RECENTLYSEEN NUMBER string'''
+        # A gertty extension
+        now = datetime.datetime.utcnow()
+        delta = p[2]
+        unit = p[3]
+        delta = age_to_delta(delta, unit)
+        s = select([func.datetime(func.max(gertty.db.change_table.c.last_seen), '-%s seconds' % delta)],
+                   correlate=False)
+        p[0] = gertty.db.change_table.c.last_seen >= s
 
     def p_change_term(p):
         '''change_term : OP_CHANGE CHANGE_ID

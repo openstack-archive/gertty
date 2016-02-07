@@ -445,6 +445,7 @@ class ChangeView(urwid.WidgetWrap):
         self.message_rows = {}
         self.last_revision_key = None
         self.hide_comments = True
+        self.marked_seen = False
         self.change_id_label = mywid.TextButton(u'', on_press=self.searchChangeId)
         self.owner_label = mywid.TextButton(u'', on_press=self.searchOwner)
         self.project_label = mywid.TextButton(u'', on_press=self.searchProject)
@@ -550,6 +551,11 @@ class ChangeView(urwid.WidgetWrap):
     def refresh(self):
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
+            # When we first open the change, update its last_seen
+            # time.
+            if not self.marked_seen:
+                change.last_seen = datetime.datetime.utcnow()
+                self.marked_seen = True
             self.topic = change.topic or ''
             self.pending_status_message = change.pending_status_message or ''
             reviewed = hidden = starred = held = ''

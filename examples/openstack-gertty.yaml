@@ -84,6 +84,11 @@ hide-comments:
 # the global help text, and pressing the key anywhere in Gertty will
 # discard the current display stack and replace it with the results of
 # the query.
+#
+# NB: "recentlyseen:24 hours" does not just return changes seen in the
+# last 24 hours -- it returns changes seen within 24 hours of the most
+# recently seen change.  So you can take the weekend off and pick up
+# where you were.
 dashboards:
   - name: "My changes"
     query: "owner:self status:open"
@@ -91,6 +96,12 @@ dashboards:
   - name: "Incoming reviews"
     query: "is:open is:reviewer"
     key: "f3"
+  - name: "Starred changes"
+    query: "is:starred"
+    key: "f4"
+  - name: "Recently seen changes"
+    query: "recentlyseen:24 hours"
+    key: "f5"
 
 # Reviewkeys are hotkeys that perform immediate reviews within the
 # change screen.  Any pending comments or review messages will be
