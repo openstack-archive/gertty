@@ -147,9 +147,10 @@ commentlinks:
 # selected.  The default is "status:open".
 # change-list-query: "status:open"
 
-# This section defines default sorting options for the change list. The
-# "sort-by" key specifies the sort order, which can be 'number' or 'updated'.
-# The 'reverse' key specifies ascending (true) or descending (false) order.
+# This section defines default sorting options for the change
+# list. The "sort-by" key specifies the sort order, which can be
+# 'number', 'updated', or 'last-seen'.  The 'reverse' key specifies
+# ascending (true) or descending (false) order.
 # change-list-options:
 #   sort-by: 'number'
 #   reverse: false
@@ -207,6 +208,8 @@ dashboards:
     key: "f4"
   - name: "Recently seen changes"
     query: "recentlyseen:24 hours"
+    sort-by: "last-seen"
+    reverse: True
     key: "f5"
 
 # Reviewkeys are hotkeys that perform immediate reviews within the
