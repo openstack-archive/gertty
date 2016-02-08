@@ -434,13 +434,21 @@ class ChangeListView(urwid.WidgetWrap):
             key = super(ChangeListView, self).keypress(size, key)
         keys = self.app.input_buffer + [key]
         commands = self.app.config.keymap.getCommands(keys)
+        ret = self.handleCommands(commands)
+        if ret is True:
+            if keymap.FURTHER_INPUT not in commands:
+                self.app.clearInputBuffer()
+            return None
+        return key
+
+    def handleCommands(self, commands):
         if keymap.TOGGLE_LIST_REVIEWED in commands:
             self.unreviewed = not self.unreviewed
             self.refresh()
-            return None
+            return True
         if keymap.TOGGLE_REVIEWED in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
             reviewed = self.toggleReviewed(change_key)
@@ -457,10 +465,10 @@ class ChangeListView(urwid.WidgetWrap):
                 # changes.
                 self.refresh()
                 self.advance()
-            return None
+            return True
         if keymap.TOGGLE_HIDDEN in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
             hidden = self.toggleHidden(change_key)
@@ -475,10 +483,10 @@ class ChangeListView(urwid.WidgetWrap):
                 # where we're not just popping a row from the list of changes.
                 self.refresh()
                 self.advance()
-            return None
+            return True
         if keymap.TOGGLE_HELD in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
             self.toggleHeld(change_key)
@@ -487,10 +495,10 @@ class ChangeListView(urwid.WidgetWrap):
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
             self.advance()
-            return None
+            return True
         if keymap.TOGGLE_STARRED in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
             self.toggleStarred(change_key)
@@ -499,10 +507,10 @@ class ChangeListView(urwid.WidgetWrap):
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
             self.advance()
-            return None
+            return True
         if keymap.TOGGLE_MARK in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             change_key = self.listbox.body[pos].change_key
             row = self.change_rows[change_key]
@@ -511,10 +519,10 @@ class ChangeListView(urwid.WidgetWrap):
                 change = session.getChange(change_key)
                 row.update(change, self.categories)
             self.advance()
-            return None
+            return True
         if keymap.EDIT_TOPIC in commands:
             self.editTopic()
-            return None
+            return True
         if keymap.REFRESH in commands:
             if self.project_key:
                 self.app.sync.submitTask(
@@ -523,57 +531,57 @@ class ChangeListView(urwid.WidgetWrap):
                 self.app.sync.submitTask(
                     sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
-            return None
+            return True
         if keymap.REVIEW in commands:
             rows = [row for row in self.change_rows.values() if row.mark]
             if not rows:
                 pos = self.listbox.focus_position
                 rows = [self.listbox.body[pos]]
             self.openReview(rows)
-            return None
+            return True
         if keymap.SORT_BY_NUMBER in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             self.sort_by = 'number'
             self.clearChangeList()
             self.refresh()
-            return None
+            return True
         if keymap.SORT_BY_UPDATED in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             self.sort_by = 'updated'
             self.clearChangeList()
             self.refresh()
-            return None
+            return True
         if keymap.SORT_BY_REVERSE in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             if self.reverse:
                 self.reverse = False
             else:
                 self.reverse = True
             self.clearChangeList()
             self.refresh()
-            return None
+            return True
         if keymap.LOCAL_CHECKOUT in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             row = self.listbox.body[pos]
             self.app.localCheckoutCommit(row.project_name, row.commit_sha)
-            return None
+            return True
         if keymap.LOCAL_CHERRY_PICK in commands:
             if not len(self.listbox.body):
-                return None
+                return True
             pos = self.listbox.focus_position
             row = self.listbox.body[pos]
             self.app.localCherryPickCommit(row.project_name, row.commit_sha)
-            return None
+            return True
         if keymap.REFINE_CHANGE_SEARCH in commands:
             default = self.getQueryString()
             self.app.searchDialog(default)
-            return None
-        return key
+            return True
+        return False
 
     def onSelect(self, button, change_key):
         try:
