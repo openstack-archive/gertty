@@ -53,6 +53,8 @@ class ConfigSchema(object):
 
     servers = [server]
 
+    sort_by = v.Any('number', 'updated', 'last-seen')
+
     text_replacement = {'text': v.Any(str,
                                       {'color': str,
                                        v.Required('text'): str})}
@@ -78,6 +80,8 @@ class ConfigSchema(object):
 
     dashboard = {v.Required('name'): str,
                  v.Required('query'): str,
+                 v.Optional('sort-by'): sort_by,
+                 v.Optional('reverse'): bool,
                  v.Required('key'): str}
 
     dashboards = [dashboard]
@@ -95,7 +99,7 @@ class ConfigSchema(object):
 
     hide_comments = [hide_comment]
 
-    change_list_options = {'sort-by': v.Any('number', 'updated'),
+    change_list_options = {'sort-by': sort_by,
                            'reverse': bool}
 
     keymap = {v.Required('name'): str,
@@ -216,6 +220,7 @@ class Config(object):
         self.dashboards = OrderedDict()
         for d in self.config.get('dashboards', []):
             self.dashboards[d['key']] = d
+            self.dashboards[d['key']]
 
         self.reviewkeys = OrderedDict()
         for k in self.config.get('reviewkeys', []):

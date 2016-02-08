@@ -199,7 +199,7 @@ class ChangeListView(urwid.WidgetWrap):
             ]
 
     def __init__(self, app, query, query_desc=None, project_key=None,
-                 unreviewed=False):
+                 unreviewed=False, sort_by=None, reverse=None):
         super(ChangeListView, self).__init__(urwid.Pile([]))
         self.log = logging.getLogger('gertty.view.change_list')
         self.app = app
@@ -212,8 +212,11 @@ class ChangeListView(urwid.WidgetWrap):
         self.project_key = project_key
         if project_key is not None:
             self.display_project = False
-        self.sort_by = app.config.change_list_options['sort-by']
-        self.reverse = app.config.change_list_options['reverse']
+        self.sort_by = sort_by or app.config.change_list_options['sort-by']
+        if reverse is not None:
+            self.reverse = reverse
+        else:
+            self.reverse = app.config.change_list_options['reverse']
         self.header = ChangeListHeader(self.display_project, self.display_owner,
                                        self.display_updated)
         self.categories = []

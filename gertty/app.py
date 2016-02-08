@@ -612,7 +612,9 @@ class App(object):
             self.doSearch("is:held")
         elif key in self.config.dashboards:
             d = self.config.dashboards[key]
-            view = view_change_list.ChangeListView(self, d['query'], d['name'])
+            view = view_change_list.ChangeListView(self, d['query'], d['name'],
+                                                   sort_by=d.get('sort-by'),
+                                                   reverse=d.get('reverse'))
             self.changeScreen(view)
         elif keymap.FURTHER_INPUT in commands:
             self.input_buffer.append(key)

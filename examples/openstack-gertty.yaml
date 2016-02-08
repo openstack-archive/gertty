@@ -101,6 +101,8 @@ dashboards:
     key: "f4"
   - name: "Recently seen changes"
     query: "recentlyseen:24 hours"
+    sort-by: "last-seen"
+    reverse: True
     key: "f5"
 
 # Reviewkeys are hotkeys that perform immediate reviews within the
