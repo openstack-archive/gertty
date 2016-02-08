@@ -65,6 +65,7 @@ EDIT_COMMIT_MESSAGE = 'edit commit message'
 SUBMIT_CHANGE = 'submit change'
 SORT_BY_NUMBER = 'sort by number'
 SORT_BY_UPDATED = 'sort by updated'
+SORT_BY_LAST_SEEN = 'sort by last seen'
 SORT_BY_REVERSE = 'reverse the sort'
 # Project list screen:
 TOGGLE_LIST_REVIEWED = 'toggle list reviewed'
@@ -128,9 +129,10 @@ DEFAULT_KEYMAP = {
     EDIT_TOPIC: 'ctrl t',
     EDIT_COMMIT_MESSAGE: 'ctrl d',
     SUBMIT_CHANGE: 'ctrl u',
-    SORT_BY_NUMBER: 'n',
-    SORT_BY_UPDATED: 'u',
-    SORT_BY_REVERSE: 'R',
+    SORT_BY_NUMBER: [['S', 'n']],
+    SORT_BY_UPDATED: [['S', 'u']],
+    SORT_BY_LAST_SEEN: [['S', 's']],
+    SORT_BY_REVERSE: [['S', 'r']],
 
     TOGGLE_LIST_REVIEWED: 'l',
     TOGGLE_LIST_SUBSCRIBED: 'L',
