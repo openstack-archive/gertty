@@ -413,7 +413,11 @@ class Repo(object):
             oldchunk = []
             newchunk = []
             prev_key = ''
-            diff_lines = diff_context.diff.split('\n')
+            if isinstance(diff_context.diff, six.string_types):
+                diff_text = diff_context.diff
+            else:
+                diff_text = diff_context.diff.decode('utf-8')
+            diff_lines = diff_text.split('\n')
             for i, line in enumerate(diff_lines):
                 last_line = (i == len(diff_lines)-1)
                 if line.startswith('---'):
