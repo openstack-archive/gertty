@@ -392,14 +392,8 @@ class Repo(object):
         for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
-            if diff_context.a_blob:
-                f.oldname = diff_context.a_blob.path
-            if diff_context.b_blob:
-                f.newname = diff_context.b_blob.path
-            # TODO(jeblair): if/when https://github.com/gitpython-developers/GitPython/pull/266 merges,
-            # remove above 4 lines and replace with these two:
-            # f.oldname = diff_context.a_path
-            # f.newname = diff_context.b_path
+            f.oldname = diff_context.a_path
+            f.newname = diff_context.b_path
             if diff_context.new_file:
                 f.oldname = 'Empty file'
                 f.old_empty = True
