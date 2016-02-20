@@ -388,7 +388,7 @@ class Repo(object):
             extra_contexts.append(CommitContext(None, newc))
         contexts = itertools.chain(
             extra_contexts, oldc.diff(
-                newc, color='never',create_patch=True, U=context))
+                newc, color='never',create_patch=True, united=context))
         for diff_context in contexts:
             # Each iteration of this is a file
             f = DiffFile()
