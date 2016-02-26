@@ -68,8 +68,9 @@ class ProjectRow(urwid.Button):
     def selectable(self):
         return True
 
-    def _setName(self, name):
+    def _setName(self, name, indent):
         self.project_name = name
+        name = indent+name
         if self.mark:
             name = '%'+name
         else:
@@ -85,11 +86,13 @@ class ProjectRow(urwid.Button):
         self.project_key = project.key
         if topic:
             self.topic_key = topic.key
+            self.indent = '  '
         else:
             self.topic_key = None
+            self.indent = ''
         self.project_name = project.name
         self.name = urwid.Text('')
-        self._setName(project.name)
+        self._setName(project.name, self.indent)
         self.name.set_wrap_mode('clip')
         self.unreviewed_changes = urwid.Text(u'', align=urwid.RIGHT)
         self.open_changes = urwid.Text(u'', align=urwid.RIGHT)
@@ -125,7 +128,7 @@ class ProjectRow(urwid.Button):
         else:
             style = self._style
         self.row_style.set_attr_map({None: style})
-        self._setName(self.project_name)
+        self._setName(self.project_name, self.indent)
 
 class TopicRow(urwid.Button):
     project_focus_map = {None: 'focused',
