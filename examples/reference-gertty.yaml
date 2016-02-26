@@ -83,10 +83,10 @@ palettes:
 # line option, or you may set the default palette here:
 # palette: light
 
-# Keymaps work the same way as palettes.  Only one keymap is defined
-# internally, the default keymap.  Individual keys may be overridden
-# and custom keymaps defined and selected in the config file or the
-# command line.
+# Keymaps work the same way as palettes.  Two keymaps are defined
+# internally, the 'default' keymap and the 'vi' keymap.  Individual
+# keys may be overridden and custom keymaps defined and selected in
+# the config file or the command line.
 
 # Each keymap contains a mapping of command -> key(s).  If a command
 # is not specified, Gertty will use the keybinding specified in the
@@ -100,7 +100,7 @@ keymaps:
     diff: 'd'
   - name: custom
     review: ['r', 'R']
-  - name: osx #OS X blocks ctrl+o
+  - name: osx # OS X blocks ctrl+o
     change-search: 'ctrl s'
 # To specify a sequence of keys, they must be a list of keystrokes
 # within a list of key series.  For example:
@@ -189,8 +189,7 @@ commentlinks:
 # This section defines customized dashboards.  You can supply any
 # Gertty search string and bind them to any key.  They will appear in
 # the global help text, and pressing the key anywhere in Gertty will
-# discard the current display stack and replace it with the results of
-# the query.
+# run the query and display the results.
 #
 # NB: "recentlyseen:24 hours" does not just return changes seen in the
 # last 24 hours -- it returns changes seen within 24 hours of the most
