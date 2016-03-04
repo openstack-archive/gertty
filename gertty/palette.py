@@ -29,6 +29,7 @@ DEFAULT_PALETTE={
     'focused-min-label': ['light red,standout', ''],
     'link': ['dark blue', ''],
     'focused-link': ['light blue', ''],
+    'footer': ['light gray', 'dark gray'],
     # Diff
     'context-button': ['dark magenta', ''],
     'focused-context-button': ['light magenta', ''],
