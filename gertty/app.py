@@ -16,6 +16,7 @@
 import argparse
 import datetime
 import dateutil
+import functools
 import logging
 import os
 import re
@@ -135,6 +136,41 @@ class StatusHeader(urwid.WidgetWrap):
             self.sync_widget.set_text(u' Sync: %i' % self._sync)
 
 
+class BreadCrumbBar(urwid.WidgetWrap):
+    BREADCRUMB_SYMBOL = u'\N{BLACK RIGHT-POINTING SMALL TRIANGLE}'
+    BREADCRUMB_WIDTH = 25
+
+    def __init__(self):
+        self.prefix_text = urwid.Text(u' \N{WATCH}  ')
+        self.breadcrumbs = urwid.Columns([], dividechars=3)
+        self.display_widget = urwid.Columns(
+            [('pack', self.prefix_text), self.breadcrumbs])
+        super(BreadCrumbBar, self).__init__(self.display_widget)
+
+    def _get_breadcrumb_text(self, screen):
+        title = getattr(screen, 'title', str(screen))
+        text = "%s %s" % (BreadCrumbBar.BREADCRUMB_SYMBOL, title)
+        if len(text) > 20:
+            text = "%s..." % text[:20]
+        return urwid.Text(text, wrap='clip')
+
+    def _get_breadcrumb_column_options(self):
+        return self.breadcrumbs.options("given", BreadCrumbBar.BREADCRUMB_WIDTH)
+
+    def _update(self, screens):
+        breadcrumb_contents = []
+        for screen in screens:
+            breadcrumb_contents.append((
+                self._get_breadcrumb_text(screen),
+                self._get_breadcrumb_column_options()))
+        self.breadcrumbs.contents = breadcrumb_contents
+        # Update focus so we always have the right end of the breadcrumb trail
+        # in view. Urwid will gracefully handle clipping from the left when
+        # there is overflow.as trail grows, shrinks, or screen is resized.
+        if len(self.breadcrumbs.contents):
+            self.breadcrumbs.focus_position = len(self.breadcrumbs.contents) - 1
+
+
 class SearchDialog(mywid.ButtonDialog):
     signals = ['search', 'cancel']
     def __init__(self, app, default):
@@ -247,13 +283,18 @@ class App(object):
         self.db = db.Database(self, self.config.dburi, self.search)
         self.sync = sync.Sync(self, disable_background_sync)
 
-        self.screens = []
         self.status = StatusHeader(self)
         self.header = urwid.AttrMap(self.status, 'header')
+        self.screens = urwid.MonitoredList()
+        self.breadcrumbs = BreadCrumbBar()
+        self.screens.set_modified_callback(
+            functools.partial(self.breadcrumbs._update, self.screens))
+        self.footer = urwid.AttrMap(self.breadcrumbs, 'footer')
         screen = view_project_list.ProjectListView(self)
         self.status.update(title=screen.title)
         self.updateStatusQueries()
-        self.loop = urwid.MainLoop(screen, palette=self.config.palette.getPalette(),
+        self.frame = urwid.Frame(body=screen, footer=self.footer)
+        self.loop = urwid.MainLoop(self.frame, palette=self.config.palette.getPalette(),
                                    handle_mouse=self.config.handle_mouse,
                                    unhandled_input=self.unhandledInput)
 
@@ -342,9 +383,9 @@ class App(object):
         self.log.debug("Changing screen to %s" % (widget,))
         self.status.update(error=False, title=widget.title)
         if push:
-            self.screens.append(self.loop.widget)
+            self.screens.append(self.frame.body)
         self.clearInputBuffer()
-        self.loop.widget = widget
+        self.frame.body = widget
 
     def backScreen(self, target_widget=None):
         if not self.screens:
@@ -357,7 +398,7 @@ class App(object):
         if hasattr(widget, 'title'):
             self.status.update(title=widget.title)
         self.clearInputBuffer()
-        self.loop.widget = widget
+        self.frame.body = widget
         self.refresh(force=True)
 
     def findChangeList(self):
@@ -371,10 +412,10 @@ class App(object):
         while self.screens:
             widget = self.screens.pop()
             self.clearInputBuffer()
-            self.loop.widget = widget
+            self.frame.body = widget
 
     def refresh(self, data=None, force=False):
-        widget = self.loop.widget
+        widget = self.frame.body
         while isinstance(widget, urwid.Overlay):
             widget = widget.contents[0][0]
         interested = force
@@ -408,23 +449,23 @@ class App(object):
             width = ('relative', relative_width)
         if height is None:
             height = ('relative', relative_height)
-        overlay = urwid.Overlay(widget, self.loop.widget,
+        overlay = urwid.Overlay(widget, self.frame.body,
                                 'center', width,
                                 'middle', height,
                                 min_width=min_width, min_height=min_height)
-        self.log.debug("Overlaying %s on screen %s" % (widget, self.loop.widget))
-        self.screens.append(self.loop.widget)
-        self.loop.widget = overlay
+        self.log.debug("Overlaying %s on screen %s" % (widget, self.frame.body))
+        self.screens.append(self.frame.body)
+        self.frame.body = overlay
 
     def help(self):
-        if not hasattr(self.loop.widget, 'help'):
+        if not hasattr(self.frame.body, 'help'):
             return
         global_help = [(self.config.keymap.formatKeys(k), t)
                        for (k, t) in mywid.GLOBAL_HELP]
         for d in self.config.dashboards.values():
             global_help.append((keymap.formatKey(d['key']), d['name']))
         parts = [('Global Keys', global_help),
-                 ('This Screen', self.loop.widget.help())]
+                 ('This Screen', self.frame.body.help())]
         keylen = 0
         for title, items in parts:
             for keys, text in items:
