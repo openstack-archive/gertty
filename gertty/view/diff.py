@@ -24,7 +24,7 @@ from gertty import gitrepo
 from gertty import sync
 from gertty.view import mouse_scroll_decorator
 
-class PatchsetDialog(urwid.WidgetWrap):
+class PatchsetDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
     signals = ['ok', 'cancel']
 
     def __init__(self, patchsets, old, new):
