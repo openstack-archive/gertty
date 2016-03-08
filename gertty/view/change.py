@@ -56,7 +56,7 @@ class EditTopicDialog(mywid.ButtonDialog):
             return None
         return key
 
-class CherryPickDialog(urwid.WidgetWrap):
+class CherryPickDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
     signals = ['save', 'cancel']
     def __init__(self, app, change):
         save_button = mywid.FixedButton('Propose Change')
@@ -87,7 +87,7 @@ class CherryPickDialog(urwid.WidgetWrap):
         super(CherryPickDialog, self).__init__(urwid.LineBox(fill,
                                                              'Propose Change to Branch'))
 
-class ReviewDialog(urwid.WidgetWrap):
+class ReviewDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
     signals = ['submit', 'save', 'cancel']
     def __init__(self, app, revision_key):
         self.revision_key = revision_key

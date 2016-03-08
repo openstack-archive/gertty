@@ -128,13 +128,23 @@ class MyEdit(urwid.Edit):
             self.ring.kill(text)
         return super(MyEdit, self).keypress(size, key)
 
-class SystemMessage(urwid.WidgetWrap):
+class LineBoxTitlePropertyMixin(object):
+
+    @property
+    def title(self):
+        return self._w.title_widget.text.strip()
+
+    @title.setter
+    def title(self, text):
+        return self._w.set_title(text)
+
+class SystemMessage(urwid.WidgetWrap, LineBoxTitlePropertyMixin):
     def __init__(self, message):
         w = urwid.Filler(urwid.Text(message, align='center'))
-        super(SystemMessage, self).__init__(urwid.LineBox(w))
+        super(SystemMessage, self).__init__(urwid.LineBox(w), u'System Message')
 
 @mouse_scroll_decorator.ScrollByWheel
-class ButtonDialog(urwid.WidgetWrap):
+class ButtonDialog(urwid.WidgetWrap, LineBoxTitlePropertyMixin):
     def __init__(self, title, message, entry_prompt=None,
                  entry_text='', buttons=[], ring=None):
         button_widgets = []
@@ -180,7 +190,7 @@ class LineEditDialog(ButtonDialog):
             return None
         return key
 
-class TextEditDialog(urwid.WidgetWrap):
+class TextEditDialog(urwid.WidgetWrap, LineBoxTitlePropertyMixin):
     signals = ['save', 'cancel']
     def __init__(self, title, prompt, button, text, ring=None):
         save_button = FixedButton(button)

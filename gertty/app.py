@@ -453,6 +453,8 @@ class App(object):
                                 'center', width,
                                 'middle', height,
                                 min_width=min_width, min_height=min_height)
+        if hasattr(widget, 'title'):
+            overlay.title = widget.title
         self.log.debug("Overlaying %s on screen %s" % (widget, self.frame.body))
         self.screens.append(self.frame.body)
         self.frame.body = overlay
