@@ -20,6 +20,7 @@ import six
 import urwid
 
 from gertty import keymap
+from gertty import mywid
 from gertty import sync
 from gertty.view import change as view_change
 from gertty.view import mouse_scroll_decorator
@@ -182,8 +183,12 @@ class ChangeListView(urwid.WidgetWrap):
              "Toggle the process mark for the currently selected change"),
             (key(keymap.REFINE_CHANGE_SEARCH),
              "Refine the current search query"),
+            (key(keymap.ABANDON_CHANGE),
+             "Abandon the marked changes"),
             (key(keymap.EDIT_TOPIC),
              "Set the topic of the marked changes"),
+            (key(keymap.RESTORE_CHANGE),
+             "Restore the marked changes"),
             (key(keymap.REFRESH),
              refresh_help),
             (key(keymap.REVIEW),
@@ -581,6 +586,12 @@ class ChangeListView(urwid.WidgetWrap):
             default = self.getQueryString()
             self.app.searchDialog(default)
             return True
+        if keymap.ABANDON_CHANGE in commands:
+            self.abandonChange()
+            return True
+        if keymap.RESTORE_CHANGE in commands:
+            self.restoreChange()
+            return True
         return False
 
     def onSelect(self, button, change_key):
@@ -636,5 +647,38 @@ class ChangeListView(urwid.WidgetWrap):
                     change.pending_topic = True
                     self.app.sync.submitTask(
                         sync.SetTopicTask(change_key, sync.HIGH_PRIORITY))
+        self.app.backScreen()
+        self.refresh()
+
+    def abandonChange(self):
+        dialog = mywid.TextEditDialog(u'Abandon Change', u'Abandon message:',
+                                      u'Abandon Change', u'')
+        urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
+        urwid.connect_signal(dialog, 'save', lambda button:
+                                 self.doAbandonRestoreChange(dialog, 'ABANDONED'))
+        self.app.popup(dialog)
+
+    def restoreChange(self):
+        dialog = mywid.TextEditDialog(u'Restore Change', u'Restore message:',
+                                      u'Restore Change', u'')
+        urwid.connect_signal(dialog, 'cancel', self.app.backScreen)
+        urwid.connect_signal(dialog, 'save', lambda button:
+                             self.doAbandonRestoreChange(dialog, 'NEW'))
+        self.app.popup(dialog)
+
+    def doAbandonRestoreChange(self, dialog, state):
+        rows = [row for row in self.change_rows.values() if row.mark]
+        if not rows:
+            pos = self.listbox.focus_position
+            rows = [self.listbox.body[pos]]
+        change_keys = [row.change_key for row in rows]
+        with self.app.db.getSession() as session:
+            for change_key in change_keys:
+                change = session.getChange(change_key)
+                change.status = state
+                change.pending_status = True
+                change.pending_status_message = dialog.entry.edit_text
+                self.app.sync.submitTask(
+                    sync.ChangeStatusTask(change_key, sync.HIGH_PRIORITY))
         self.app.backScreen()
         self.refresh()
