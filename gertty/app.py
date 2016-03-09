@@ -463,12 +463,12 @@ class App(object):
             return
         with self.db.getSession() as session:
             if number:
-                change = session.getChangeByNumber(number)
+                changes = [session.getChangeByNumber(number)]
             elif changeid:
-                change = session.getChangeByChangeID(changeid)
-            change_key = change and change.key or None
-            restid = change and change.id or None
-        if change_key is None:
+                changes = session.getChangesByChangeID(changeid)
+            change_keys = [c.key for c in changes]
+            restids = [c.id for c in changes]
+        if not change_keys:
             if self.sync.offline:
                 raise Exception('Can not sync change while offline.')
             dialog = mywid.SystemMessage("Syncing change...")
@@ -489,14 +489,15 @@ class App(object):
                 self.backScreen()
             with self.db.getSession() as session:
                 if number:
-                    change = session.getChangeByNumber(number)
+                    changes = [session.getChangeByNumber(number)]
                 elif changeid:
-                    change = session.getChangeByChangeID(changeid)
-                change_key = change and change.key or None
-        elif restid:
-            task = sync.SyncChangeTask(restid, sync.HIGH_PRIORITY)
-            self.sync.submitTask(task)
-        if change_key is None:
+                    changes = session.getChangesByChangeID(changeid)
+                change_keys = [c.key for c in changes]
+        elif restids:
+            for restid in restids:
+                task = sync.SyncChangeTask(restid, sync.HIGH_PRIORITY)
+                self.sync.submitTask(task)
+        if not change_keys:
             raise Exception('Change is not in local database.')
 
     def doSearch(self, query):
