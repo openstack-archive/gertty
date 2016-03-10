@@ -22,6 +22,41 @@ from gertty import sync
 from gertty.view import change_list as view_change_list
 from gertty.view import mouse_scroll_decorator
 
+class TopicSelectDialog(urwid.WidgetWrap):
+    signals = ['ok', 'cancel']
+
+    def __init__(self, title, topics):
+        button_widgets = []
+        ok_button = mywid.FixedButton('OK')
+        cancel_button = mywid.FixedButton('Cancel')
+        urwid.connect_signal(ok_button, 'click',
+                             lambda button:self._emit('ok'))
+        urwid.connect_signal(cancel_button, 'click',
+                             lambda button:self._emit('cancel'))
+        button_widgets.append(('pack', ok_button))
+        button_widgets.append(('pack', cancel_button))
+        button_columns = urwid.Columns(button_widgets, dividechars=2)
+
+        self.topic_buttons = []
+        self.topic_keys = {}
+        rows = []
+        for key, name in topics:
+            button = mywid.FixedRadioButton(self.topic_buttons, name)
+            self.topic_keys[button] = key
+            rows.append(button)
+
+        rows.append(urwid.Divider())
+        rows.append(button_columns)
+        pile = urwid.Pile(rows)
+        fill = urwid.Filler(pile, valign='top')
+        super(TopicSelectDialog, self).__init__(urwid.LineBox(fill, title))
+
+    def getSelected(self):
+        for b in self.topic_buttons:
+            if b.state:
+                return self.topic_keys[b]
+        return None
+
 class ProjectRow(urwid.Button):
     project_focus_map = {None: 'focused',
                          'unreviewed-project': 'focused-unreviewed-project',
@@ -417,9 +452,12 @@ class ProjectListView(urwid.WidgetWrap):
         rows = self.getSelectedRows(ProjectRow)
         if not rows:
             return
-        dialog = mywid.LineEditDialog(self.app, 'Topic', '%s to topic.' % verb,
-                                      'Topic: ', '', self.app.ring)
-        urwid.connect_signal(dialog, 'save',
+
+        with self.app.db.getSession() as session:
+            topics = [(t.key, t.name) for t in session.getTopics()]
+
+        dialog = TopicSelectDialog('%s to Topic' % verb, topics)
+        urwid.connect_signal(dialog, 'ok',
             lambda button: self.closeCopyMoveToTopic(dialog, True, rows, move))
         urwid.connect_signal(dialog, 'cancel',
             lambda button: self.closeCopyMoveToTopic(dialog, False, rows, move))
@@ -429,8 +467,8 @@ class ProjectListView(urwid.WidgetWrap):
         error = None
         if save:
             with self.app.db.getSession() as session:
-                topic_name = dialog.entry.edit_text
-                new_topic = session.getTopicByName(topic_name)
+                key = dialog.getSelected()
+                new_topic = session.getTopic(key)
                 if not new_topic:
                     error = "Unable to find topic %s" % topic_name
                 else:
