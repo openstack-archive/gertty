@@ -835,9 +835,9 @@ class DatabaseSession(object):
             return set([])
         return set([r[0] for r in self.session().query(Change.id).filter(Change.id.in_(ids)).all()])
 
-    def getChangeByChangeID(self, change_id):
+    def getChangesByChangeID(self, change_id):
         try:
-            return self.session().query(Change).filter_by(change_id=change_id).one()
+            return self.session().query(Change).filter_by(change_id=change_id)
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
