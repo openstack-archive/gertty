@@ -319,7 +319,7 @@ class RevisionRow(urwid.WidgetWrap):
     def cherryPick(self, button):
         self.app.localCherryPickCommit(self.project_name, self.commit_sha)
 
-class ChangeButton(mywid.FixedButton):
+class ChangeButton(urwid.Button):
     button_left = urwid.Text(u' ')
     button_right = urwid.Text(u' ')
 
