@@ -60,6 +60,18 @@ commentlinks:
       - search:
           text: "{id}"
           query: "change:{id}"
+  # Match external references to bugs on Launchpad
+  - match: "(?P<bug_str>(?:[Cc]loses|[Pp]artial|[Rr]elated)-[Bb]ug *: *#?(?P<bug_id>\\d+))"
+    replacements:
+      - link:
+          text: "{bug_str}"
+          url: "https://launchpad.net/bugs/{bug_id}"
+  # Match external references to blueprints on Launchpad
+  - match: "blueprint +(?P<blueprint>[\\w\\-]+)"
+    replacements:
+      - link:
+          text: "blueprint {blueprint}"
+          url: "https://blueprints.launchpad.net/openstack/?searchtext={blueprint}"
 
 # This is the query used for the list of changes when a project is
 # selected.  The default is "status:open". If you don't want to see
