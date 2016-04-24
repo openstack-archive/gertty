@@ -27,6 +27,29 @@ from gertty.view import mouse_scroll_decorator
 import gertty.view
 
 
+class ColumnInfo(object):
+    def __init__(self, name, packing, value):
+        self.name = name
+        self.packing = packing
+        self.value = value
+        self.options = (packing, value)
+        if packing == 'given':
+            self.spacing = value + 1
+        else:
+            self.spacing = (value * 8) + 1
+
+
+COLUMNS = [
+    ColumnInfo('Number',  'given',   6),
+    ColumnInfo('Subject', 'weight',  4),
+    ColumnInfo('Project', 'weight',  1),
+    ColumnInfo('Branch',  'weight',  1),
+    ColumnInfo('Topic',   'weight',  1),
+    ColumnInfo('Owner',   'weight',  1),
+    ColumnInfo('Updated', 'given',  10),
+]
+
+
 class ThreadStack(object):
     def __init__(self):
         self.stack = []
@@ -49,7 +72,23 @@ class ThreadStack(object):
         return [len(x[1]) for x in self.stack]
 
 
-class ChangeRow(urwid.Button):
+class ChangeListColumns(object):
+    def updateColumns(self):
+        del self.columns.contents[:]
+        cols = self.columns.contents
+        options = self.columns.options
+
+        for colinfo in COLUMNS:
+            if colinfo.name in self.enabled_columns:
+                attr = colinfo.name.lower().replace(' ', '_')
+                cols.append((getattr(self, attr),
+                             options(*colinfo.options)))
+
+        for c in self.category_columns:
+            cols.append(c)
+
+
+class ChangeRow(urwid.Button, ChangeListColumns):
     change_focus_map = {None: 'focused',
                         'unreviewed-change': 'focused-unreviewed-change',
                         'reviewed-change': 'focused-reviewed-change',
@@ -65,29 +104,25 @@ class ChangeRow(urwid.Button):
     def selectable(self):
         return True
 
-    def __init__(self, app, change, prefix, categories, project=False,
-                 owner=False, updated=False, callback=None):
+    def __init__(self, app, change, prefix, categories,
+                 enabled_columns, callback=None):
         super(ChangeRow, self).__init__('', on_press=callback, user_data=change.key)
         self.app = app
         self.change_key = change.key
         self.prefix = prefix
+        self.enabled_columns = enabled_columns
         self.subject = urwid.Text(u'', wrap='clip')
         self.number = urwid.Text(u'')
         self.updated = urwid.Text(u'')
         self.project = urwid.Text(u'', wrap='clip')
         self.owner = urwid.Text(u'', wrap='clip')
+        self.branch = urwid.Text(u'', wrap='clip')
+        self.topic = urwid.Text(u'', wrap='clip')
         self.mark = False
-        cols = [(6, self.number), ('weight', 4, self.subject)]
-        if project:
-            cols.append(('weight', 1, self.project))
-        if owner:
-            cols.append(('weight', 2, self.owner))
-        if updated:
-            cols.append(('fixed', 10, self.updated))
-        self.num_columns = len(cols)
-        self.columns = urwid.Columns(cols, dividechars=1)
+        self.columns = urwid.Columns([], dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.change_focus_map)
+        self.category_columns = []
         self.update(change, categories)
 
     def update(self, change, categories):
@@ -112,6 +147,8 @@ class ChangeRow(urwid.Button):
         self.number.set_text(str(change.number))
         self.project.set_text(change.project.name.split('/')[-1])
         self.owner.set_text(change.owner_name)
+        self.branch.set_text(change.branch or '')
+        self.topic.set_text(change.topic or '')
         self.project_name = change.project.name
         self.commit_sha = change.revisions[-1].commit
         self.current_revision_key = change.revisions[-1].key
@@ -121,7 +158,8 @@ class ChangeRow(urwid.Button):
             self.updated.set_text(updated_time.strftime("%I:%M %p").upper())
         else:
             self.updated.set_text(updated_time.strftime("%Y-%m-%d"))
-        del self.columns.contents[self.num_columns:]
+
+        self.category_columns = []
         for category in categories:
             v = change.getMaxForCategory(category)
             cat_min, cat_max = change.getMinMaxPermittedForCategory(category)
@@ -139,27 +177,38 @@ class ChangeRow(urwid.Button):
                     val = ('min-label', val)
                 else:
                     val = ('negative-label', val)
-            self.columns.contents.append((urwid.Text(val), self.columns.options('given', 2)))
+            self.category_columns.append((urwid.Text(val),
+                                          self.columns.options('given', 2)))
+        self.updateColumns()
 
-class ChangeListHeader(urwid.WidgetWrap):
-    def __init__(self, project=False, owner=False, updated=False):
-        cols = [(6, urwid.Text(u'Number')), ('weight', 4, urwid.Text(u' Subject'))]
-        if project:
-            cols.append(('weight', 1, urwid.Text(u'Project')))
-        if owner:
-            cols.append(('weight', 2, urwid.Text(u'Owner')))
-        if updated:
-            cols.append(('fixed', 10, urwid.Text(u'Updated')))
-        self.num_columns = len(cols)
-        super(ChangeListHeader, self).__init__(urwid.Columns(cols, dividechars=1))
+
+class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
+    def __init__(self, enabled_columns):
+        self.enabled_columns = enabled_columns
+        self.subject = urwid.Text(u'Subject', wrap='clip')
+        self.number = urwid.Text(u'Number')
+        self.updated = urwid.Text(u'Updated')
+        self.project = urwid.Text(u'Project', wrap='clip')
+        self.owner = urwid.Text(u'Owner', wrap='clip')
+        self.branch = urwid.Text(u'Branch', wrap='clip')
+        self.topic = urwid.Text(u'Topic', wrap='clip')
+        self.columns = urwid.Columns([], dividechars=1)
+        self.category_columns = []
+        super(ChangeListHeader, self).__init__(self.columns)
 
     def update(self, categories):
-        del self._w.contents[self.num_columns:]
+        self.category_columns = []
         for category in categories:
-            self._w.contents.append((urwid.Text(' %s' % category[0]), self._w.options('given', 2)))
+            self.category_columns.append((urwid.Text(' %s' % category[0]),
+                                          self._w.options('given', 2)))
+        self.updateColumns()
+
 
 @mouse_scroll_decorator.ScrollByWheel
 class ChangeListView(urwid.WidgetWrap):
+    required_columns = set(['Number', 'Subject', 'Updated'])
+    optional_columns = set(['Topic', 'Branch'])
+
     def help(self):
         key = self.app.config.keymap.formatKeys
         if self.project_key:
@@ -212,18 +261,28 @@ class ChangeListView(urwid.WidgetWrap):
         self.query_desc = query_desc or query
         self.unreviewed = unreviewed
         self.change_rows = {}
+        self.enabled_columns = set()
+        for colinfo in COLUMNS:
+            if (colinfo.name in self.required_columns or
+                colinfo.name not in self.optional_columns):
+                self.enabled_columns.add(colinfo.name)
+        self.disabled_columns = set()
         self.listbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-        self.display_owner = self.display_project = self.display_updated = True
         self.project_key = project_key
-        if project_key is not None:
-            self.display_project = False
+        if 'Project' not in self.required_columns and project_key is not None:
+            self.enabled_columns.discard('Project')
+            self.disabled_columns.add('Project')
+        if 'Owner' not in self.required_columns and 'owner:' in query:
+            # This could be or'd with something else, but probably
+            # not.
+            self.enabled_columns.discard('Owner')
+            self.disabled_columns.add('Owner')
         self.sort_by = sort_by or app.config.change_list_options['sort-by']
         if reverse is not None:
             self.reverse = reverse
         else:
             self.reverse = app.config.change_list_options['reverse']
-        self.header = ChangeListHeader(self.display_project, self.display_owner,
-                                       self.display_updated)
+        self.header = ChangeListHeader(self.enabled_columns)
         self.categories = []
         self.refresh()
         self._w.contents.append((app.header, ('pack', 1)))
@@ -265,6 +324,8 @@ class ChangeListView(urwid.WidgetWrap):
             for change in change_list:
                 categories |= set(change.getCategories())
             self.categories = sorted(categories)
+            self.chooseColumns()
+            self.header.update(self.categories)
             i = 0
             if self.reverse:
                 change_list.reverse()
@@ -285,9 +346,7 @@ class ChangeListView(urwid.WidgetWrap):
                     row = ChangeRow(self.app, change,
                                     prefixes.get(change.key),
                                     self.categories,
-                                    self.display_project,
-                                    self.display_owner,
-                                    self.display_updated,
+                                    self.enabled_columns,
                                     callback=self.onSelect)
                     self.listbox.body.insert(i, row)
                     self.change_rows[change.key] = row
@@ -302,11 +361,30 @@ class ChangeListView(urwid.WidgetWrap):
             else:
                 pos = min(focus_pos, len(self.listbox.body)-1)
             self.listbox.body.set_focus(pos)
-            if change_list:
-                self.header.update(self.categories)
         for key in unseen_keys:
             row = self.change_rows[key]
             del self.change_rows[key]
+
+    def chooseColumns(self):
+        currently_enabled_columns = self.enabled_columns.copy()
+        size = self.app.loop.screen.get_cols_rows()
+        cols = size[0]
+        for colinfo in COLUMNS:
+            if (colinfo.name not in self.disabled_columns):
+                cols -= colinfo.spacing
+        cols -= 3 * len(self.categories)
+
+        for colinfo in COLUMNS:
+            if colinfo.name in self.optional_columns:
+                if cols >= colinfo.spacing:
+                    self.enabled_columns.add(colinfo.name)
+                    cols -= colinfo.spacing
+                else:
+                    self.enabled_columns.discard(colinfo.name)
+        if currently_enabled_columns != self.enabled_columns:
+            self.header.updateColumns()
+            for key, value in six.iteritems(self.change_rows):
+                value.updateColumns()
 
     def getQueryString(self):
         if self.project_key is not None:
@@ -449,6 +527,9 @@ class ChangeListView(urwid.WidgetWrap):
                 self.app.clearInputBuffer()
             return None
         return key
+
+    def onResize(self):
+        self.chooseColumns()
 
     def handleCommands(self, commands):
         if keymap.TOGGLE_LIST_REVIEWED in commands:

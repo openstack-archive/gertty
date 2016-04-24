@@ -298,7 +298,8 @@ class App(object):
         self.frame = urwid.Frame(body=screen, footer=self.footer)
         self.loop = urwid.MainLoop(self.frame, palette=self.config.palette.getPalette(),
                                    handle_mouse=self.config.handle_mouse,
-                                   unhandled_input=self.unhandledInput)
+                                   unhandled_input=self.unhandledInput,
+                                   input_filter=self.inputFilter)
 
         self.sync_pipe = self.loop.watch_pipe(self.refresh)
         self.error_queue = queue.Queue()
@@ -638,6 +639,13 @@ class App(object):
 
         self.popup(dialog, min_height=min_height)
         return None
+
+    def inputFilter(self, keys, raw):
+        if 'window resize' in keys:
+            m = getattr(self.frame.body, 'onResize', None)
+            if m:
+                m()
+        return keys
 
     def unhandledInput(self, key):
         # get commands from buffer
