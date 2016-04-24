@@ -315,10 +315,12 @@ class ProjectListView(urwid.WidgetWrap):
     def refresh(self):
         if self.subscribed:
             self.title = u'Subscribed projects'
+            self.short_title = self.title[:]
             if self.unreviewed:
                 self.title += u' with unreviewed changes'
         else:
             self.title = u'All projects'
+            self.short_title = self.title[:]
         self.app.status.update(title=self.title)
         with self.app.db.getSession() as session:
             i = 0

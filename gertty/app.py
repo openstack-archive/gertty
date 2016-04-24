@@ -148,9 +148,11 @@ class BreadCrumbBar(urwid.WidgetWrap):
         super(BreadCrumbBar, self).__init__(self.display_widget)
 
     def _get_breadcrumb_text(self, screen):
-        title = getattr(screen, 'title', str(screen))
+        title = getattr(screen, 'short_title', None)
+        if not title:
+            title = getattr(screen, 'title', str(screen))
         text = "%s %s" % (BreadCrumbBar.BREADCRUMB_SYMBOL, title)
-        if len(text) > 20:
+        if len(text) > 23:
             text = "%s..." % text[:20]
         return urwid.Text(text, wrap='clip')
 
