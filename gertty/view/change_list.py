@@ -251,6 +251,10 @@ class ChangeListView(urwid.WidgetWrap):
                 self.title = u'Unreviewed changes in %s' % self.query_desc
             else:
                 self.title = u'All changes in %s' % self.query_desc
+            self.short_title = self.query_desc
+            if '/' in self.short_title and ' ' not in self.short_title:
+                i = self.short_title.rfind('/')
+                self.short_title = self.short_title[i+1:]
             self.app.status.update(title=self.title)
             categories = set()
             for change in change_list:
