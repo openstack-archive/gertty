@@ -27,6 +27,13 @@ servers:
 # 'digest'. Defaults to 'digest' if not set or set to an unexpected
 # value.
 #    auth-type: digest
+# Whether or not to use multiple threads when querying for the initial
+# project list.  Some gerrit servers are unable to respond to requests for
+# paginated lists of all projects, and so a different querying strategy is
+# required.
+#    threaded_query: False
+# Number of threads to use in the threadpool if threaded_query is True.
+#    threadpool_size: 10
 # A location where Gertty should store its git repositories.  These
 # can be the same git repositories where you do your own work --
 # Gertty will not modify them unless you tell it to, and even then the
