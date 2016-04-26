@@ -23,6 +23,8 @@ import threading
 import json
 import time
 import datetime
+import string
+import multiprocessing.pool
 
 import dateutil.parser
 try:
@@ -224,7 +226,23 @@ class SyncProjectListTask(Task):
 
     def run(self, sync):
         app = sync.app
-        remote = sync.get('projects/?d')
+
+        if not app.config.threaded_query:
+            # Query for the list of all projects at once
+            remote = sync.get('projects/?d')
+        else:
+            # Or query for projects by each letter of the alphabet, in case
+            # the original list is too long.  Normal pagination would be nice,
+            # but even that kills the performance of some gerrit servers.
+            func = lambda prefix: sync.get('projects/?prefix=' + prefix)
+            size = app.config.threadpool_size
+            pool = multiprocessing.pool.ThreadPool(processes=size)
+            try:
+                responses = pool.map(func, string.letters)
+                remote = dict(sum([resp.items() for resp in responses], []))
+            finally:
+                pool.close()
+
         remote_keys = set(remote.keys())
         with app.db.getSession() as session:
             local = {}
