@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
 import re
 import time
 import logging
@@ -28,6 +29,10 @@ from sqlalchemy.orm import mapper, sessionmaker, relationship, scoped_session
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import and_
+
+
+CHANGE_ID_BATCH_SIZE = 128
+
 
 metadata = MetaData()
 project_table = Table(
@@ -831,9 +836,13 @@ class DatabaseSession(object):
         # Returns a set of IDs that exist in the local database matching
         # the set of supplied IDs. This is used when sync'ing the changesets
         # locally with the remote changes.
-        if not ids:
-            return set([])
-        return set([r[0] for r in self.session().query(Change.id).filter(Change.id.in_(ids)).all()])
+        found = set([])
+        batches = itertools.groupby(enumerate(ids or []),
+                                    lambda e: e[0] // CHANGE_ID_BATCH_SIZE)
+        for batch_idx, batch in batches:
+            batch_ids = [chid for idx, chid in batch]
+            found |= set(r[0] for r in self.session().query(Change.id).filter(Change.id.in_(batch_ids)).all())
+        return found
 
     def getChangesByChangeID(self, change_id):
         try:
