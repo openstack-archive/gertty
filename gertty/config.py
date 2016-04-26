@@ -50,6 +50,8 @@ class ConfigSchema(object):
               'log-file': str,
               'socket': str,
               'auth-type': str,
+              'threaded_query': bool,
+              'threadpool_size': int,
               }
 
     servers = [server]
@@ -163,6 +165,9 @@ class Config(object):
                     "not have permissions set to 0600.\n"
                     "Permissions are: {}".format(self.path, oct(mode)))
                 exit(1)
+
+        self.threaded_query = server.get('threaded_query', False)
+        self.threadpool_size = server.get('threadpool_size', 10)
         self.auth_type = server.get('auth-type', 'digest')
         auth_types = ['digest', 'basic']
         if self.auth_type not in auth_types:
