@@ -159,6 +159,10 @@ commentlinks:
 #   sort-by: 'number'
 #   reverse: false
 
+# Uncomment the following line to disable the navigation breadcrumbs
+# at the bottom of the screen:
+# breadcrumbs: false
+
 # Uncomment the following line to use a unified diff view instead
 # of the default side-by-side:
 # diff-view: unified

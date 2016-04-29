@@ -397,6 +397,13 @@ well as one that leaves a +1 "Code-Review" approval.
 General Options
 +++++++++++++++
 
+**breadcrumbs**
+  Gertty displays a footer at the bottom of the screen by default
+  which contains navigation information in the form of "breadcrumbs"
+  -- short descriptions of previous screens, with the right-most entry
+  indicating the screen that will be displayed if you press the `ESC`
+  key.  To disable this feature, set this value to `false`.
+
 **display-times-in-utc**
   Times are displayed in the local timezone by default.  To display
   them in UTC instead, set this value to `true`.

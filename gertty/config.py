@@ -123,6 +123,7 @@ class ConfigSchema(object):
                            'thread-changes': bool,
                            'display-times-in-utc': bool,
                            'handle-mouse': bool,
+                           'breadcrumbs': bool,
                            'change-list-options': self.change_list_options,
                            'expire-age': str,
                            })
@@ -237,6 +238,7 @@ class Config(object):
 
         self.thread_changes = self.config.get('thread-changes', True)
         self.utc = self.config.get('display-times-in-utc', False)
+        self.breadcrumbs = self.config.get('breadcrumbs', True)
         self.handle_mouse = self.config.get('handle-mouse', True)
 
         change_list_options = self.config.get('change-list-options', {})

@@ -291,7 +291,10 @@ class App(object):
         self.breadcrumbs = BreadCrumbBar()
         self.screens.set_modified_callback(
             functools.partial(self.breadcrumbs._update, self.screens))
-        self.footer = urwid.AttrMap(self.breadcrumbs, 'footer')
+        if self.config.breadcrumbs:
+            self.footer = urwid.AttrMap(self.breadcrumbs, 'footer')
+        else:
+            self.footer = None
         screen = view_project_list.ProjectListView(self)
         self.status.update(title=screen.title)
         self.updateStatusQueries()
