@@ -216,6 +216,7 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
                 new_revision.change.project.name,
                 new_revision.change.number,
                 old_str, new_revision.number)
+            self.short_title = u'Diff of %s' % (new_revision.change.number,)
             self.new_revision_num = new_revision.number
             self.change_key = new_revision.change.key
             self.project_name = new_revision.change.project.name
