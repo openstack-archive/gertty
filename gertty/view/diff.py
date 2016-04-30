@@ -157,16 +157,20 @@ class DiffContextButton(urwid.WidgetWrap):
 
 @mouse_scroll_decorator.ScrollByWheel
 class BaseDiffView(urwid.WidgetWrap):
-    def help(self):
-        key = self.app.config.keymap.formatKeys
+    def getCommands(self):
         return [
-            (key(keymap.ACTIVATE),
+            (keymap.ACTIVATE,
              "Add an inline comment"),
-            (key(keymap.SELECT_PATCHSETS),
+            (keymap.SELECT_PATCHSETS,
              "Select old/new patchsets to diff"),
-            (key(keymap.INTERACTIVE_SEARCH),
+            (keymap.INTERACTIVE_SEARCH,
              "Interactive search"),
             ]
+
+    def help(self):
+        key = self.app.config.keymap.formatKeys
+        commands = self.getCommands()
+        return [(c[0], key(c[0]), c[1]) for c in commands]
 
     def __init__(self, app, new_revision_key):
         super(BaseDiffView, self).__init__(urwid.Pile([]))

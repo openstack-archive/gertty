@@ -199,32 +199,36 @@ class ProjectListHeader(urwid.WidgetWrap):
 
 @mouse_scroll_decorator.ScrollByWheel
 class ProjectListView(urwid.WidgetWrap):
-    def help(self):
-        key = self.app.config.keymap.formatKeys
+    def getCommands(self):
         return [
-            (key(keymap.TOGGLE_LIST_SUBSCRIBED),
+            (keymap.TOGGLE_LIST_SUBSCRIBED,
              "Toggle whether only subscribed projects or all projects are listed"),
-            (key(keymap.TOGGLE_LIST_REVIEWED),
+            (keymap.TOGGLE_LIST_REVIEWED,
              "Toggle listing of projects with unreviewed changes"),
-            (key(keymap.TOGGLE_SUBSCRIBED),
+            (keymap.TOGGLE_SUBSCRIBED,
              "Toggle the subscription flag for the selected project"),
-            (key(keymap.REFRESH),
+            (keymap.REFRESH,
              "Sync subscribed projects"),
-            (key(keymap.TOGGLE_MARK),
+            (keymap.TOGGLE_MARK,
              "Toggle the process mark for the selected project"),
-            (key(keymap.NEW_PROJECT_TOPIC),
+            (keymap.NEW_PROJECT_TOPIC,
              "Create project topic"),
-            (key(keymap.DELETE_PROJECT_TOPIC),
+            (keymap.DELETE_PROJECT_TOPIC,
              "Delete selected project topic"),
-            (key(keymap.MOVE_PROJECT_TOPIC),
+            (keymap.MOVE_PROJECT_TOPIC,
              "Move selected project to topic"),
-            (key(keymap.COPY_PROJECT_TOPIC),
+            (keymap.COPY_PROJECT_TOPIC,
              "Copy selected project to topic"),
-            (key(keymap.REMOVE_PROJECT_TOPIC),
+            (keymap.REMOVE_PROJECT_TOPIC,
              "Remove selected project from topic"),
-            (key(keymap.RENAME_PROJECT_TOPIC),
+            (keymap.RENAME_PROJECT_TOPIC,
              "Rename selected project topic"),
         ]
+
+    def help(self):
+        key = self.app.config.keymap.formatKeys
+        commands = self.getCommands()
+        return [(c[0], key(c[0]), c[1]) for c in commands]
 
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))

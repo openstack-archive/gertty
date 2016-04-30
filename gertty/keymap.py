@@ -250,6 +250,25 @@ class KeyMap(object):
             ret.append(FURTHER_INPUT)
         return ret
 
+    def getFurtherCommands(self, keys):
+        if not keys:
+            return []
+        tree = self.keytree
+        for key in keys:
+            tree = tree.keys.get(key)
+            if not tree:
+                return []
+        return self._getFurtherCommands('', tree)
+
+    def _getFurtherCommands(self, keys, tree):
+        if keys:
+            ret = [(formatKey(keys), tree.commands[:])]
+        else:
+            ret = []
+        for subtree in tree.keys.values():
+            ret.extend(self._getFurtherCommands(keys + subtree.key, subtree))
+        return ret
+
     def getKeys(self, command):
         return self.commandmap.get(command, [])
 

@@ -465,18 +465,24 @@ class App(object):
         self.screens.append(self.frame.body)
         self.frame.body = overlay
 
+    def getGlobalCommands(self):
+        return list(mywid.GLOBAL_HELP)
+
+    def getGlobalHelp(self):
+        keys =  [(k, self.config.keymap.formatKeys(k), t) for (k, t) in self.getGlobalCommands()]
+        for d in self.config.dashboards.values():
+            keys.append(('', d['key'], d['name']))
+        return keys
+
     def help(self):
         if not hasattr(self.frame.body, 'help'):
             return
-        global_help = [(self.config.keymap.formatKeys(k), t)
-                       for (k, t) in mywid.GLOBAL_HELP]
-        for d in self.config.dashboards.values():
-            global_help.append((keymap.formatKey(d['key']), d['name']))
+        global_help = self.getGlobalHelp()
         parts = [('Global Keys', global_help),
                  ('This Screen', self.frame.body.help())]
         keylen = 0
         for title, items in parts:
-            for keys, text in items:
+            for cmd, keys, text in items:
                 keylen = max(len(keys), keylen)
         text = ''
         for title, items in parts:
@@ -484,7 +490,7 @@ class App(object):
                 text += '\n'
             text += title+'\n'
             text += '%s\n' % ('='*len(title),)
-            for keys, cmdtext in items:
+            for cmd, keys, cmdtext in items:
                 text += '{keys:{width}} {text}\n'.format(
                     keys=keys, width=keylen, text=cmdtext)
         dialog = mywid.MessageDialog('Help for %s' % version(), text)
@@ -675,7 +681,19 @@ class App(object):
             self.changeScreen(view)
         elif keymap.FURTHER_INPUT in commands:
             self.input_buffer.append(key)
-            self.status.update(message=''.join(self.input_buffer))
+            msg = ''.join(self.input_buffer)
+            commands = dict(self.getGlobalCommands())
+            if hasattr(self.frame.body, 'getCommands'):
+                commands.update(dict(self.frame.body.getCommands()))
+            further_commands = self.config.keymap.getFurtherCommands(keys)
+            completions = []
+            for (key, cmds) in further_commands:
+                for cmd in cmds:
+                    if cmd in commands:
+                        completions.append(key)
+            completions = ' '.join(completions)
+            msg = '%s: %s' % (msg, completions)
+            self.status.update(message=msg)
             return
         self.clearInputBuffer()
 

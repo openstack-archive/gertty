@@ -209,48 +209,52 @@ class ChangeListView(urwid.WidgetWrap):
     required_columns = set(['Number', 'Subject', 'Updated'])
     optional_columns = set(['Topic', 'Branch'])
 
-    def help(self):
-        key = self.app.config.keymap.formatKeys
+    def getCommands(self):
         if self.project_key:
             refresh_help = "Sync current project"
         else:
             refresh_help = "Sync subscribed projects"
         return [
-            (key(keymap.TOGGLE_HELD),
+            (keymap.TOGGLE_HELD,
              "Toggle the held flag for the currently selected change"),
-            (key(keymap.LOCAL_CHECKOUT),
+            (keymap.LOCAL_CHECKOUT,
              "Checkout the most recent revision of the selected change into the local repo"),
-            (key(keymap.TOGGLE_HIDDEN),
+            (keymap.TOGGLE_HIDDEN,
              "Toggle the hidden flag for the currently selected change"),
-            (key(keymap.TOGGLE_LIST_REVIEWED),
+            (keymap.TOGGLE_LIST_REVIEWED,
              "Toggle whether only unreviewed or all changes are displayed"),
-            (key(keymap.TOGGLE_REVIEWED),
+            (keymap.TOGGLE_REVIEWED,
              "Toggle the reviewed flag for the currently selected change"),
-            (key(keymap.TOGGLE_STARRED),
+            (keymap.TOGGLE_STARRED,
              "Toggle the starred flag for the currently selected change"),
-            (key(keymap.TOGGLE_MARK),
+            (keymap.TOGGLE_MARK,
              "Toggle the process mark for the currently selected change"),
-            (key(keymap.REFINE_CHANGE_SEARCH),
+            (keymap.REFINE_CHANGE_SEARCH,
              "Refine the current search query"),
-            (key(keymap.ABANDON_CHANGE),
+            (keymap.ABANDON_CHANGE,
              "Abandon the marked changes"),
-            (key(keymap.EDIT_TOPIC),
+            (keymap.EDIT_TOPIC,
              "Set the topic of the marked changes"),
-            (key(keymap.RESTORE_CHANGE),
+            (keymap.RESTORE_CHANGE,
              "Restore the marked changes"),
-            (key(keymap.REFRESH),
+            (keymap.REFRESH,
              refresh_help),
-            (key(keymap.REVIEW),
+            (keymap.REVIEW,
              "Leave reviews for the marked changes"),
-            (key(keymap.SORT_BY_NUMBER),
+            (keymap.SORT_BY_NUMBER,
              "Sort changes by number"),
-            (key(keymap.SORT_BY_UPDATED),
+            (keymap.SORT_BY_UPDATED,
              "Sort changes by how recently the change was updated"),
-            (key(keymap.SORT_BY_REVERSE),
+            (keymap.SORT_BY_REVERSE,
              "Reverse the sort"),
-            (key(keymap.LOCAL_CHERRY_PICK),
+            (keymap.LOCAL_CHERRY_PICK,
              "Cherry-pick the most recent revision of the selected change onto the local repo"),
             ]
+
+    def help(self):
+        key = self.app.config.keymap.formatKeys
+        commands = self.getCommands()
+        return [(c[0], key(c[0]), c[1]) for c in commands]
 
     def __init__(self, app, query, query_desc=None, project_key=None,
                  unreviewed=False, sort_by=None, reverse=None):

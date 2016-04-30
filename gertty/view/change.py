@@ -385,55 +385,57 @@ class CommitMessageBox(mywid.HyperText):
 
 @mouse_scroll_decorator.ScrollByWheel
 class ChangeView(urwid.WidgetWrap):
-    def help(self):
-        key = self.app.config.keymap.formatKeys
-        ret = [
-            (key(keymap.LOCAL_CHECKOUT),
+    def getCommands(self):
+        return [
+            (keymap.LOCAL_CHECKOUT,
              "Checkout the most recent revision into the local repo"),
-            (key(keymap.DIFF),
+            (keymap.DIFF,
              "Show the diff of the most recent revision"),
-            (key(keymap.TOGGLE_HIDDEN),
+            (keymap.TOGGLE_HIDDEN,
              "Toggle the hidden flag for the current change"),
-            (key(keymap.NEXT_CHANGE),
+            (keymap.NEXT_CHANGE,
              "Go to the next change in the list"),
-            (key(keymap.PREV_CHANGE),
+            (keymap.PREV_CHANGE,
              "Go to the previous change in the list"),
-            (key(keymap.REVIEW),
+            (keymap.REVIEW,
              "Leave a review for the most recent revision"),
-            (key(keymap.TOGGLE_HELD),
+            (keymap.TOGGLE_HELD,
              "Toggle the held flag for the current change"),
-            (key(keymap.TOGGLE_HIDDEN_COMMENTS),
+            (keymap.TOGGLE_HIDDEN_COMMENTS,
              "Toggle display of hidden comments"),
-            (key(keymap.SEARCH_RESULTS),
+            (keymap.SEARCH_RESULTS,
              "Back to the list of changes"),
-            (key(keymap.TOGGLE_REVIEWED),
+            (keymap.TOGGLE_REVIEWED,
              "Toggle the reviewed flag for the current change"),
-            (key(keymap.TOGGLE_STARRED),
+            (keymap.TOGGLE_STARRED,
              "Toggle the starred flag for the current change"),
-            (key(keymap.LOCAL_CHERRY_PICK),
+            (keymap.LOCAL_CHERRY_PICK,
              "Cherry-pick the most recent revision onto the local repo"),
-            (key(keymap.ABANDON_CHANGE),
+            (keymap.ABANDON_CHANGE,
              "Abandon this change"),
-            (key(keymap.EDIT_COMMIT_MESSAGE),
+            (keymap.EDIT_COMMIT_MESSAGE,
              "Edit the commit message of this change"),
-            (key(keymap.REBASE_CHANGE),
+            (keymap.REBASE_CHANGE,
              "Rebase this change (remotely)"),
-            (key(keymap.RESTORE_CHANGE),
+            (keymap.RESTORE_CHANGE,
              "Restore this change"),
-            (key(keymap.REFRESH),
+            (keymap.REFRESH,
              "Refresh this change"),
-            (key(keymap.EDIT_TOPIC),
+            (keymap.EDIT_TOPIC,
              "Edit the topic of this change"),
-            (key(keymap.SUBMIT_CHANGE),
+            (keymap.SUBMIT_CHANGE,
              "Submit this change"),
-            (key(keymap.CHERRY_PICK_CHANGE),
+            (keymap.CHERRY_PICK_CHANGE,
              "Propose this change to another branch"),
             ]
 
+    def help(self):
+        key = self.app.config.keymap.formatKeys
+        commands = self.getCommands()
+        ret = [(c[0], key(c[0]), c[1]) for c in commands]
         for k in self.app.config.reviewkeys.values():
             action = ', '.join(['{category}:{value}'.format(**a) for a in k['approvals']])
-            ret.append((keymap.formatKey(k['key']), action))
-
+            ret.append(('', keymap.formatKey(k['key']), action))
         return ret
 
     def __init__(self, app, change_key):
