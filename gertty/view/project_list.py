@@ -91,7 +91,7 @@ class ProjectRow(urwid.Button):
             self.topic_key = None
             self.indent = ''
         self.project_name = project.name
-        self.name = urwid.Text('')
+        self.name = mywid.SearchableText('')
         self._setName(project.name, self.indent)
         self.name.set_wrap_mode('clip')
         self.unreviewed_changes = urwid.Text(u'', align=urwid.RIGHT)
@@ -104,6 +104,9 @@ class ProjectRow(urwid.Button):
         self.row_style = urwid.AttrMap(col, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.project_focus_map)
         self.update(project)
+
+    def search(self, search, attribute):
+        return self.name.search(search, attribute)
 
     def update(self, project):
         cache = self.app.project_cache.get(project)
@@ -198,7 +201,7 @@ class ProjectListHeader(urwid.WidgetWrap):
         super(ProjectListHeader, self).__init__(urwid.Columns(cols))
 
 @mouse_scroll_decorator.ScrollByWheel
-class ProjectListView(urwid.WidgetWrap):
+class ProjectListView(urwid.WidgetWrap, mywid.Searchable):
     def getCommands(self):
         return [
             (keymap.TOGGLE_LIST_SUBSCRIBED,
@@ -223,6 +226,8 @@ class ProjectListView(urwid.WidgetWrap):
              "Remove selected project from topic"),
             (keymap.RENAME_PROJECT_TOPIC,
              "Rename selected project topic"),
+            (keymap.INTERACTIVE_SEARCH,
+             "Interactive search"),
         ]
 
     def help(self):
@@ -233,6 +238,7 @@ class ProjectListView(urwid.WidgetWrap):
     def __init__(self, app):
         super(ProjectListView, self).__init__(urwid.Pile([]))
         self.log = logging.getLogger('gertty.view.project_list')
+        self.searchInit()
         self.app = app
         self.unreviewed = True
         self.subscribed = True
@@ -532,6 +538,9 @@ class ProjectListView(urwid.WidgetWrap):
         self.refresh()
 
     def keypress(self, size, key):
+        if self.searchKeypress(size, key):
+            return None
+
         if not self.app.input_buffer:
             key = super(ProjectListView, self).keypress(size, key)
         keys = self.app.input_buffer + [key]
@@ -581,5 +590,8 @@ class ProjectListView(urwid.WidgetWrap):
                 sync.SyncSubscribedProjectsTask(sync.HIGH_PRIORITY))
             self.app.status.update()
             self.refresh()
+            return True
+        if keymap.INTERACTIVE_SEARCH in commands:
+            self.searchStart()
             return True
         return False
