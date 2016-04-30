@@ -111,19 +111,36 @@ class ChangeRow(urwid.Button, ChangeListColumns):
         self.change_key = change.key
         self.prefix = prefix
         self.enabled_columns = enabled_columns
-        self.subject = urwid.Text(u'', wrap='clip')
-        self.number = urwid.Text(u'')
-        self.updated = urwid.Text(u'')
-        self.project = urwid.Text(u'', wrap='clip')
-        self.owner = urwid.Text(u'', wrap='clip')
-        self.branch = urwid.Text(u'', wrap='clip')
-        self.topic = urwid.Text(u'', wrap='clip')
+        self.subject = mywid.SearchableText(u'', wrap='clip')
+        self.number = mywid.SearchableText(u'')
+        self.updated = mywid.SearchableText(u'')
+        self.project = mywid.SearchableText(u'', wrap='clip')
+        self.owner = mywid.SearchableText(u'', wrap='clip')
+        self.branch = mywid.SearchableText(u'', wrap='clip')
+        self.topic = mywid.SearchableText(u'', wrap='clip')
         self.mark = False
         self.columns = urwid.Columns([], dividechars=1)
         self.row_style = urwid.AttrMap(self.columns, '')
         self._w = urwid.AttrMap(self.row_style, None, focus_map=self.change_focus_map)
         self.category_columns = []
         self.update(change, categories)
+
+    def search(self, search, attribute):
+        if self.subject.search(search, attribute):
+            return True
+        if self.number.search(search, attribute):
+            return True
+        if self.project.search(search, attribute):
+            return True
+        if self.branch.search(search, attribute):
+            return True
+        if self.owner.search(search, attribute):
+            return True
+        if self.topic.search(search, attribute):
+            return True
+        if self.updated.search(search, attribute):
+            return True
+        return False
 
     def update(self, change, categories):
         if change.reviewed or change.hidden:
@@ -181,7 +198,6 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                                           self.columns.options('given', 2)))
         self.updateColumns()
 
-
 class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
     def __init__(self, enabled_columns):
         self.enabled_columns = enabled_columns
@@ -205,7 +221,7 @@ class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
 
 
 @mouse_scroll_decorator.ScrollByWheel
-class ChangeListView(urwid.WidgetWrap):
+class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
     required_columns = set(['Number', 'Subject', 'Updated'])
     optional_columns = set(['Topic', 'Branch'])
 
@@ -249,6 +265,8 @@ class ChangeListView(urwid.WidgetWrap):
              "Reverse the sort"),
             (keymap.LOCAL_CHERRY_PICK,
              "Cherry-pick the most recent revision of the selected change onto the local repo"),
+            (keymap.INTERACTIVE_SEARCH,
+             "Interactive search"),
             ]
 
     def help(self):
@@ -260,6 +278,7 @@ class ChangeListView(urwid.WidgetWrap):
                  unreviewed=False, sort_by=None, reverse=None):
         super(ChangeListView, self).__init__(urwid.Pile([]))
         self.log = logging.getLogger('gertty.view.change_list')
+        self.searchInit()
         self.app = app
         self.query = query
         self.query_desc = query_desc or query
@@ -521,6 +540,9 @@ class ChangeListView(urwid.WidgetWrap):
             self.listbox.focus_position = pos
 
     def keypress(self, size, key):
+        if self.searchKeypress(size, key):
+            return None
+
         if not self.app.input_buffer:
             key = super(ChangeListView, self).keypress(size, key)
         keys = self.app.input_buffer + [key]
@@ -680,6 +702,9 @@ class ChangeListView(urwid.WidgetWrap):
             return True
         if keymap.RESTORE_CHANGE in commands:
             self.restoreChange()
+            return True
+        if keymap.INTERACTIVE_SEARCH in commands:
+            self.searchStart()
             return True
         return False
 

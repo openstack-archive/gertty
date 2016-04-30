@@ -290,6 +290,62 @@ class SearchableText(urwid.Text):
         self._invalidate()
         return found
 
+class Searchable(object):
+    def searchInit(self):
+        self.search = None
+        self.results = []
+        self.current_result = 0
+
+    def searchValidChar(self, ch):
+        return urwid.util.is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
+
+    def searchKeypress(self, size, key):
+        if self.search is not None:
+            if self.searchValidChar(key) or key == 'backspace':
+                if key == 'backspace':
+                    self.search = self.search[:-1]
+                else:
+                    self.search += key
+                self.interactiveSearch(self.search)
+                return True
+            else:
+                commands = self.app.config.keymap.getCommands([key])
+                if keymap.INTERACTIVE_SEARCH in commands:
+                    self.nextSearchResult()
+                    return True
+                else:
+                    self.app.status.update(title=self.title)
+                    if not self.search:
+                        self.interactiveSearch(None)
+                    self.search = None
+                    if key in ['enter', 'esc']:
+                        return True
+        return False
+
+    def searchStart(self):
+        self.search = ''
+        self.app.status.update(title=("Search: "))
+
+    def interactiveSearch(self, search):
+        if search is not None:
+            self.app.status.update(title=("Search: " + search))
+        self.results = []
+        self.current_result = 0
+        for i, line in enumerate(self.listbox.body):
+            if hasattr(line, 'search'):
+                if line.search(search, 'search-result'):
+                    self.results.append(i)
+
+    def nextSearchResult(self):
+        if not self.results:
+            return
+        dest = self.results[self.current_result]
+        self.listbox.set_focus(dest)
+        self.listbox._invalidate()
+        self.current_result += 1
+        if self.current_result >= len(self.results):
+            self.current_result = 0
+
 class HyperText(urwid.Text):
     _selectable = True
 

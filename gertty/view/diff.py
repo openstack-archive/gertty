@@ -156,7 +156,7 @@ class DiffContextButton(urwid.WidgetWrap):
         self.view.expandChunk(self.diff, self.chunk, from_end=-10)
 
 @mouse_scroll_decorator.ScrollByWheel
-class BaseDiffView(urwid.WidgetWrap):
+class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
     def getCommands(self):
         return [
             (keymap.ACTIVATE,
@@ -182,9 +182,7 @@ class BaseDiffView(urwid.WidgetWrap):
 
     def _init(self):
         del self._w.contents[:]
-        self.search = None
-        self.results = []
-        self.current_result = None
+        self.searchInit()
         with self.app.db.getSession() as session:
             new_revision = session.getRevision(self.new_revision_key)
             old_comments = []
@@ -443,30 +441,9 @@ class BaseDiffView(urwid.WidgetWrap):
             context = item.context
         return context
 
-    def search_valid_char(self, ch):
-        return urwid.util.is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
-
     def keypress(self, size, key):
-        if self.search is not None:
-            if self.search_valid_char(key) or key == 'backspace':
-                if key == 'backspace':
-                    self.search = self.search[:-1]
-                else:
-                    self.search += key
-                self.interactiveSearch(self.search)
-                return None
-            else:
-                commands = self.app.config.keymap.getCommands([key])
-                if keymap.INTERACTIVE_SEARCH in commands:
-                    self.nextSearchResult()
-                    return None
-                else:
-                    self.app.status.update(title=self.title)
-                    if not self.search:
-                        self.interactiveSearch(None)
-                    self.search = None
-                    if key in ['enter', 'esc']:
-                        return None
+        if self.searchKeypress(size, key):
+            return None
 
         old_focus = self.listbox.focus
         if not self.app.input_buffer:
@@ -489,8 +466,7 @@ class BaseDiffView(urwid.WidgetWrap):
             self.openPatchsetDialog()
             return None
         if keymap.INTERACTIVE_SEARCH in commands:
-            self.search = ''
-            self.app.status.update(title=("Search: "))
+            self.searchStart()
             return None
         return key
 
@@ -561,23 +537,3 @@ class BaseDiffView(urwid.WidgetWrap):
         self.app.backScreen()
         self.old_revision_key, self.new_revision_key = dialog.getSelected()
         self._init()
-
-    def interactiveSearch(self, search):
-        if search is not None:
-            self.app.status.update(title=("Search: " + search))
-        self.results = []
-        self.current_result = 0
-        for i, line in enumerate(self.listbox.body):
-            if hasattr(line, 'search'):
-                if line.search(search, 'search-result'):
-                    self.results.append(i)
-
-    def nextSearchResult(self):
-        if not self.results:
-            return
-        dest = self.results[self.current_result]
-        self.listbox.set_focus(dest)
-        self.listbox._invalidate()
-        self.current_result += 1
-        if self.current_result >= len(self.results):
-            self.current_result = 0
