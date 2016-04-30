@@ -23,8 +23,8 @@ servers:
 #    username: CHANGEME
 # Your password in Gerrit (Settings -> HTTP Password). [required]
 #    password: CHANGEME
-# Authentication type required by the Gerrit server. Can be 'basic', 'digest' or
-# 'form'. Defaults to 'digest' if not set or set to an unexpected value.
+# Authentication type required by the Gerrit server. Can be 'basic',
+# 'digest', or 'form'. Defaults to 'digest'.
 #    auth-type: digest
 # A location where Gertty should store its git repositories.  These
 # can be the same git repositories where you do your own work --

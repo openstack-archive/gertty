@@ -73,9 +73,8 @@ line.
     in the Gerrit web interface.
 
   **auth-type**
-    Authentication type required by the Gerrit server. Can be 'basic'
-    or 'digest'. Defaults to 'digest' if not set or set to an
-    unexpected value.
+    Authentication type required by the Gerrit server. Can be 'basic',
+    'digest', or 'form'. Defaults to 'digest'.
 
   **git-root (required)**
     A location where Gertty should store its git repositories.  These
