@@ -15,6 +15,7 @@
 
 import datetime
 import logging
+import textwrap
 
 from six.moves.urllib import parse as urlparse
 import urwid
@@ -89,7 +90,7 @@ class CherryPickDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
 
 class ReviewDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
     signals = ['submit', 'save', 'cancel']
-    def __init__(self, app, revision_key):
+    def __init__(self, app, revision_key, message=''):
         self.revision_key = revision_key
         self.app = app
         save_button = mywid.FixedButton(u'Save')
@@ -107,7 +108,6 @@ class ReviewDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
         values = {}
         descriptions = {}
         self.button_groups = {}
-        message = ''
         with self.app.db.getSession() as session:
             revision = session.getRevision(self.revision_key)
             change = revision.change
@@ -206,9 +206,10 @@ class ReviewButton(mywid.FixedButton):
         urwid.connect_signal(self, 'click',
             lambda button: self.openReview())
 
-    def openReview(self):
+    def openReview(self, message=''):
         self.dialog = ReviewDialog(self.change_view.app,
-                                   self.revision_row.revision_key)
+                                   self.revision_row.revision_key,
+                                   message=message)
         urwid.connect_signal(self.dialog, 'save',
             lambda button: self.closeReview(True, False))
         urwid.connect_signal(self.dialog, 'submit',
@@ -341,13 +342,54 @@ class ChangeButton(urwid.Button):
             self.change_view.app.error(e.message)
 
 class ChangeMessageBox(mywid.HyperText):
-    def __init__(self, app, message):
+    def __init__(self, change_view, message):
         super(ChangeMessageBox, self).__init__(u'')
-        self.app = app
+        self.change_view = change_view
+        self.app = change_view.app
         self.refresh(message)
 
+    def formatReply(self):
+        text = self.message_text
+        pgraphs = []
+        pgraph_accumulator = []
+        wrap = True
+        for line in text.split('\n')[2:]:
+            if line.startswith('> '):
+                wrap = False
+                line = '> ' + line
+            if not line:
+                if pgraph_accumulator:
+                    pgraphs.append((wrap, '\n'.join(pgraph_accumulator)))
+                    pgraph_accumulator = []
+                    wrap = True
+                continue
+            pgraph_accumulator.append(line)
+        if pgraph_accumulator:
+            pgraphs.append((wrap, '\n'.join(pgraph_accumulator)))
+            pgraph_accumulator = []
+            wrap = True
+        wrapper = textwrap.TextWrapper(initial_indent='> ',
+                                       subsequent_indent='> ')
+        wrapped_pgraphs = []
+        for wrap, pgraph in pgraphs:
+            if wrap:
+                wrapped_pgraphs.append('\n'.join(wrapper.wrap(pgraph)))
+            else:
+                wrapped_pgraphs.append(pgraph)
+        return '\n>\n'.join(wrapped_pgraphs)
+
+    def reply(self):
+        reply_text = self.formatReply()
+        if reply_text:
+            reply_text = self.message_author + ' wrote:\n\n' + reply_text + '\n'
+        row = self.change_view.revision_rows[self.revision_key]
+        row.review_button.openReview(reply_text)
+
     def refresh(self, message):
+        self.revision_key = message.revision.key
         self.message_created = message.created
+        self.message_author = message.author_name
+        self.message_text = message.message
         created = self.app.time(message.created)
         lines = message.message.split('\n')
         if message.draft:
@@ -365,6 +407,15 @@ class ChangeMessageBox(mywid.HyperText):
                  created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
         if message.draft and not message.pending:
             text.append(('change-message-draft', ' (draft)'))
+        else:
+            link = mywid.Link('< Reply >',
+                              'revision-button',
+                              'focused-revision-button')
+            urwid.connect_signal(link, 'selected',
+                                 lambda link:self.reply())
+            text.append(' ')
+            text.append(link)
+
         if lines and lines[-1]:
             lines.append('')
         comment_text = ['\n'.join(lines)]
@@ -692,7 +743,7 @@ class ChangeView(urwid.WidgetWrap):
             for message in display_messages:
                 row = self.message_rows.get(message.key)
                 if not row:
-                    box = ChangeMessageBox(self.app, message)
+                    box = ChangeMessageBox(self, message)
                     row = urwid.Padding(box, width=80)
                     self.listbox.body.insert(listbox_index, row)
                     self.message_rows[message.key] = row
