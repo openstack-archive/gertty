@@ -170,7 +170,7 @@ class ReviewDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
                 m = revision.getDraftMessage()
             if m:
                 message = m.message
-        self.message = mywid.MyEdit("Message: \n", edit_text=message,
+        self.message = mywid.MyEdit(u"Message: \n", edit_text=message,
                                     multiline=True, ring=app.ring)
         rows.append(self.message)
         rows.append(urwid.Divider())
