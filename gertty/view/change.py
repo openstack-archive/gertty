@@ -132,13 +132,20 @@ class ReviewDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
                         values[label.category] = []
                     values[label.category].append(label.value)
                 draft_approvals = {}
-                for approval in change.draft_approvals:
-                    draft_approvals[approval.category] = approval
+                prior_approvals = {}
+                for approval in change.approvals:
+                    if approval.reviewer.username == self.app.config.username:
+                        if approval.draft:
+                            draft_approvals[approval.category] = approval
+                        else:
+                            prior_approvals[approval.category] = approval
                 for category in categories:
                     rows.append(urwid.Text(category))
                     group = []
                     self.button_groups[category] = group
                     current = draft_approvals.get(category)
+                    if current is None:
+                        current = prior_approvals.get(category)
                     if current is None:
                         current = 0
                     else:
