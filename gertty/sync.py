@@ -419,6 +419,7 @@ class SyncQueriedChangesTask(Task):
         changes = []
         sortkey = ''
         done = False
+        offset = 0
         while not done:
             # We don't actually want to limit to 500, but that's the server-side default, and
             # if we don't specify this, we won't get a _more_changes flag.
@@ -429,8 +430,12 @@ class SyncQueriedChangesTask(Task):
             if batch:
                 changes += batch
                 if '_more_changes' in batch[-1]:
-                    sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
                     done = False
+                    if '_sortkey' in batch[-1]:
+                        sortkey = '&N=%s' % (batch[-1]['_sortkey'],)
+                    else:
+                        offset += len(batch)
+                        sortkey = '&start=%s' % (offset,)
         change_ids = [c['id'] for c in changes]
         with app.db.getSession() as session:
             # Winnow the list of IDs to only the ones in the local DB.
