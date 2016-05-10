@@ -51,6 +51,13 @@ openSUSE
 Gertty is packaged for openSUSE 13.1 onwards.  You can install it via
 `1-click install from the Open Build Service <http://software.opensuse.org/package/python-gertty>`_.
 
+Gentoo
+~~~~~~
+
+Gertty is available in the main Gentoo repository.  You can install it with::
+
+  emerge gertty
+
 Arch Linux
 ~~~~~~~~~~
 
