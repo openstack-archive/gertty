@@ -265,6 +265,8 @@ class Repo(object):
             repo.commit(sha)
         except gitdb.exc.BadObject:
             return False
+        except ValueError:
+            return False
         return True
 
     def fetch(self, url, refspec):
