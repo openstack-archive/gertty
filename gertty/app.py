@@ -725,6 +725,8 @@ class App(object):
         # nearly un-actionable.
         if category == requestsexceptions.InsecurePlatformWarning:
             return
+        if category == requestsexceptions.SNIMissingWarning:
+            return
         # Disable InsecureRequestWarning when certificate validation is disabled
         if not self.config.verify_ssl:
             if category == requestsexceptions.InsecureRequestWarning:

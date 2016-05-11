@@ -27,3 +27,11 @@ except ImportError:
         from urllib3.exceptions import InsecureRequestWarning
     except ImportError:
         InsecureRequestWarning = None
+
+try:
+    from requests.packages.urllib3.exceptions import SNIMissingWarning
+except ImportError:
+    try:
+        from urllib3.exceptions import SNIMissingWarning
+    except ImportError:
+        SNIMissingWarning = None
