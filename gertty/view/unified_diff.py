@@ -125,47 +125,75 @@ class UnifiedFileReminder(BaseFileReminder):
 class UnifiedDiffView(BaseDiffView):
     def makeLines(self, diff, lines_to_add, comment_lists):
         lines = []
+        old_cache = []
+        new_cache = []
         for old, new in lines_to_add:
             context = self.makeContext(diff, old[0], new[0])
             if context.old_ln is not None:
-                lines.append(UnifiedDiffLine(self.app, context, gitrepo.OLD, old, new,
-                                             callback=self.onSelect))
+                old_cache.append(UnifiedDiffLine(self.app, context, gitrepo.OLD, old, new,
+                                                 callback=self.onSelect))
+                #lines.append(UnifiedDiffLine(self.app, context, gitrepo.OLD, old, new,
+                #                             callback=self.onSelect))
+            else:
+                lines.extend(old_cache)
+                lines.extend(new_cache)
+                old_cache = []
+                new_cache = []
             # see if there are any comments for this line
             key = 'old-%s-%s' % (old[0], diff.oldname)
             old_list = comment_lists.pop(key, [])
             while old_list:
                 (old_comment_key, old_comment) = old_list.pop(0)
-                lines.append(UnifiedDiffComment(context, gitrepo.OLD, old_comment))
+                old_cache.append(UnifiedDiffComment(context, gitrepo.OLD, old_comment))
             # see if there are any draft comments for this line
             key = 'olddraft-%s-%s' % (old[0], diff.oldname)
             old_list = comment_lists.pop(key, [])
             while old_list:
                 (old_comment_key, old_comment) = old_list.pop(0)
-                lines.append(UnifiedDiffCommentEdit(self.app,
+                old_cache.append(UnifiedDiffCommentEdit(self.app,
                                                     context,
                                                     gitrepo.OLD,
                                                     old_comment_key,
                                                     old_comment))
             # new line
             if context.new_ln is not None and new[1] != ' ':
-                lines.append(UnifiedDiffLine(self.app, context, gitrepo.NEW, old, new,
-                                             callback=self.onSelect))
+                if old_cache:
+                    new_cache.append(UnifiedDiffLine(self.app, context, gitrepo.NEW, old, new,
+                                                     callback=self.onSelect))
+                else:
+                    lines.append(UnifiedDiffLine(self.app, context, gitrepo.NEW, old, new,
+                                                 callback=self.onSelect))
             # see if there are any comments for this line
             key = 'new-%s-%s' % (new[0], diff.newname)
             new_list = comment_lists.pop(key, [])
             while new_list:
                 (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(UnifiedDiffComment(context, gitrepo.NEW, new_comment))
+                if old_cache:
+                    new_cache.append(UnifiedDiffComment(context, gitrepo.NEW, new_comment))
+                else:
+                    lines.append(UnifiedDiffComment(context, gitrepo.NEW, new_comment))
             # see if there are any draft comments for this line
             key = 'newdraft-%s-%s' % (new[0], diff.newname)
             new_list = comment_lists.pop(key, [])
             while new_list:
                 (new_comment_key, new_comment) = new_list.pop(0)
-                lines.append(UnifiedDiffCommentEdit(self.app,
-                                                    context,
-                                                    gitrepo.NEW,
-                                                    new_comment_key,
-                                                    new_comment))
+                if old_cache:
+                    new_cache.append(UnifiedDiffCommentEdit(self.app,
+                                                            context,
+                                                            gitrepo.NEW,
+                                                            new_comment_key,
+                                                            new_comment))
+                else:
+                    lines.append(UnifiedDiffCommentEdit(self.app,
+                                                        context,
+                                                        gitrepo.NEW,
+                                                        new_comment_key,
+                                                        new_comment))
+        else:
+            if old_cache:
+                lines.extend(old_cache)
+            if new_cache:
+                lines.extend(new_cache)
         return lines
 
     def makeFileReminder(self):
