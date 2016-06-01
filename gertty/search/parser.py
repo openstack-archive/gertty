@@ -83,6 +83,7 @@ def SearchParser():
                 | reviewer_term
                 | commit_term
                 | project_term
+                | projects_term
                 | project_key_term
                 | branch_term
                 | topic_term
@@ -177,6 +178,10 @@ def SearchParser():
             p[0] = func.matches(p[2], gertty.db.project_table.c.name)
         else:
             p[0] = gertty.db.project_table.c.name == p[2]
+
+    def p_projects_term(p):
+        '''projects_term : OP_PROJECTS string'''
+        p[0] = gertty.db.project_table.c.name.like('%s%%' % p[2])
 
     def p_project_key_term(p):
         '''project_key_term : OP_PROJECT_KEY NUMBER'''
