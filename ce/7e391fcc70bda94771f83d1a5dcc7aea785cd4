@@ -1,0 +1,9 @@
+Code-Review+1: Zane Bitter <zbitter@redhat.com>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 01 Jun 2016 18:57:33 +0000
+Reviewed-on: https://review.openstack.org/312674
+Project: openstack/gertty
+Branch: refs/heads/master
