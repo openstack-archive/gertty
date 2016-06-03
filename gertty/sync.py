@@ -47,6 +47,8 @@ TIMEOUT=30
 
 CLOSED_STATUSES = ['MERGED', 'ABANDONED']
 
+class OfflineError(Exception):
+    pass
 
 class MultiQueue(object):
     def __init__(self, priorities):
@@ -1359,7 +1361,7 @@ class Sync(object):
             task.run(self)
             task.complete(True)
             self.queue.complete(task)
-        except requests.ConnectionError as e:
+        except (requests.ConnectionError, OfflineError) as e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
                 self.submitTask(GetVersionTask(HIGH_PRIORITY))
@@ -1384,6 +1386,11 @@ class Sync(object):
     def url(self, path):
         return self.app.config.url + 'a/' + path
 
+    def checkResponse(self, response):
+        self.log.debug('HTTP status code: %d', response.status_code)
+        if response.status_code == 503:
+            raise OfflineError("Received 503 status code")
+
     def get(self, path):
         url = self.url(path)
         self.log.debug('GET: %s' % (url,))
@@ -1393,6 +1400,7 @@ class Sync(object):
                              headers = {'Accept': 'application/json',
                                         'Accept-Encoding': 'gzip',
                                         'User-Agent': self.user_agent})
+        self.checkResponse(r)
         if r.status_code == 200:
             ret = json.loads(r.text[4:])
             if len(ret):
@@ -1400,8 +1408,6 @@ class Sync(object):
             else:
                 self.log.debug('200 OK, No body.')
             return ret
-        else:
-            self.log.warn('HTTP response: %d', r.status_code)
 
     def post(self, path, data):
         url = self.url(path)
@@ -1412,6 +1418,7 @@ class Sync(object):
                               auth=self.auth, timeout=TIMEOUT,
                               headers = {'Content-Type': 'application/json;charset=UTF-8',
                                          'User-Agent': self.user_agent})
+        self.checkResponse(r)
         self.log.debug('Received: %s' % (r.text,))
         ret = None
         if r.text and len(r.text)>4:
@@ -1431,6 +1438,7 @@ class Sync(object):
                              auth=self.auth, timeout=TIMEOUT,
                              headers = {'Content-Type': 'application/json;charset=UTF-8',
                                         'User-Agent': self.user_agent})
+        self.checkResponse(r)
         self.log.debug('Received: %s' % (r.text,))
 
     def delete(self, path, data):
@@ -1442,6 +1450,7 @@ class Sync(object):
                                 auth=self.auth, timeout=TIMEOUT,
                                 headers = {'Content-Type': 'application/json;charset=UTF-8',
                                            'User-Agent': self.user_agent})
+        self.checkResponse(r)
         self.log.debug('Received: %s' % (r.text,))
 
     def syncSubscribedProjects(self):
