@@ -640,7 +640,8 @@ class ChangeView(urwid.WidgetWrap):
                 self.owner_email = None
 
             self.change_id_label.text.set_text(('change-data', change.change_id))
-            self.owner_label.text.set_text(('change-data', change.owner_name))
+            owner_string = change.owner_name + ' <' + change.owner.email + '>'
+            self.owner_label.text.set_text(('change-data', owner_string))
             self.project_label.text.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.text.set_text(('change-data', self.topic))
@@ -671,9 +672,16 @@ class ChangeView(urwid.WidgetWrap):
                     row = []
                     if approval.reviewer.username == self.app.config.username:
                         style = 'reviewer-own-name'
+                        reviewer_string = approval.reviewer.name
                     else:
                         style = 'reviewer-name'
-                    row.append(urwid.Text((style, approval.reviewer.name)))
+                        if approval.reviewer.email:
+                            reviewer_string = "%s <%s>" % (
+                                approval.reviewer.name,
+                                approval.reviewer.email)
+                        else:
+                            reviewer_string = approval.reviewer.name
+                    row.append(urwid.Text((style, reviewer_string)))
                     for i, category in enumerate(categories):
                         w = urwid.Text(u'', align=urwid.CENTER)
                         approvals[category] = w
