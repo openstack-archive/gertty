@@ -405,10 +405,18 @@ class ChangeMessageBox(mywid.HyperText):
         if message.author.username == self.app.config.username:
             name_style = 'change-message-own-name'
             header_style = 'change-message-own-header'
+            reviewer_string = message.author.name
         else:
             name_style = 'change-message-name'
             header_style = 'change-message-header'
-        text = [(name_style, message.author_name),
+            if message.author.email:
+                reviewer_string = "%s <%s>" % (
+                    message.author.name,
+                    message.author.email)
+            else:
+                reviewer_string = message.author.name
+
+        text = [(name_style, reviewer_string),
                 (header_style, ': '+lines.pop(0)),
                 (header_style,
                  created.strftime(' (%Y-%m-%d %H:%M:%S%z)'))]
@@ -640,7 +648,12 @@ class ChangeView(urwid.WidgetWrap):
                 self.owner_email = None
 
             self.change_id_label.text.set_text(('change-data', change.change_id))
-            self.owner_label.text.set_text(('change-data', change.owner_name))
+            if change.owner.email:
+                owner_string = '%s <%s>' % (change.owner_name,
+                                            change.owner.email)
+            else:
+                owner_string = change.owner_name
+            self.owner_label.text.set_text(('change-data', owner_string))
             self.project_label.text.set_text(('change-data', change.project.name))
             self.branch_label.set_text(('change-data', change.branch))
             self.topic_label.text.set_text(('change-data', self.topic))
