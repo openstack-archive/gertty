@@ -16,6 +16,7 @@
 import argparse
 import datetime
 import dateutil
+import fcntl
 import functools
 import logging
 import os
@@ -870,6 +871,13 @@ class OpenChangeAction(argparse.Action):
         sys.exit(0)
 
 def main():
+    f = open('/tmp/gertty.%s.lock' % os.environ['USER'], 'w')
+    try:
+        fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("error: another instance of gertty is running")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
     parser.add_argument('-c', dest='path',
