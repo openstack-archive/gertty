@@ -832,8 +832,9 @@ class DatabaseSession(object):
         # the set of supplied IDs. This is used when sync'ing the changesets
         # locally with the remote changes.
         if not ids:
-            return set([])
-        return set([r[0] for r in self.session().query(Change.id).filter(Change.id.in_(ids)).all()])
+            return set()
+        ids_in_db = set([r[0] for r in self.session().query(Change.id).all()])
+        return ids_in_db & set(ids)
 
     def getChangesByChangeID(self, change_id):
         try:
