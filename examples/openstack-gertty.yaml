@@ -53,6 +53,14 @@ commentlinks:
       # And then follow that with the plain text of the "comment"
       # match group.
       - text: "{comment}"
+  # This matches the build message sent by zuul and extract the pipeline name.
+  - match: '^(?P<build_str>Build \w+ \((?P<pipeline>[\w-]+) pipeline\))'
+    test-result-system: "{author} {pipeline}"
+    # replacements is a required attribute, so let's just replace with the
+    # matched string.
+    replacements:
+      - text:
+          text: "{build_str}"
   # Match Gerrit change ids, and replace them with a link to an
   # internal Gertty search for that change id.
   - match: "(?P<id>I[0-9a-fA-F]{40})"

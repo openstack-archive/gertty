@@ -75,6 +75,7 @@ class CommentLink(object):
     def __init__(self, config):
         self.match = re.compile(config['match'], re.M)
         self.test_result = config.get('test-result', None)
+        self.test_result_system = config.get('test-result-system', None)
         self.replacements = []
         for r in config['replacements']:
             if 'text' in r:
@@ -95,6 +96,15 @@ class CommentLink(object):
                 job = self.test_result.format(**m.groupdict())
                 ret[job] = repl + ['\n']
         return ret
+
+    def getTestResultSystem(self, app, message):
+        author = message.author.name
+        if self.test_result_system:
+            m = self.match.search(message.message)
+            if m:
+                return self.test_result_system.format(
+                    author=author, **m.groupdict())
+        return author
 
     def run(self, app, chunks):
         ret = []

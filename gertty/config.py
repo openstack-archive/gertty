@@ -75,7 +75,8 @@ class ConfigSchema(object):
 
     commentlink = {v.Required('match'): str,
                    v.Required('replacements'): [replacement],
-                   'test-result': str}
+                   'test-result': str,
+                   'test-result-system': str}
 
     commentlinks = [commentlink]
 

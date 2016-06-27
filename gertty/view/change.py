@@ -20,6 +20,7 @@ try:
     import ordereddict
 except:
     pass
+import re
 import textwrap
 
 from six.moves.urllib import parse as urlparse
@@ -749,17 +750,43 @@ class ChangeView(urwid.WidgetWrap):
             listbox_index += 1
             # Get the set of messages that should be displayed
             display_messages = []
-            result_systems = {}
+            result_systems = OrderedDict()
             for message in change.messages:
                 if (message.revision == change.revisions[-1] and
                     message.author and message.author.name):
-                    for commentlink in self.app.config.commentlinks:
-                        results = commentlink.getTestResults(self.app, message.message)
+
+                    commentlink = next(
+                        (cl for cl in self.app.config.commentlinks
+                         if cl.test_result), None)
+
+                    if commentlink:
+                        results = commentlink.getTestResults(
+                            self.app, message.message)
                         if results:
-                            result_system = result_systems.get(message.author.name,
-                                                               OrderedDict())
-                            result_systems[message.author.name] = result_system
-                            result_system.update(results)
+                            system_commentlink = next(
+                                (cl for cl in self.app.config.commentlinks
+                                 if cl.test_result_system), None)
+                            if system_commentlink:
+                                system = system_commentlink.getTestResultSystem(
+                                    self.app, message)
+                            else:
+                                system = message.author.name
+                            result_system = result_systems.get(
+                                system,
+                                {
+                                    'results': results,
+                                    'rechecks': 0,
+                                    'datetime': message.created
+                                })
+                            if system in result_systems:
+                                if system != message.author.name:
+                                    # We were able to detect a pipeline, this
+                                    # means we can accurately count rechecks
+                                    result_system['rechecks'] += 1
+                                if message.created > result_system['datetime']:
+                                    result_system['results'].update(results)
+                                    result_system['datetime'] = message.created
+                            result_systems[system] = result_system
                 skip = False
                 if self.hide_comments and message.author and message.author.name:
                     for regex in self.app.config.hide_comments:
@@ -794,7 +821,13 @@ class ChangeView(urwid.WidgetWrap):
     def _updateTestResults(self, result_systems):
         text = []
         for system, results in result_systems.items():
-            for job, result in results.items():
+            if results['rechecks']:
+                rechecks = " ({} rechecks)".format(results['rechecks'])
+            else:
+                rechecks = ''
+            text.append("{}{} {:%Y-%m-%d %H:%M:%S%z}\n".format(
+                system, rechecks, self.app.time(results['datetime'])))
+            for job, result in results['results'].items():
                 text.append(result)
         if text:
             self.results.set_text(text)
