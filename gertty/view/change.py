@@ -618,7 +618,7 @@ class ChangeView(urwid.WidgetWrap):
 
     def refresh(self):
         with self.app.db.getSession() as session:
-            change = session.getChange(self.change_key)
+            change = session.getChange(self.change_key, lazy=False)
             # When we first open the change, update its last_seen
             # time.
             if not self.marked_seen:

@@ -24,7 +24,7 @@ import six
 import sqlalchemy
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, UniqueConstraint
 from sqlalchemy.schema import ForeignKey
-from sqlalchemy.orm import mapper, sessionmaker, relationship, scoped_session
+from sqlalchemy.orm import mapper, sessionmaker, relationship, scoped_session, joinedload
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import and_
@@ -815,9 +815,12 @@ class DatabaseSession(object):
         except sqlalchemy.orm.exc.NoResultFound:
             return self.createSyncQuery(name)
 
-    def getChange(self, key):
+    def getChange(self, key, lazy=True):
+        query = self.session().query(Change).filter_by(key=key)
+        if not lazy:
+            query = query.options(joinedload(Change.revisions).joinedload(Revision.files).joinedload(File.comments))
         try:
-            return self.session().query(Change).filter_by(key=key).one()
+            return query.one()
         except sqlalchemy.orm.exc.NoResultFound:
             return None
 
