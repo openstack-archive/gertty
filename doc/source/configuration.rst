@@ -107,6 +107,10 @@ line.
     Gertty listens on a unix domain socket for remote commands at
     ~/.gertty.sock.  This option may be used to change the path.
 
+  **lock-file**
+    Gertty uses a lock file per server to prevent multiple processes
+    from running at the same time. The default is ~/.gertty.servername.lock
+
 Example:
 
 .. code-block: yaml
