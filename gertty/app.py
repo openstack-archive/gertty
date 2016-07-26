@@ -16,6 +16,7 @@
 import argparse
 import datetime
 import dateutil
+import fcntl
 import functools
 import logging
 import os
@@ -273,6 +274,13 @@ class App(object):
             req_logger.setLevel(req_level_name)
         self.log = logging.getLogger('gertty.App')
         self.log.debug("Starting")
+
+        self.lock_fd = open(self.config.lock_file, 'w')
+        try:
+            fcntl.lockf(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            print("error: another instance of gertty is running for: %s" % self.config.server['name'])
+            sys.exit(1)
 
         self.project_cache = ProjectCache()
         self.ring = mywid.KillRing()

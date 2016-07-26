@@ -186,6 +186,8 @@ class Config(object):
         self.socket_path = os.path.expanduser(socket_path)
         log_file = server.get('log-file', '~/.gertty.log')
         self.log_file = os.path.expanduser(log_file)
+        lock_file = server.get('lock-file', '~/.gertty.%s.lock' % server['name'])
+        self.lock_file = os.path.expanduser(lock_file)
 
         self.palettes = {'default': gertty.palette.Palette({}),
                          'light': gertty.palette.Palette(gertty.palette.LIGHT_PALETTE),
