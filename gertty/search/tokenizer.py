@@ -25,6 +25,7 @@ operators = {
     #'OP_REVIEWERIN', # needs local group membership
     'commit': 'OP_COMMIT',
     'project': 'OP_PROJECT',
+    'projects': 'OP_PROJECTS',
     '_project_key': 'OP_PROJECT_KEY',  # internal gertty use only
     'branch': 'OP_BRANCH',
     'topic': 'OP_TOPIC',
