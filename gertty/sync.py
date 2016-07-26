@@ -564,6 +564,18 @@ class SyncChangeTask(Task):
                                              email=remote_change['owner'].get('email'))
             if not change:
                 project = session.getProjectByName(remote_change['project'])
+                if not project:
+                    self.log.debug("Project %s unknown while syncing change" % (
+                        remote_change['project'],))
+                    remote_project = sync.get('projects/%s' %
+                                              (urlparse.quote_plus(remote_change['project']),))
+                    if remote_project:
+                        project = session.createProject(
+                            remote_project['name'],
+                            description=remote_project.get('description', ''))
+                        self.log.info("Created project %s", project.name)
+                        self.results.append(ProjectAddedEvent(project))
+                        sync.submitTask(SyncProjectBranchesTask(project.name, self.priority))
                 created = dateutil.parser.parse(remote_change['created'])
                 updated = dateutil.parser.parse(remote_change['updated'])
                 change = project.createChange(remote_change['id'], account, remote_change['_number'],
