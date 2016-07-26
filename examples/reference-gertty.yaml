@@ -13,6 +13,7 @@ servers:
     # account settings to generate/retrieve this password.
     password: CHANGEME
     git-root: ~/git/
+    lock-file: ~/.gertty.CHANGEME.lock
 
 # Each server section can have the following fields:
 # A name that describes the server, to reference on the command line. [required]
@@ -53,6 +54,9 @@ servers:
 # Gertty listens on a unix domain socket for remote commands at
 # ~/.gertty.sock.  You may change the path here:
 #    socket: ~/.gertty.sock
+# Gertty uses a lock file per server to prevent multiple processes
+# from running at the same time. Example:
+#    lock-file: /run/lockme.lock
 
 # Gertty comes with two palettes defined internally.  The default
 # palette is suitable for use on a terminal with a dark background.
