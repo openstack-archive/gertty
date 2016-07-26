@@ -13,8 +13,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
 import datetime
 import logging
+try:
+    import ordereddict
+except:
+    pass
 import textwrap
 
 from six.moves.urllib import parse as urlparse
@@ -28,6 +33,11 @@ from gertty.view import side_diff as view_side_diff
 from gertty.view import unified_diff as view_unified_diff
 from gertty.view import mouse_scroll_decorator
 import gertty.view
+
+try:
+    OrderedDict = collections.OrderedDict
+except AttributeError:
+    OrderedDict = ordereddict.OrderedDict
 
 class EditTopicDialog(mywid.ButtonDialog):
     signals = ['save', 'cancel']
@@ -746,7 +756,8 @@ class ChangeView(urwid.WidgetWrap):
                     for commentlink in self.app.config.commentlinks:
                         results = commentlink.getTestResults(self.app, message.message)
                         if results:
-                            result_system = result_systems.get(message.author.name, {})
+                            result_system = result_systems.get(message.author.name,
+                                                               OrderedDict())
                             result_systems[message.author.name] = result_system
                             result_system.update(results)
                 skip = False
