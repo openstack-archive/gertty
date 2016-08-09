@@ -528,6 +528,24 @@ class SyncChangeByNumberTask(Task):
             sync.submitTask(task)
             self.log.debug("Sync change %s because it is number %s" % (c['id'], self.number))
 
+class SyncOutdatedChangesTask(Task):
+    def __init__(self, priority=NORMAL_PRIORITY):
+        super(SyncOutdatedChangesTask, self).__init__(priority)
+
+    def __eq__(self, other):
+        if other.__class__ == self.__class__:
+            return True
+        return False
+
+    def __repr__(self):
+        return '<SyncOutdatedChangesTask>'
+
+    def run(self, sync):
+        with sync.app.db.getSession() as session:
+            for change in session.getOutdated():
+                self.log.debug("Sync outdated change %s" % (change.id,))
+                sync.submitTask(SyncChangeTask(change.id, priority=self.priority))
+
 class SyncChangeTask(Task):
     def __init__(self, change_id, force_fetch=False, priority=NORMAL_PRIORITY):
         super(SyncChangeTask, self).__init__(priority)
@@ -546,6 +564,22 @@ class SyncChangeTask(Task):
 
     def run(self, sync):
         start_time = time.time()
+        try:
+            self._syncChange(sync)
+            end_time = time.time()
+            total_time = end_time - start_time
+            self.log.info("Synced change %s in %0.5f seconds.", self.change_id, total_time)
+        except Exception:
+            try:
+                self.log.error("Marking change %s outdated" % (self.change_id,))
+                with sync.app.db.getSession() as session:
+                    change = session.getChangeByID(self.change_id)
+                    change.outdated = True
+            except Exception:
+                self.log.exception("Error while marking change %s as outdated" % (self.change_id,))
+            raise
+
+    def _syncChange(self, sync):
         app = sync.app
         remote_change = sync.get('changes/%s?o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_COMMITS&o=MESSAGES&o=DETAILED_ACCOUNTS&o=CURRENT_ACTIONS&o=ALL_FILES' % self.change_id)
         # Perform subqueries this task will need outside of the db session
@@ -870,6 +904,7 @@ class SyncChangeTask(Task):
                         change.reviewed = False
                         result.review_flag_changed = True
                         app.project_cache.clear(change.project)
+            change.outdated = False
         for url, refs in fetches.items():
             self.log.debug("Fetching from %s with refs %s", url, refs)
             try:
@@ -881,9 +916,6 @@ class SyncChangeTask(Task):
                 for ref in refs:
                     self.log.debug("git fetch %s %s" % (url, ref))
                     repo.fetch(url, ref)
-        end_time = time.time()
-        total_time = end_time - start_time
-        self.log.info("Synced change %s in %0.5f seconds.", self.change_id, total_time)
 
 class CheckReposTask(Task):
     # on startup, check all projects
@@ -1340,6 +1372,7 @@ class Sync(object):
             self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
             self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
             self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
+            self.submitTask(SyncOutdatedChangesTask(LOW_PRIORITY))
             self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
             self.periodic_thread = threading.Thread(target=self.periodicSync)
             self.periodic_thread.daemon = True
@@ -1355,6 +1388,7 @@ class Sync(object):
                 if now-hourly > 3600:
                     hourly = now
                     self.pruneDatabase()
+                    self.syncOutdatedChanges()
             except Exception:
                 self.log.exception('Exception in periodicSync')
 
@@ -1479,6 +1513,13 @@ class Sync(object):
 
     def pruneDatabase(self):
         task = PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY)
+        self.submitTask(task)
+        if task.wait():
+            for subtask in task.tasks:
+                subtask.wait()
+
+    def syncOutdatedChanges(self):
+        task = SyncOutdatedChangesTask(LOW_PRIORITY)
         self.submitTask(task)
         if task.wait():
             for subtask in task.tasks:

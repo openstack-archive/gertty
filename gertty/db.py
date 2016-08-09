@@ -82,6 +82,7 @@ change_table = Table(
     Column('pending_status', Boolean, index=True, nullable=False),
     Column('pending_status_message', Text),
     Column('last_seen', DateTime, index=True),
+    Column('outdated', Boolean, index=True, nullable=False),
     )
 change_conflict_table = Table(
     'change_conflict', metadata,
@@ -257,7 +258,7 @@ class Change(object):
                  hidden=False, reviewed=False, starred=False, held=False,
                  pending_rebase=False, pending_topic=False,
                  pending_starred=False, pending_status=False,
-                 pending_status_message=None):
+                 pending_status_message=None, outdated=False):
         self.project_key = project.key
         self.account_key = owner.key
         self.id = id
@@ -278,6 +279,7 @@ class Change(object):
         self.pending_starred = pending_starred
         self.pending_status = pending_status
         self.pending_status_message = pending_status_message
+        self.outdated = outdated
 
     def getCategories(self):
         categories = set([label.category for label in self.labels])
@@ -932,6 +934,9 @@ class DatabaseSession(object):
 
     def getHeld(self):
         return self.session().query(Change).filter_by(held=True).all()
+
+    def getOutdated(self):
+        return self.session().query(Change).filter_by(outdated=True).all()
 
     def getPendingMessages(self):
         return self.session().query(Message).filter_by(pending=True).all()
