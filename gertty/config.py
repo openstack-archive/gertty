@@ -159,7 +159,7 @@ class Config(object):
             # file.
             mode = os.stat(self.path).st_mode & 0o0777
             if not mode == 0o600:
-                print (
+                print(
                     "Error: Config file '{}' contains a password and does "
                     "not have permissions set to 0600.\n"
                     "Permissions are: {}".format(self.path, oct(mode)))
