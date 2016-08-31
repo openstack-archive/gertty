@@ -14,7 +14,8 @@
 
 import logging
 import requests
-import urlparse
+
+from six.moves.urllib import parse as urlparse
 
 
 class FormAuth(requests.auth.AuthBase):
