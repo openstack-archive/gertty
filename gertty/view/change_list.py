@@ -47,6 +47,7 @@ COLUMNS = [
     ColumnInfo('Topic',   'weight',  1),
     ColumnInfo('Owner',   'weight',  1),
     ColumnInfo('Updated', 'given',  10),
+    ColumnInfo('Size',    'given',   4),
 ]
 
 
@@ -114,6 +115,7 @@ class ChangeRow(urwid.Button, ChangeListColumns):
         self.subject = mywid.SearchableText(u'', wrap='clip')
         self.number = mywid.SearchableText(u'')
         self.updated = mywid.SearchableText(u'')
+        self.size = mywid.SearchableText(u'', align='right')
         self.project = mywid.SearchableText(u'', wrap='clip')
         self.owner = mywid.SearchableText(u'', wrap='clip')
         self.branch = mywid.SearchableText(u'', wrap='clip')
@@ -175,6 +177,13 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             self.updated.set_text(updated_time.strftime("%I:%M %p").upper())
         else:
             self.updated.set_text(updated_time.strftime("%Y-%m-%d"))
+        total_added_removed = 0
+        for rfile in change.revisions[-1].files:
+            if rfile.status is None:
+                continue
+            total_added_removed += rfile.inserted or 0
+            total_added_removed += rfile.deleted or 0
+        self.size.set_text(str(total_added_removed))
 
         self.category_columns = []
         for category in categories:
@@ -204,6 +213,7 @@ class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
         self.subject = urwid.Text(u'Subject', wrap='clip')
         self.number = urwid.Text(u'Number')
         self.updated = urwid.Text(u'Updated')
+        self.size = urwid.Text(u'Size')
         self.project = urwid.Text(u'Project', wrap='clip')
         self.owner = urwid.Text(u'Owner', wrap='clip')
         self.branch = urwid.Text(u'Branch', wrap='clip')
@@ -223,7 +233,7 @@ class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
 @mouse_scroll_decorator.ScrollByWheel
 class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
     required_columns = set(['Number', 'Subject', 'Updated'])
-    optional_columns = set(['Topic', 'Branch'])
+    optional_columns = set(['Topic', 'Branch', 'Size'])
 
     def getCommands(self):
         if self.project_key:
