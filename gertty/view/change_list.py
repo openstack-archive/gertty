@@ -345,9 +345,11 @@ class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
             change_list = session.getChanges(self.query, self.unreviewed,
                                              sort_by=self.sort_by)
             if self.unreviewed:
-                self.title = u'Unreviewed changes in %s' % self.query_desc
+                self.title = (u'Unreviewed %d changes in %s' %
+                    (len(change_list), self.query_desc))
             else:
-                self.title = u'All changes in %s' % self.query_desc
+                self.title = (u'All %d changes in %s' %
+                    (len(change_list), self.query_desc))
             self.short_title = self.query_desc
             if '/' in self.short_title and ' ' not in self.short_title:
                 i = self.short_title.rfind('/')
