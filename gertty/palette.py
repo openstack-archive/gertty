@@ -49,6 +49,7 @@ DEFAULT_PALETTE={
     'line-number': ['dark gray', ''],
     'focused-line-number': ['dark gray,standout', ''],
     'search-result': ['default,standout', ''],
+    'trailing-ws': ['light red,standout', ''],
     # Change view
     'change-data': ['dark cyan', ''],
     'focused-change-data': ['light cyan', ''],
