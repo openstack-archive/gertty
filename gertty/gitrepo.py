@@ -303,6 +303,7 @@ class Repo(object):
             ret.append(x.split('\t'))
         return ret
 
+    trailing_whitespace_re = re.compile(' +$')
     def intralineDiff(self, old, new):
         # takes a list of old lines and a list of new lines
         prevline = None
@@ -352,9 +353,23 @@ class Repo(object):
                 continue
             if prevline is not None:
                 if prevstyle == 'added' or prevstyle == 'context':
-                    output_new.append((prevstyle+'-line', prevline))
+                    if (self.trailing_whitespace_re.search(prevline)):
+                        span = self.trailing_whitespace_re.search(prevline).span()
+                        self.log.debug('added span:%d,%d' % span)
+                        ws_line = [(prevstyle+'-line', prevline[:span[0]]),
+                                   ('trailing-whitespace', prevline[span[0]:span[1]])]
+                        output_new.append(ws_line)
+                    else:
+                        output_new.append((prevstyle+'-line', prevline))
                 if prevstyle == 'removed' or prevstyle == 'context':
-                    output_old.append((prevstyle+'-line', prevline))
+                    if (self.trailing_whitespace_re.search(prevline)):
+                        span = self.trailing_whitespace_re.search(prevline).span()
+                        self.log.debug('removed span:%d,%d' % span)
+                        ws_line = [(prevstyle+'-line', prevline[:span[0]]),
+                                   ('trailing-whitespace', prevline[span[0]:span[1]])]
+                        output_old.append(ws_line)
+                    else:
+                        output_old.append((prevstyle+'-line', prevline))
             if key == '+':
                 prevstyle = 'added'
             elif key == '-':

@@ -36,7 +36,7 @@ DEFAULT_PALETTE={
     'removed-line': ['dark red', ''],
     'removed-word': ['light red', ''],
     'added-line': ['dark green', ''],
-    'added-word': ['light green', ''],
+    'added-word': ['light green,standout', ''],
     'nonexistent': ['default', ''],
     'focused-removed-line': ['dark red,standout', ''],
     'focused-removed-word': ['light red,standout', ''],
@@ -49,6 +49,7 @@ DEFAULT_PALETTE={
     'line-number': ['dark gray', ''],
     'focused-line-number': ['dark gray,standout', ''],
     'search-result': ['default,standout', ''],
+    'trailing-whitespace': ['light red,standout', ''],
     # Change view
     'change-data': ['dark cyan', ''],
     'focused-change-data': ['light cyan', ''],
