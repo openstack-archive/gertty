@@ -303,6 +303,20 @@ class Repo(object):
             ret.append(x.split('\t'))
         return ret
 
+    trailing_ws_re = re.compile('\s+$')
+    def _emph_trail_ws(self, style, line):
+        result = (style, line)
+        re_result = self.trailing_ws_re.search(line)
+        if (re_result):
+            span = re_result.span()
+            if len(line[:span[0]]) == 0:
+                ws_line = ('trailing-ws', line)
+            else:
+                ws_line = [(style, line[:span[0]]),
+                           ('trailing-ws', line[span[0]:span[1]])]
+            result = ws_line
+        return result
+
     def intralineDiff(self, old, new):
         # takes a list of old lines and a list of new lines
         prevline = None
@@ -341,9 +355,11 @@ class Repo(object):
                     accumulator += c
                 if accumulator:
                     if emphasis:
-                        result.append((prevstyle+'-word', accumulator))
+                        result.append(self._emph_trail_ws(prevstyle+'-word',
+                                                          accumulator))
                     else:
-                        result.append((prevstyle+'-line', accumulator))
+                        result.append(self._emph_trail_ws(prevstyle+'-line',
+                                                          accumulator))
                 if prevstyle == 'added':
                     output_new.append(result)
                 elif prevstyle == 'removed':
@@ -352,7 +368,8 @@ class Repo(object):
                 continue
             if prevline is not None:
                 if prevstyle == 'added' or prevstyle == 'context':
-                    output_new.append((prevstyle+'-line', prevline))
+                    output_new.append(self._emph_trail_ws(prevstyle+'-line',
+                                                          prevline))
                 if prevstyle == 'removed' or prevstyle == 'context':
                     output_old.append((prevstyle+'-line', prevline))
             if key == '+':
@@ -365,7 +382,8 @@ class Repo(object):
         #self.log.debug('prev'+repr(prevline))
         if prevline is not None:
             if prevstyle == 'added':
-                output_new.append((prevstyle+'-line', prevline))
+                output_new.append(self._emph_trail_ws(prevstyle+'-line',
+                                                      prevline))
             elif prevstyle == 'removed':
                 output_old.append((prevstyle+'-line', prevline))
         #self.log.debug(repr(output_old))
