@@ -303,6 +303,7 @@ class Repo(object):
             ret.append(x.split('\t'))
         return ret
 
+    trailing_ws_re = re.compile('\s+$')
     def intralineDiff(self, old, new):
         # takes a list of old lines and a list of new lines
         prevline = None
@@ -352,9 +353,21 @@ class Repo(object):
                 continue
             if prevline is not None:
                 if prevstyle == 'added' or prevstyle == 'context':
-                    output_new.append((prevstyle+'-line', prevline))
+                    if (self.trailing_ws_re.search(prevline)):
+                        span = self.trailing_ws_re.search(prevline).span()
+                        ws_line = [(prevstyle+'-line', prevline[:span[0]]),
+                                   ('trailing-ws', prevline[span[0]:span[1]])]
+                        output_new.append(ws_line)
+                    else:
+                        output_new.append((prevstyle+'-line', prevline))
                 if prevstyle == 'removed' or prevstyle == 'context':
-                    output_old.append((prevstyle+'-line', prevline))
+                    if (self.trailing_ws_re.search(prevline)):
+                        span = self.trailing_ws_re.search(prevline).span()
+                        ws_line = [(prevstyle+'-line', prevline[:span[0]]),
+                                   ('trailing-ws', prevline[span[0]:span[1]])]
+                        output_old.append(ws_line)
+                    else:
+                        output_old.append((prevstyle+'-line', prevline))
             if key == '+':
                 prevstyle = 'added'
             elif key == '-':
