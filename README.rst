@@ -1,5 +1,5 @@
-Gertty
-======
+Gertty 
+======	
 
 Gertty is a console-based interface to the Gerrit Code Review system.
 
