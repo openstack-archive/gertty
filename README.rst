@@ -1,7 +1,7 @@
-Gertty
-======
+Gertty 
+======	
 
-Gertty is a console-based interface to the Gerrit Code Review system.
+Gertty is a console-based interface to the Gerrit Code Review system.   
 
 As compared to the web interface, the main advantages are:
 
