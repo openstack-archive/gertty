@@ -104,6 +104,15 @@ class ChangeRow(urwid.Button, ChangeListColumns):
 
                         'added-graph': 'focused-added-graph',
                         'removed-graph': 'focused-removed-graph',
+
+                        'line-count-threshold-1': 'focused-line-count-threshold-1',
+                        'line-count-threshold-2': 'focused-line-count-threshold-2',
+                        'line-count-threshold-3': 'focused-line-count-threshold-3',
+                        'line-count-threshold-4': 'focused-line-count-threshold-4',
+                        'line-count-threshold-5': 'focused-line-count-threshold-5',
+                        'line-count-threshold-6': 'focused-line-count-threshold-6',
+                        'line-count-threshold-7': 'focused-line-count-threshold-7',
+                        'line-count-threshold-8': 'focused-line-count-threshold-8',
                         }
 
     def selectable(self):
@@ -148,7 +157,7 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             return True
         return False
 
-    def _makeSize(self, added, removed):
+    def _makeSizeGraph(self, added, removed):
         # Removed is a red graph on top, added is a green graph on bottom.
         #
         # The graph is 4 cells wide.  If both the red and green graphs
@@ -165,7 +174,9 @@ class ChangeRow(urwid.Button, ChangeListColumns):
         ret = []
         # The graph is logarithmic -- one cell for each order of
         # magnitude.
-        for threshold in [1, 10, 100, 1000]:
+        conf_thresholds = self.app.config.size_column['thresholds']
+        # for threshold in [1, 10, 100, 1000]:
+        for threshold in conf_thresholds:
             color = []
             if (added > threshold and removed > threshold):
                 ret.append(('added-removed-graph', lower_box))
@@ -175,6 +186,36 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                 ret.append(('removed-graph', upper_box))
             else:
                 ret.append(' ')
+        return ret
+
+    def _makeSizeSplitGraph(self, added, removed):
+        # Removed is a red graph on right, added is a green graph on left.
+        # conf_thresholds[7]: Full block,
+        # conf_thresholds[6]: Left seven eighths block,
+        # ...., conf_thresholds[0]: Left one eighth block.
+        # You can see the character table at the wikipedia[1] or somewhere.
+        # [1] https://en.wikipedia.org/wiki/Block_Elements#Character_table
+        conf_thresholds = self.app.config.size_column['thresholds']
+        thresholds = [(conf_thresholds[7], u'\u2588'),
+                      (conf_thresholds[6], u'\u2589'),
+                      (conf_thresholds[5], u'\u258a'),
+                      (conf_thresholds[4], u'\u258b'),
+                      (conf_thresholds[3], u'\u258c'),
+                      (conf_thresholds[2], u'\u258d'),
+                      (conf_thresholds[1], u'\u258e'),
+                      (conf_thresholds[0], u'\u258f')]
+        ret = []
+        # The graph is logarithmic -- one cell for each order of
+        # magnitude.
+        for diff in [[added, 'added-graph'], [removed, 'removed-graph']]:
+            for threshold in thresholds:
+                if (diff[0] == 0):
+                    ret.append(' ')
+                    break
+                if (diff[0] >= threshold[0]):
+                    ret.append((diff[1], threshold[1]))
+                    break
+            ret.append(' ')
         return ret
 
     def update(self, change, categories):
@@ -217,7 +258,32 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                 continue
             total_added += rfile.inserted or 0
             total_removed += rfile.deleted or 0
-        self.size.set_text(self._makeSize(total_added, total_removed))
+        if self.app.config.size_column['type'] == 'number':
+            total_added_removed = total_added + total_removed
+            thresholds = self.app.config.size_column['thresholds']
+            size_style = 'line-count-threshold-1'
+            if (total_added_removed >= thresholds[7]):
+                size_style = 'line-count-threshold-8'
+            elif (total_added_removed >= thresholds[6]):
+                size_style = 'line-count-threshold-7'
+            elif (total_added_removed >= thresholds[5]):
+                size_style = 'line-count-threshold-6'
+            elif (total_added_removed >= thresholds[4]):
+                size_style = 'line-count-threshold-5'
+            elif (total_added_removed >= thresholds[3]):
+                size_style = 'line-count-threshold-4'
+            elif (total_added_removed >= thresholds[2]):
+                size_style = 'line-count-threshold-3'
+            elif (total_added_removed >= thresholds[1]):
+                size_style = 'line-count-threshold-2'
+            elif (total_added_removed >= thresholds[0]):
+                size_style = 'line-count-threshold-1'
+            self.size.set_text((size_style, str(total_added_removed)))
+        elif self.app.config.size_column['type'] == 'splitGraph':
+            self.size.set_text(self._makeSizeSplitGraph(total_added,
+                                                          total_removed))
+        else:
+            self.size.set_text(self._makeSizeGraph(total_added, total_removed))
 
         self.category_columns = []
         for category in categories:
@@ -267,6 +333,7 @@ class ChangeListHeader(urwid.WidgetWrap, ChangeListColumns):
 @mouse_scroll_decorator.ScrollByWheel
 class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
     required_columns = set(['Number', 'Subject', 'Updated'])
+    # FIXME(masayukig): Disable 'Size' column when configured
     optional_columns = set(['Topic', 'Branch', 'Size'])
 
     def getCommands(self):
@@ -344,6 +411,9 @@ class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
             # not.
             self.enabled_columns.discard('Owner')
             self.disabled_columns.add('Owner')
+        if app.config.size_column['type'] == 'disabled':
+            self.enabled_columns.discard('Size')
+            self.disabled_columns.add('Size')
         self.sort_by = sort_by or app.config.change_list_options['sort-by']
         if reverse is not None:
             self.reverse = reverse
