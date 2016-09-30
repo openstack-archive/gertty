@@ -100,6 +100,10 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
                         'max-label': 'focused-max-label',
+
+
+                        'added-graph': 'focused-added-graph',
+                        'removed-graph': 'focused-removed-graph',
                         }
 
     def selectable(self):
@@ -144,6 +148,35 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             return True
         return False
 
+    def _makeSize(self, added, removed):
+        # Removed is a red graph on top, added is a green graph on bottom.
+        #
+        # The graph is 4 cells wide.  If both the red and green graphs
+        # are in the cell, we set the bg to red, fg to green, and set
+        # a box in the bottom half of the cell.
+        #
+        # If only one of the graphs is in the cell, we set a box in
+        # either the top or bottom of the cell, and set the fg color
+        # appropriately.  This is so that the reverse-video which
+        # operates on the line when focused works as expected.
+
+        lower_box = u'\u2584'
+        upper_box = u'\u2580'
+        ret = []
+        # The graph is logarithmic -- one cell for each order of
+        # magnitude.
+        for threshold in [1, 10, 100, 1000]:
+            color = []
+            if (added > threshold and removed > threshold):
+                ret.append(('added-removed-graph', lower_box))
+            elif (added > threshold):
+                ret.append(('added-graph', lower_box))
+            elif (removed > threshold):
+                ret.append(('removed-graph', upper_box))
+            else:
+                ret.append(' ')
+        return ret
+
     def update(self, change, categories):
         if change.reviewed or change.hidden:
             style = 'reviewed-change'
@@ -177,13 +210,14 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             self.updated.set_text(updated_time.strftime("%I:%M %p").upper())
         else:
             self.updated.set_text(updated_time.strftime("%Y-%m-%d"))
-        total_added_removed = 0
+        total_added = 0
+        total_removed = 0
         for rfile in change.revisions[-1].files:
             if rfile.status is None:
                 continue
-            total_added_removed += rfile.inserted or 0
-            total_added_removed += rfile.deleted or 0
-        self.size.set_text(str(total_added_removed))
+            total_added += rfile.inserted or 0
+            total_removed += rfile.deleted or 0
+        self.size.set_text(self._makeSize(total_added, total_removed))
 
         self.category_columns = []
         for category in categories:
