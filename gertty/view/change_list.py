@@ -100,6 +100,10 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
                         'max-label': 'focused-max-label',
+
+
+                        'added-graph': 'focused-added-graph',
+                        'removed-graph': 'focused-removed-graph',
                         }
 
     def selectable(self):
@@ -144,6 +148,26 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             return True
         return False
 
+    def _makeSize(self, added, removed):
+        # Removed is a red graph on right, added is a green graph on left.
+        # Left one eighth, Left three eighths, Left five eighths, Full
+        thresholds = [(1000, u'\u2588'), (800, u'\u2589'), (600, u'\u258a'),
+                      (400, u'\u258b'), (200, u'\u258c'), (100, u'\u258d'),
+                      (10, u'\u258e'), (1, u'\u258f')]
+        ret = []
+        # The graph is logarithmic -- one cell for each order of
+        # magnitude.
+        for diff in [[added, 'added-graph'], [removed, 'removed-graph']]:
+            for threshold in thresholds:
+                if (diff[0] == 0):
+                    ret.append(' ')
+                    break
+                if (diff[0] >= threshold[0]):
+                    ret.append((diff[1], threshold[1]))
+                    break
+            ret.append(' ')
+        return ret
+
     def update(self, change, categories):
         if change.reviewed or change.hidden:
             style = 'reviewed-change'
@@ -177,13 +201,14 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             self.updated.set_text(updated_time.strftime("%I:%M %p").upper())
         else:
             self.updated.set_text(updated_time.strftime("%Y-%m-%d"))
-        total_added_removed = 0
+        total_added = 0
+        total_removed = 0
         for rfile in change.revisions[-1].files:
             if rfile.status is None:
                 continue
-            total_added_removed += rfile.inserted or 0
-            total_added_removed += rfile.deleted or 0
-        self.size.set_text(str(total_added_removed))
+            total_added += rfile.inserted or 0
+            total_removed += rfile.deleted or 0
+        self.size.set_text(self._makeSize(total_added, total_removed))
 
         self.category_columns = []
         for category in categories:

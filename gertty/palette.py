@@ -93,6 +93,11 @@ DEFAULT_PALETTE={
     'focused-held-change': ['light red,standout', ''],
     'marked-change': ['dark cyan', ''],
     'focused-marked-change': ['dark cyan,standout', ''],
+    'added-graph': ['dark green', ''],
+    'removed-graph': ['dark red', ''],
+    'added-removed-graph': ['dark green', 'dark red'],
+    'focused-added-graph': ['default,standout', 'dark green'],
+    'focused-removed-graph': ['default,standout', 'dark red'],
     }
 
 # A delta from the default palette
