@@ -140,3 +140,12 @@ reviewkeys:
         value: 2
       - category: 'Workflow'
         value: 1
+
+# 'size-column' is a set of customize parameters for the 'Size' column
+# on your dashboard.
+# 'type' must be 'graph' or 'number'. Default is 'graph'.
+# 'thresholds' is for bar graphs width (when graph) or color styles
+# (when number).
+size-column:
+  type: 'graph'
+  thresholds: [1, 10, 100, 1000]
