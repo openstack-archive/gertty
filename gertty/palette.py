@@ -93,6 +93,18 @@ DEFAULT_PALETTE={
     'focused-held-change': ['light red,standout', ''],
     'marked-change': ['dark cyan', ''],
     'focused-marked-change': ['dark cyan,standout', ''],
+    'added-graph': ['dark green', ''],
+    'removed-graph': ['dark red', ''],
+    'focused-added-graph': ['default,standout', 'dark green'],
+    'focused-removed-graph': ['default,standout', 'dark red'],
+    'line-count-threshold-1': ['light green', ''],
+    'focused-line-count-threshold-1': ['light green,standout', ''],
+    'line-count-threshold-2': ['light cyan', ''],
+    'focused-line-count-threshold-2': ['light cyan,standout', ''],
+    'line-count-threshold-3': ['yellow', ''],
+    'focused-line-count-threshold-3': ['yellow,standout', ''],
+    'line-count-threshold-4': ['light red', ''],
+    'focused-line-count-threshold-4': ['light red,standout', ''],
     }
 
 # A delta from the default palette

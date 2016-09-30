@@ -108,6 +108,10 @@ class ConfigSchema(object):
 
     keymaps = [keymap]
 
+    thresholds = [int, int, int, int, int, int, int, int]
+    size_column = {v.Required('type'): v.Any('graph', 'number', 'disabled', None),
+                   v.Optional('thresholds'): thresholds}
+
     def getSchema(self, data):
         schema = v.Schema({v.Required('servers'): self.servers,
                            'palettes': self.palettes,
@@ -126,6 +130,7 @@ class ConfigSchema(object):
                            'breadcrumbs': bool,
                            'change-list-options': self.change_list_options,
                            'expire-age': str,
+                           'size-column': self.size_column,
                            })
         return schema
 
@@ -246,6 +251,10 @@ class Config(object):
             'reverse': change_list_options.get('reverse', False)}
 
         self.expire_age = self.config.get('expire-age', '2 months')
+
+        self.size_column = self.config.get('size-column', {})
+        self.size_column['type'] = self.size_column.get('type', 'graph')
+        # FIXME(masayukig): add default values for thresholds
 
     def getServer(self, name=None):
         for server in self.config['servers']:
