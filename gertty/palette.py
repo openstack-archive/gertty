@@ -92,6 +92,14 @@ DEFAULT_PALETTE={
     'focused-held-change': ['light red,standout', ''],
     'marked-change': ['dark cyan', ''],
     'focused-marked-change': ['dark cyan,standout', ''],
+    'safe-threshold': ['light green', ''],
+    'focused-safe-threshold': ['light green,standout', ''],
+    'normal-threshold': ['light cyan', ''],
+    'focused-normal-threshold': ['light cyan,standout', ''],
+    'warn-threshold': ['yellow', ''],
+    'focused-warn-threshold': ['yellow,standout', ''],
+    'danger-threshold': ['light red', ''],
+    'focused-danger-threshold': ['light red,standout', ''],
     }
 
 # A delta from the default palette

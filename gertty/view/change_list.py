@@ -100,6 +100,10 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                         'negative-label': 'focused-negative-label',
                         'min-label': 'focused-min-label',
                         'max-label': 'focused-max-label',
+                        'safe-threshold': 'focused-safe-threshold',
+                        'normal-threshold': 'focused-normal-threshold',
+                        'warn-threshold': 'focused-warn-threshold',
+                        'danger-threshold': 'focused-danger-threshold',
                         }
 
     def selectable(self):
@@ -183,7 +187,14 @@ class ChangeRow(urwid.Button, ChangeListColumns):
                 continue
             total_added_removed += rfile.inserted or 0
             total_added_removed += rfile.deleted or 0
-        self.size.set_text(str(total_added_removed))
+        size_style = 'safe-threshold'
+        if (total_added_removed >= 1000):
+            size_style = 'danger-threshold'
+        elif (total_added_removed >= 100):
+            size_style = 'warn-threshold'
+        elif (total_added_removed >= 10):
+            size_style = 'normal-threshold'
+        self.size.set_text((size_style, str(total_added_removed)))
 
         self.category_columns = []
         for category in categories:
