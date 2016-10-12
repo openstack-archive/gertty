@@ -80,8 +80,11 @@ class CherryPickDialog(urwid.WidgetWrap, mywid.LineBoxTitlePropertyMixin):
                           ('pack', cancel_button)]
         button_columns = urwid.Columns(button_widgets, dividechars=2)
         rows = []
-        self.entry = mywid.MyEdit(edit_text=change.revisions[-1].message,
-                                  multiline=True, ring=app.ring)
+        commit_message = change.revisions[-1].message
+        commit_message += "(cherry picked from commit %s)" % \
+                change.revisions[-1].commit
+        self.entry = mywid.MyEdit(edit_text=commit_mesage, multiline=True,
+                                  ring=app.ring)
         self.branch_buttons = []
         rows.append(urwid.Text(u"Branch:"))
         for branch in change.project.branches:
