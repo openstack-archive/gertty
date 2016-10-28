@@ -1366,7 +1366,9 @@ class Sync(object):
             task.run(self)
             task.complete(True)
             self.queue.complete(task)
-        except (requests.ConnectionError, OfflineError) as e:
+        except (requests.ConnectionError, OfflineError,
+                requests.exceptions.ChunkedEncodingError,
+        ) as e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
                 self.submitTask(GetVersionTask(HIGH_PRIORITY))
