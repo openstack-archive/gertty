@@ -200,6 +200,25 @@ class Project(object):
         self.subscribed = subscribed
         self.description = description
 
+    def delete(self):
+        # This unusual delete method is to accomodate the
+        # self-referential many-to-many relationship from
+        # change_conflict.  With the default cascade configuration,
+        # the entry from the association table is deleted regardless
+        # of whether the change being deleted is change1 or change2.
+        # However, when both changes are deleted at once (only likely
+        # to happen when the entire project is deleted), SQLAlchemy
+        # cascades through both relationships and attempts to delete
+        # the entry twice.  Since we rarely delete projects, we add a
+        # special case here to delete a project's changes one at a
+        # time to avoid this situation.
+        session = Session.object_session(self)
+        for c in self.changes:
+            session.delete(c)
+            session.flush()
+            session.expire_all()
+        session.delete(self)
+
     def createChange(self, *args, **kw):
         session = Session.object_session(self)
         args = [self] + list(args)
