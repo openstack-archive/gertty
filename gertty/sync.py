@@ -1368,6 +1368,7 @@ class Sync(object):
             self.queue.complete(task)
         except (requests.ConnectionError, OfflineError,
                 requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.ReadTimeout
         ) as e:
             self.log.warning("Offline due to: %s" % (e,))
             if not self.offline:
