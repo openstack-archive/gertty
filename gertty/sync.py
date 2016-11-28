@@ -23,6 +23,7 @@ import threading
 import json
 import time
 import datetime
+import warnings
 
 import dateutil.parser
 try:
@@ -588,8 +589,14 @@ class SyncChangeTask(Task):
         for remote_commit, remote_revision in remote_change.get('revisions', {}).items():
             remote_comments_data = sync.get('changes/%s/revisions/%s/comments' % (self.change_id, remote_commit))
             remote_revision['_gertty_remote_comments_data'] = remote_comments_data
-        remote_conflicts = sync.query(['q=status:open+is:mergeable+conflicts:%s' %
-                                       remote_change['_number']])
+        try:
+            remote_conflicts = sync.query(['q=status:open+is:mergeable+conflicts:%s' %
+                                           remote_change['_number']])
+        except Exception:
+            self.log.exception("Unable to sync conflicts for change %s" % self.change_id)
+            warnings.warn("Unable to sync conflicts for change %s" % self.change_id)
+            remote_conflicts = []
+
         fetches = collections.defaultdict(list)
         parent_commits = set()
         with app.db.getSession() as session:
