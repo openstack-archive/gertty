@@ -575,7 +575,8 @@ class SyncChangeTask(Task):
                 self.log.error("Marking change %s outdated" % (self.change_id,))
                 with sync.app.db.getSession() as session:
                     change = session.getChangeByID(self.change_id)
-                    change.outdated = True
+                    if change:
+                        change.outdated = True
             except Exception:
                 self.log.exception("Error while marking change %s as outdated" % (self.change_id,))
             raise
