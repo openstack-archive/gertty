@@ -54,7 +54,8 @@ class ConfigSchema(object):
 
     servers = [server]
 
-    sort_by = v.Any('number', 'updated', 'last-seen')
+    _sort_by = v.Any('number', 'updated', 'last-seen')
+    sort_by = v.Any(_sort_by, [_sort_by])
 
     text_replacement = {'text': v.Any(str,
                                       {'color': str,
