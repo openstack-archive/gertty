@@ -881,14 +881,17 @@ class DatabaseSession(object):
     def getChanges(self, query, unreviewed=False, sort_by='number'):
         self.database.log.debug("Search query: %s sort: %s" % (query, sort_by))
         q = self.session().query(Change).filter(self.search.parse(query))
+        if not isinstance(sort_by, (list, tuple)):
+            sort_by = [sort_by]
         if unreviewed:
             q = q.filter(change_table.c.hidden==False, change_table.c.reviewed==False)
-        if sort_by == 'updated':
-            q = q.order_by(change_table.c.updated)
-        elif sort_by == 'last-seen':
-            q = q.order_by(change_table.c.last_seen)
-        else:
-            q = q.order_by(change_table.c.number)
+        for s in sort_by:
+            if s == 'updated':
+                q = q.order_by(change_table.c.updated)
+            elif s == 'last-seen':
+                q = q.order_by(change_table.c.last_seen)
+            elif s == 'number':
+                q = q.order_by(change_table.c.number)
         self.database.log.debug("Search SQL: %s" % q)
         try:
             return q.all()
