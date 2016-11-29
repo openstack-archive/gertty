@@ -892,6 +892,9 @@ class DatabaseSession(object):
                 q = q.order_by(change_table.c.last_seen)
             elif s == 'number':
                 q = q.order_by(change_table.c.number)
+            elif s == 'project':
+                q = q.filter(project_table.c.key == change_table.c.project_key)
+                q = q.order_by(project_table.c.name)
         self.database.log.debug("Search SQL: %s" % q)
         try:
             return q.all()
