@@ -584,7 +584,7 @@ class ChangeView(urwid.WidgetWrap):
 
         self.checkGitRepo()
         self.refresh()
-        self.listbox.set_focus(3)
+        self.listbox.set_focus(0)
         self.grid.set_focus(1)
 
     def checkGitRepo(self):
