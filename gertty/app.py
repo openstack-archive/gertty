@@ -750,6 +750,17 @@ class App(object):
             result = self.parseInternalURL(url)
             if result is not None:
                 self.openInternalURL(result)
+        elif command == 'star':
+            url = data[0]
+            self.log.debug("Starring URL %s" % (url,))
+            result = self.parseInternalURL(url)
+            if result is not None:
+                with self.db.getSession() as session:
+                    change = session.getChangeByNumber(result[0])
+                    change.starred = True
+                    change.pending_starred = True
+                self.sync.submitTask(
+                    sync.ChangeStarredTask(change, sync.HIGH_PRIORITY))
         else:
             self.log.error("Unable to parse command %s with data %s" % (command, data))
 
@@ -877,6 +888,21 @@ class OpenChangeAction(argparse.Action):
         s.sendall('open %s\n' % url)
         sys.exit(0)
 
+class StarChangeAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        cf = config.Config(namespace.server, namespace.palette,
+                           namespace.keymap, namespace.path)
+        url = values[0]
+        result = urlparse.urlparse(values[0])
+        if not url.startswith(cf.url):
+            print('Supplied URL must start with %s' % (cf.url,))
+            sys.exit(1)
+
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(cf.socket_path)
+        s.sendall('star %s\n' % url)
+        sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
@@ -901,6 +927,9 @@ def main():
     parser.add_argument('--open', nargs=1, action=OpenChangeAction,
                         metavar='URL',
                         help='open the given URL in a running Gertty')
+    parser.add_argument('--star', nargs=1, action=StarChangeAction,
+                        metavar='URL',
+                        help='set the starred flag for the given change URL')
     parser.add_argument('--version', dest='version', action='version',
                         version=version(),
                         help='show Gertty\'s version')
