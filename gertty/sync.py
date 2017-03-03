@@ -942,16 +942,21 @@ class CheckReposTask(Task):
                 except gitrepo.GitCloneError:
                     missing = True
                 if missing or app.fetch_missing_refs:
-                    sync.submitTask(CheckRevisionsTask(project.key,
-                                                       priority=LOW_PRIORITY))
+                    sync.submitTask(
+                        CheckRevisionsTask(project.key,
+                                           force_fetch=app.fetch_missing_refs,
+                                           priority=LOW_PRIORITY)
+                    )
             except Exception:
                 self.log.exception("Exception checking repo %s" %
                                    (project.name,))
 
 class CheckRevisionsTask(Task):
-    def __init__(self, project_key, priority=NORMAL_PRIORITY):
+    def __init__(self, project_key, force_fetch=False,
+                 priority=NORMAL_PRIORITY):
         super(CheckRevisionsTask, self).__init__(priority)
         self.project_key = project_key
+        self.force_fetch = force_fetch
 
     def __repr__(self):
         return '<CheckRevisionsTask %s>' % (self.project_key,)
@@ -981,7 +986,9 @@ class CheckRevisionsTask(Task):
                 else:
                     to_sync.add(change.id)
         for change_id in to_sync:
-            sync.submitTask(SyncChangeTask(change_id, priority=self.priority))
+            sync.submitTask(SyncChangeTask(change_id,
+                                           force_fetch=self.force_fetch,
+                                           priority=self.priority))
 
 class UploadReviewsTask(Task):
     def __repr__(self):
