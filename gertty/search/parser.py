@@ -199,7 +199,8 @@ def SearchParser():
         if p[2].startswith('^'):
             p[0] = func.matches(p[2], gertty.db.change_table.c.topic)
         else:
-            p[0] = gertty.db.change_table.c.topic == p[2]
+            p[0] = and_(gertty.db.change_table.c.topic.isnot(None),
+                        gertty.db.change_table.c.topic == p[2])
 
     def p_ref_term(p):
         '''ref_term : OP_REF string'''
