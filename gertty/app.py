@@ -211,7 +211,7 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
     def open(self, url, new=0, autoraise=True):
         cmdline = [self.name] + [arg.replace("%s", url)
                                  for arg in self.args]
-        inout = file(os.devnull, "r+")
+        inout = open(os.devnull, "r+")
         try:
             if sys.platform[:3] == 'win':
                 p = subprocess.Popen(cmdline)
