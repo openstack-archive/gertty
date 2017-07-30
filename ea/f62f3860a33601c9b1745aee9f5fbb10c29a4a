@@ -1,0 +1,9 @@
+Code-Review+1: Major Hayden <major@mhtx.net>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sun, 30 Jul 2017 14:45:33 +0000
+Reviewed-on: https://review.openstack.org/476785
+Project: openstack/gertty
+Branch: refs/heads/master
