@@ -17,6 +17,7 @@ import collections
 import getpass
 import os
 import re
+import sys
 try:
     import ordereddict
 except:
@@ -137,7 +138,7 @@ class Config(object):
 
         if not os.path.exists(self.path):
             self.printSample()
-            exit(1)
+            sys.exit(1)
 
         self.config = yaml.load(open(self.path))
         schema = ConfigSchema().getSchema(self.config)
@@ -164,7 +165,7 @@ class Config(object):
                     "Error: Config file '{}' contains a password and does "
                     "not have permissions set to 0600.\n"
                     "Permissions are: {}".format(self.path, oct(mode)))
-                exit(1)
+                sys.exit(1)
         self.auth_type = server.get('auth-type', 'digest')
         self.verify_ssl = server.get('verify-ssl', True)
         if not self.verify_ssl:
