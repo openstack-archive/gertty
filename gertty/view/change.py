@@ -682,13 +682,13 @@ class ChangeView(urwid.WidgetWrap):
                 approval_headers.append(urwid.Text(('table-header', label.category)))
                 categories.append(label.category)
             votes = mywid.Table(approval_headers)
-            approvals_for_name = {}
+            approvals_for_account = {}
             pending_message = change.revisions[-1].getPendingMessage()
             for approval in change.approvals:
                 # Don't display draft approvals unless they are pending-upload
                 if approval.draft and not pending_message:
                     continue
-                approvals = approvals_for_name.get(approval.reviewer.name)
+                approvals = approvals_for_account.get(approval.reviewer.id)
                 if not approvals:
                     approvals = {}
                     row = []
@@ -696,12 +696,12 @@ class ChangeView(urwid.WidgetWrap):
                         style = 'reviewer-own-name'
                     else:
                         style = 'reviewer-name'
-                    row.append(urwid.Text((style, approval.reviewer.name)))
+                    row.append(urwid.Text((style, approval.reviewer_name)))
                     for i, category in enumerate(categories):
                         w = urwid.Text(u'', align=urwid.CENTER)
                         approvals[category] = w
                         row.append(w)
-                    approvals_for_name[approval.reviewer.name] = approvals
+                    approvals_for_account[approval.reviewer.id] = approvals
                     votes.addRow(row)
                 if str(approval.value) != '0':
                     cat_min, cat_max = change.getMinMaxPermittedForCategory(approval.category)
