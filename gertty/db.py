@@ -537,6 +537,18 @@ class Approval(object):
         self.value = value
         self.draft = draft
 
+    @property
+    def reviewer_name(self):
+        reviewer_name = 'Anonymous Coward'
+        if self.reviewer:
+            if self.reviewer.name:
+                reviewer_name = self.reviewer.name
+            elif self.reviewer.username:
+                reviewer_name = self.reviewer.username
+            elif self.reviewer.email:
+                reviewer_name = self.reviewer.email
+        return reviewer_name
+
 class PendingCherryPick(object):
     def __init__(self, revision, branch, message):
         self.revision_key = revision.key
