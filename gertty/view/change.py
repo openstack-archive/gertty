@@ -415,16 +415,16 @@ class ChangeMessageBox(mywid.HyperText):
         if message.author.username == self.app.config.username:
             name_style = 'change-message-own-name'
             header_style = 'change-message-own-header'
-            reviewer_string = message.author.name
+            reviewer_string = message.author_name
         else:
             name_style = 'change-message-name'
             header_style = 'change-message-header'
             if message.author.email:
                 reviewer_string = "%s <%s>" % (
-                    message.author.name,
+                    message.author_name,
                     message.author.email)
             else:
-                reviewer_string = message.author.name
+                reviewer_string = message.author_name
 
         text = [(name_style, reviewer_string),
                 (header_style, ': '+lines.pop(0)),
@@ -591,18 +591,17 @@ class ChangeView(urwid.WidgetWrap):
         missing_revisions = set()
         change_number = None
         change_id = None
+        shas = set()
         with self.app.db.getSession() as session:
             change = session.getChange(self.change_key)
+            change_project_name = change.project.name
             change_number = change.number
             change_id = change.id
-            repo = gitrepo.get_repo(change.project.name, self.app.config)
             for revision in change.revisions:
-                if not repo.hasCommit(revision.parent):
-                    missing_revisions.add(revision.parent)
-                if not repo.hasCommit(revision.commit):
-                    missing_revisions.add(revision.commit)
-                if missing_revisions:
-                    break
+                shas.add(revision.parent)
+                shas.add(revision.commit)
+        repo = gitrepo.get_repo(change_project_name, self.app.config)
+        missing_revisions = repo.checkCommits(shas)
         if missing_revisions:
             if self.app.sync.offline:
                 raise gertty.view.DisplayError("Git commits not present in local repository")

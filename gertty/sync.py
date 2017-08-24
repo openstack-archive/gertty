@@ -989,8 +989,7 @@ class CheckRevisionsTask(Task):
             for change in project.open_changes:
                 if repo:
                     for revision in change.revisions:
-                        if not (repo.hasCommit(revision.parent) and
-                                repo.hasCommit(revision.commit)):
+                        if repo.checkCommits([revision.parent, revision.commit]):
                             to_sync.add(change.id)
                 else:
                     to_sync.add(change.id)

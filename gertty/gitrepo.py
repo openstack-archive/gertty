@@ -259,15 +259,17 @@ class Repo(object):
                 raise GitCloneError("No URL available for git clone")
             git.Repo.clone_from(self.url, self.path)
 
-    def hasCommit(self, sha):
+    def checkCommits(self, shas):
+        invalid = set()
         repo = git.Repo(self.path)
-        try:
-            repo.commit(sha)
-        except gitdb.exc.BadObject:
-            return False
-        except ValueError:
-            return False
-        return True
+        for sha in shas:
+            try:
+                repo.commit(sha)
+            except gitdb.exc.BadObject:
+                invalid.add(sha)
+            except ValueError:
+                invalid.add(sha)
+        return invalid
 
     def fetch(self, url, refspec):
         repo = git.Repo(self.path)
