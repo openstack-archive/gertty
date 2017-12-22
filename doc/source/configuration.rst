@@ -380,12 +380,16 @@ Reviewkeys appear in the help text for the change screen.
     **value**
       The value for this approval.
 
+  **message**
+    Optional, it can be used to include a message during the review.
+
   **submit**
     Set this to `true` to instruct Gerrit to submit the change when
     this reviewkey is activated.
 
-The following example includes a reviewkey that clears all labels, as
-well as one that leaves a +1 "Code-Review" approval.
+The following example includes a reviewkey that clears all labels,
+one that leaves a +1 "Code-Review" approval and another one that
+leaves 'recheck' on a review.
 
 .. code-block: yaml
 
@@ -396,6 +400,9 @@ well as one that leaves a +1 "Code-Review" approval.
        approvals:
          - category: 'Code-Review'
            value: 1
+     - key: 'meta 2'
+       approvals: []
+       message: 'recheck'
 
 General Options
 +++++++++++++++
