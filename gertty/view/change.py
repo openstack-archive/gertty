@@ -1155,8 +1155,9 @@ class ChangeView(urwid.WidgetWrap):
         self.app.log.debug("Reviewkey %s with approvals %s" %
                            (reviewkey['key'], approvals))
         row = self.revision_rows[self.last_revision_key]
+        message = review.get('message', '')
         submit = reviewkey.get('submit', False)
-        self.saveReview(row.revision_key, approvals, '', True, submit)
+        self.saveReview(row.revision_key, approvals, message, True, submit)
 
     def saveReview(self, revision_key, approvals, message, upload, submit):
         message_keys = self.app.saveReviews([revision_key], approvals,
