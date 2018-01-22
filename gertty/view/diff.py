@@ -324,11 +324,13 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
         # Handle comments that landed outside our default diff context
         lastlen = 0
         while comment_lists:
-            if len(comment_lists.keys()) == lastlen:
+            comment_lists_keys = list(comment_lists.keys())
+            if len(comment_lists_keys) == lastlen:
                 self.log.error("Unable to display all comments: %s" % comment_lists)
                 return
-            lastlen = len(comment_lists.keys())
-            key = comment_lists.keys()[0]
+            comment_lists_keys = list(comment_lists.keys())
+            lastlen = len(comment_lists_keys)
+            key = comment_lists_keys[0]
             kind, lineno, path = key.split('-', 2)
             lineno = int(lineno)
             if kind.startswith('old'):
