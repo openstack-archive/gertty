@@ -839,13 +839,16 @@ class ChangeView(urwid.WidgetWrap):
         # Handle depends-on
         parents = {}
         parent = session.getRevisionByCommit(revision.parent)
-        if parent and parent.change.status != 'MERGED':
+        if parent:
             subject = parent.change.subject
+            show_merged = False
             if parent != parent.change.revisions[-1]:
                 subject += ' [OUTDATED]'
+                show_merged = True
             if parent.change.status == 'ABANDONED':
                 subject += ' [ABANDONED]'
-            parents[parent.change.key] = subject
+            if show_merged or parent.change.status != 'MERGED':
+                parents[parent.change.key] = subject
         self._updateDependenciesWidget(parents,
                                        self.depends_on, self.depends_on_rows,
                                        header='Depends on:')
