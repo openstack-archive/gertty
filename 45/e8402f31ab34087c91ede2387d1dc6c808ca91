@@ -1,0 +1,8 @@
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Mon, 12 Feb 2018 16:44:15 +0000
+Reviewed-on: https://review.openstack.org/543154
+Project: openstack/gertty
+Branch: refs/heads/master
