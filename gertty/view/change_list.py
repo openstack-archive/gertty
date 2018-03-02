@@ -279,7 +279,7 @@ class ChangeRow(urwid.Button, ChangeListColumns):
             elif (total_added_removed >= thresholds[0]):
                 size_style = 'line-count-threshold-1'
             self.size.set_text((size_style, str(total_added_removed)))
-        elif self.app.config.size_column['type'] == 'splitGraph':
+        elif self.app.config.size_column['type'] == 'split-graph':
             self.size.set_text(self._makeSizeSplitGraph(total_added,
                                                           total_removed))
         else:

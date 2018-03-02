@@ -111,7 +111,7 @@ class ConfigSchema(object):
     keymaps = [keymap]
 
     thresholds = [int, int, int, int, int, int, int, int]
-    size_column = {v.Required('type'): v.Any('graph', 'splitGraph', 'number',
+    size_column = {v.Required('type'): v.Any('graph', 'split-graph', 'number',
                                              'disabled', None),
                    v.Optional('thresholds'): thresholds}
 
