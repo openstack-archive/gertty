@@ -147,7 +147,7 @@ class Config(object):
             self.printSample()
             sys.exit(1)
 
-        self.config = yaml.load(open(self.path))
+        self.config = yaml.safe_load(open(self.path))
         schema = ConfigSchema().getSchema(self.config)
         schema(self.config)
         server = self.getServer(server)
