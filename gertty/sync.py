@@ -1496,6 +1496,7 @@ class Sync(object):
             except Exception:
                 self.log.exception("Unable to parse result %s from post to %s" %
                                    (r.text, url))
+                raise
         return ret
 
     def put(self, path, data):
