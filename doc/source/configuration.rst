@@ -431,3 +431,39 @@ General Options
   following line.  The time interval is specified in the same way as
   the "age:" term in Gerrit's search syntax.  To disable it
   altogether, set the value to the empty string.
+
+**size-column**
+  By default, the size column is a pair of stacked logarithmic graphs.
+  The top, red graph represents the number of lines removed, the
+  bottom, green graph the number added.  For an alternate
+  representation, use this setting.
+
+  **type**
+    A string with one of the following values:
+
+    **graph**
+      The default stacked bar graphs.
+
+    **split-graph**
+      Rather than vertically stacked, the bar graphs are side-by-side
+
+    **number**
+      A single number which represents the number of lines changed
+      (added and removed).
+
+  **thresholds**
+    A list of integers to determine the magnitude of the graph
+    increments, or the color coding of the number.  If the type is
+    ``graph`` or ``split-graph``, the list should be four elements
+    long.  The default is 1, 10, 100, 1000 for a logarithmic
+    representation.  If the type is ``number``, the list should be
+    eight elements long; the default in that case is 1, 10, 100, 200,
+    400, 600, 800, 1000.
+
+Example:
+
+.. code-block: yaml
+
+   size-column:
+     type: graph
+     thresholds: [1, 10, 100, 1000]
