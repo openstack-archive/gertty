@@ -89,7 +89,7 @@ commentlinks:
 # Hide comments by default that match the following criteria.
 # You can toggle their display with 't'.
 hide-comments:
-  - author: "^(.*CI|Jenkins)$"
+  - author: "^(.*CI|Jenkins|Zuul)$"
 
 # This section defines customized dashboards.  You can supply any
 # Gertty search string and bind them to any key.  They will appear in
