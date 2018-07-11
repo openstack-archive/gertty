@@ -14,8 +14,6 @@
 # under the License.
 
 import re
-import string
-import logging
 
 import urwid
 

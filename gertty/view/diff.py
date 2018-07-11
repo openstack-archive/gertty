@@ -20,7 +20,6 @@ import urwid
 from gertty import gitrepo
 from gertty import keymap
 from gertty import mywid
-from gertty import gitrepo
 from gertty import sync
 from gertty.view import mouse_scroll_decorator
 
