@@ -63,12 +63,10 @@ class MultiQueue(object):
         self.incomplete = []
 
     def qsize(self):
-        count = 0
         self.condition.acquire()
         try:
-            for queue in self.queues.values():
-                count += len(queue)
-            return count + len(self.incomplete)
+            return sum([len(values) for values in self.queues.values()]) + \
+                len(self.incomplete)
         finally:
             self.condition.release()
 
@@ -88,9 +86,9 @@ class MultiQueue(object):
         self.condition.acquire()
         try:
             while True:
-                for queue in self.queues.values():
+                for thisqueue in self.queues.values():
                     try:
-                        ret = queue.popleft()
+                        ret = thisqueue.popleft()
                         self.incomplete.append(ret)
                         return ret
                     except IndexError:
@@ -947,7 +945,7 @@ class CheckReposTask(Task):
             try:
                 missing = False
                 try:
-                    repo = gitrepo.get_repo(project.name, app.config)
+                    gitrepo.get_repo(project.name, app.config)
                 except gitrepo.GitCloneError:
                     missing = True
                 if missing or app.fetch_missing_refs:
