@@ -116,7 +116,6 @@ def SearchParser():
     def p_recentlyseen_term(p):
         '''recentlyseen_term : OP_RECENTLYSEEN NUMBER string'''
         # A gertty extension
-        now = datetime.datetime.utcnow()
         delta = p[2]
         unit = p[3]
         delta = age_to_delta(delta, unit)

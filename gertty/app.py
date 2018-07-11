@@ -867,7 +867,6 @@ class OpenChangeAction(argparse.Action):
         cf = config.Config(namespace.server, namespace.palette,
                            namespace.keymap, namespace.path)
         url = values[0]
-        result = urlparse.urlparse(values[0])
         if not url.startswith(cf.url):
             print('Supplied URL must start with %s' % (cf.url,))
             sys.exit(1)
