@@ -53,7 +53,7 @@ def upgrade():
         count += 1
         sys.stdout.write('Diffstat revision %s / %s\r' % (count, revisions))
         sys.stdout.flush()
-        ires = conn.execute(insert, revision_key=rkey, path='/COMMIT_MSG', old_path=None,
+        conn.execute(insert, revision_key=rkey, path='/COMMIT_MSG', old_path=None,
                             status=None, inserted=None, deleted=None)
         repo = gertty.gitrepo.get_repo(pname, context.config.gertty_app.config)
         try:
