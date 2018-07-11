@@ -177,7 +177,6 @@ class ChangeRow(urwid.Button, ChangeListColumns):
         conf_thresholds = self.app.config.size_column['thresholds']
         # for threshold in [1, 10, 100, 1000]:
         for threshold in conf_thresholds:
-            color = []
             if (added > threshold and removed > threshold):
                 ret.append(('added-removed-graph', lower_box))
             elif (added > threshold):
@@ -765,7 +764,7 @@ class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
             self.app.status.update()
             return True
         if keymap.REVIEW in commands:
-            rows = [row for row in self.change_rows.values() if row.mark]
+            rows = [rowvalue for rowvalue in self.change_rows.values() if rowvalue.mark]
             if not rows:
                 pos = self.listbox.focus_position
                 rows = [self.listbox.body[pos]]
