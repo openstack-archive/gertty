@@ -33,7 +33,7 @@ except:
 import requests
 import requests.utils
 import six
-from six.moves import queue
+from six.moves import queue as six_queue
 from six.moves.urllib import parse as urlparse
 
 import gertty.version
@@ -947,7 +947,7 @@ class CheckReposTask(Task):
             try:
                 missing = False
                 try:
-                    repo = gitrepo.get_repo(project.name, app.config)
+                    gitrepo.get_repo(project.name, app.config)
                 except gitrepo.GitCloneError:
                     missing = True
                 if missing or app.fetch_missing_refs:
@@ -1369,7 +1369,7 @@ class Sync(object):
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
-        self.result_queue = queue.Queue()
+        self.result_queue = six_queue.Queue()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
