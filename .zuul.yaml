@@ -1,0 +1,15 @@
+- project:
+    check:
+      jobs:
+        - gertty-pyflakes
+
+- job:
+    name: gertty-pyflakes
+    run: playbooks/legacy/gertty-pyflakes/run.yaml
+    post-run: playbooks/legacy/gertty-pyflakes/post.yaml
+    timeout: 30
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^examples/.*$
+      - ^releasenotes/.*$
