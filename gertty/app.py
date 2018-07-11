@@ -249,7 +249,7 @@ class App(object):
                  keymap='default', debug=False, verbose=False,
                  disable_sync=False, disable_background_sync=False,
                  fetch_missing_refs=False,
-                 path=config.DEFAULT_CONFIG_PATH):
+                 path=None):
         self.server = server
         self.config = config.Config(server, palette, keymap, path)
         if debug:
@@ -881,7 +881,6 @@ def main():
     parser = argparse.ArgumentParser(
         description='Console client for Gerrit Code Review.')
     parser.add_argument('-c', dest='path',
-                        default=config.DEFAULT_CONFIG_PATH,
                         help='path to config file')
     parser.add_argument('-v', dest='verbose', action='store_true',
                         help='enable more verbose logging')

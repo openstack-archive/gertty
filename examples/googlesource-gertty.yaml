@@ -1,6 +1,6 @@
-# This is an example ~/.gertty.yaml file for use with installations of
-# Gerrit running on googlesource.com. Most of these options are not
-# required, rather, they customize Gertty to better deal with the
+# This is an example ~/.config/gertty/gertty.yaml file for use with
+# installations of Gerrit running on googlesource.com. Most of these options
+# are not required, rather, they customize Gertty to better deal with the
 # particulars of Google's Gerrit configuration.
 
 # This file does not list all of the available options.  For a full

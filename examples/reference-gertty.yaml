@@ -1,4 +1,4 @@
-# This is an example ~/.gertty.yaml with an exhaustive listing of
+# This is an example ~/.config/gertty/gertty.yaml with an exhaustive listing of
 # options with commentary.
 
 # This section lists the servers that Gertty can talk to.  Multiple
