@@ -36,7 +36,8 @@ try:
 except AttributeError:
     OrderedDict = ordereddict.OrderedDict
 
-DEFAULT_CONFIG_PATH='~/.gertty.yaml'
+DEFAULT_CONFIG_PATH = '~/.config/gertty/gertty.yaml'
+FALLBACK_CONFIG_PATH = '~/.gertty.yaml'
 
 class ConfigSchema(object):
     server = {v.Required('name'): str,
@@ -140,12 +141,8 @@ class ConfigSchema(object):
 
 class Config(object):
     def __init__(self, server=None, palette='default', keymap='default',
-                 path=DEFAULT_CONFIG_PATH):
-        self.path = os.path.expanduser(path)
-
-        if not os.path.exists(self.path):
-            self.printSample()
-            sys.exit(1)
+                 path=None):
+        self.path = self.verifyConfigFile(path)
 
         self.config = yaml.safe_load(open(self.path))
         schema = ConfigSchema().getSchema(self.config)
@@ -264,6 +261,14 @@ class Config(object):
         else:
             self.size_column['thresholds'] = self.size_column.get('thresholds',
                 [1, 10, 100, 200, 400, 600, 800, 1000])
+
+    def verifyConfigFile(self, path):
+        for checkpath in [ path, DEFAULT_CONFIG_PATH, FALLBACK_CONFIG_PATH ]:
+            expandedpath = os.path.expanduser(checkpath)
+            if expandedpath is not None and os.path.exists(expandedpath):
+                return expandedpath
+        self.printSample()
+        sys.exit(1)
 
     def getServer(self, name=None):
         for server in self.config['servers']:

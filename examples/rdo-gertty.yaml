@@ -1,7 +1,7 @@
-# This is an example ~/.gertty.yaml file for use with OpenStack's
-# Gerrit.  Most of these options are not required, rather, they
-# customize Gertty to better deal with the particulars of OpenStack's
-# Gerrit configuration.
+# This is an example ~/.config/gertty/gertty.yaml file for use with OpenStack's
+# Gerrit.  Most of these options are not required, rather, they customize
+# Gertty to better deal with the particulars of OpenStack's Gerrit
+# configuration.
 
 # This file does not list all of the available options.  For a full
 # list with explanations, see the 'reference-gertty.yaml' file.
