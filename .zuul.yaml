@@ -1,0 +1,13 @@
+- project:
+    check:
+      jobs:
+        - gertty-pyflakes
+
+- job:
+    name: gertty-pyflakes
+    timeout: 30
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^examples/.*$
+      - ^releasenotes/.*$
