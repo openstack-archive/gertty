@@ -361,13 +361,6 @@ class ProjectListView(urwid.WidgetWrap, mywid.Searchable):
             current_row = self.listbox.body[i]
             self._deleteRow(current_row)
 
-    def toggleSubscribed(self, project_key):
-        with self.app.db.getSession() as session:
-            project = session.getProject(project_key)
-            project.subscribed = not project.subscribed
-            ret = project.subscribed
-        return ret
-
     def onSelect(self, button, data):
         project_key, project_name = data
         self.app.changeScreen(view_change_list.ChangeListView(
@@ -409,7 +402,7 @@ class ProjectListView(urwid.WidgetWrap, mywid.Searchable):
                     seq = last_topic.sequence + 1
                 else:
                     seq = 0
-                t = session.createTopic(dialog.entry.edit_text, seq)
+                session.createTopic(dialog.entry.edit_text, seq)
         self.app.backScreen()
 
     def deleteTopic(self):
@@ -485,7 +478,7 @@ class ProjectListView(urwid.WidgetWrap, mywid.Searchable):
                 key = dialog.getSelected()
                 new_topic = session.getTopic(key)
                 if not new_topic:
-                    error = "Unable to find topic %s" % topic_name
+                    error = "Unable to find topic %s" % key
                 else:
                     for row in rows:
                         project = session.getProject(row.project_key)
