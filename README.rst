@@ -83,6 +83,17 @@ To install from a git checkout::
 
   pip install .
 
+To build a docker image::
+
+  docker build -t gertty .
+
+And to run that image in a container::
+
+  docker run --rm -ti -v $HOME:/home/developer gertty
+
+Configuration
+-------------
+
 Gertty uses a YAML based configuration file that it looks for at
 ``~/.gertty.yaml``.  Several sample configuration files are included.
 You can find them in the examples/ directory of the
