@@ -138,7 +138,7 @@ DEFAULT_KEYMAP = {
     TOGGLE_LIST_SUBSCRIBED: 'L',
     TOGGLE_SUBSCRIBED: 's',
     NEW_PROJECT_TOPIC: [['T', 'n']],
-    DELETE_PROJECT_TOPIC: [['T', 'delete']],
+    DELETE_PROJECT_TOPIC: [['T', '[delete]']],
     MOVE_PROJECT_TOPIC: [['T', 'm']],
     COPY_PROJECT_TOPIC: [['T', 'c']],
     REMOVE_PROJECT_TOPIC: [['T', 'D']],
