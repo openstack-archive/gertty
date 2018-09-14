@@ -176,6 +176,18 @@ screen.
 To select text (e.g., to copy to the clipboard), hold Shift while
 selecting the text.
 
+MacOS
+~~~~~
+
+The MacOS terminal blocks ctrl+o, which is the default search key combo in
+Gertty. To fix this, a custom keymap can be used on MacOS which modifies the
+search key combo. For example::
+
+  keymaps:
+    - name: default # MacOS blocks ctrl+o
+      change-search: 'ctrl s'
+      interactive-search: 'ctrl i'
+
 Terminal Integration
 --------------------
 
