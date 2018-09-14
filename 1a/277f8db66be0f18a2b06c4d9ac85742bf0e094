@@ -1,0 +1,11 @@
+Code-Review+1: Jan Kundrát <jkt@kde.org>
+Code-Review+1: Masayuki Igawa <masayuki@igawa.io>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Code-Review+1: Nate Johnston <nate.johnston@redhat.com>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Fri, 14 Sep 2018 18:25:24 +0000
+Reviewed-on: https://review.openstack.org/506731
+Project: openstack/gertty
+Branch: refs/heads/master
