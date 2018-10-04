@@ -512,9 +512,9 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
         if file_key is None:
             raise Exception("Comment is not associated with a file")
         with self.app.db.getSession() as session:
-            fileojb = session.getFile(file_key)
+            fileobj = session.getFile(file_key)
             account = session.getAccountByUsername(self.app.config.username)
-            comment = fileojb.createComment(None, account, None,
+            comment = fileobj.createComment(None, account, None,
                                             datetime.datetime.utcnow(),
                                             parent,
                                             line_num, text, draft=True)
