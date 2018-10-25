@@ -66,6 +66,11 @@ can get the package from::
 
   https://aur.archlinux.org/packages/python2-gertty/
 
+To find a package system for aur, check the wiki::
+
+  https://wiki.archlinux.org/index.php/AUR_helpers
+
+
 Source
 ~~~~~~
 
