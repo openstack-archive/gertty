@@ -214,12 +214,12 @@ class BackgroundBrowser(webbrowser.GenericBrowser):
         inout = open(os.devnull, "r+")
         try:
             if sys.platform[:3] == 'win':
-                p = subprocess.Popen(cmdline)
+                p = subprocess.Popen(cmdline, shell=False)
             else:
                 setsid = getattr(os, 'setsid', None)
                 if not setsid:
                     setsid = getattr(os, 'setpgrp', None)
-                p = subprocess.Popen(cmdline, close_fds=True,
+                p = subprocess.Popen(cmdline, close_fds=True, shell=False
                                      stdin=inout, stdout=inout,
                                      stderr=inout, preexec_fn=setsid)
             return (p.poll() is None)
