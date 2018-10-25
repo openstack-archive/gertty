@@ -12,11 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
 try:
-    import ordereddict
-except:
-    pass
+    import collections.OrderedDict as OrderedDict
+except ImportError:
+    import ordereddict as OrderedDict
+
 import re
 
 import six
@@ -24,10 +24,6 @@ import urwid
 
 from gertty import mywid
 
-try:
-    OrderedDict = collections.OrderedDict
-except AttributeError:
-    OrderedDict = ordereddict.OrderedDict
 
 class TextReplacement(object):
     def __init__(self, config):

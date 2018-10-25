@@ -587,7 +587,8 @@ class ChangeListView(urwid.WidgetWrap, mywid.Searchable):
             change = stack.pop()
             if (not change) and orphans:
                 change = orphans.pop(0)
-        assert len(ret) == len(changes)
+        if len(ret) != len(changes):
+            raise AssertionError()
         return (ret, prefixes)
 
     def clearChangeList(self):

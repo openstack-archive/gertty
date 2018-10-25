@@ -13,15 +13,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
+try:
+    import collections.OrderedDict as OrderedDict
+except ImportError:
+    import ordereddict as OrderedDict
+
 import getpass
 import os
 import re
 import sys
-try:
-    import ordereddict
-except:
-    pass
 import yaml
 
 from six.moves.urllib import parse as urlparse
@@ -30,11 +30,6 @@ import voluptuous as v
 import gertty.commentlink
 import gertty.palette
 import gertty.keymap
-
-try:
-    OrderedDict = collections.OrderedDict
-except AttributeError:
-    OrderedDict = ordereddict.OrderedDict
 
 DEFAULT_CONFIG_PATH='~/.gertty.yaml'
 

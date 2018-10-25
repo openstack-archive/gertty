@@ -14,6 +14,10 @@
 # under the License.
 
 import collections
+try:
+    import collections.OrderedDict as OrderedDict
+except ImportError:
+    import ordereddict as OrderedDict
 import errno
 import logging
 import math
@@ -26,10 +30,6 @@ import datetime
 import warnings
 
 import dateutil.parser
-try:
-    import ordereddict
-except:
-    pass
 import requests
 import requests.utils
 import six
@@ -53,10 +53,7 @@ class OfflineError(Exception):
 
 class MultiQueue(object):
     def __init__(self, priorities):
-        try:
-            self.queues = collections.OrderedDict()
-        except AttributeError:
-            self.queues = ordereddict.OrderedDict()
+        self.queues = OrderedDict()
         for key in priorities:
             self.queues[key] = collections.deque()
         self.condition = threading.Condition()
