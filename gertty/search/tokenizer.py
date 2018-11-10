@@ -19,11 +19,14 @@ operators = {
     'age': 'OP_AGE',
     'recentlyseen': 'OP_RECENTLYSEEN', # Gertty extension
     'change': 'OP_CHANGE',
+    'o': 'OP_OWNER',
     'owner': 'OP_OWNER',
     #'OP_OWNERIN', # needs local group membership
+    'r': 'OP_REVIEWER',
     'reviewer': 'OP_REVIEWER',
     #'OP_REVIEWERIN', # needs local group membership
     'commit': 'OP_COMMIT',
+    'p': 'OP_PROJECT',
     'project': 'OP_PROJECT',
     'projects': 'OP_PROJECTS',
     '_project_key': 'OP_PROJECT_KEY',  # internal gertty use only
@@ -35,6 +38,7 @@ operators = {
     'label': 'OP_LABEL',
     'message': 'OP_MESSAGE',
     'comment': 'OP_COMMENT',
+    'f': 'OP_FILE',
     'file': 'OP_FILE',
     'has': 'OP_HAS',
     'is': 'OP_IS',
