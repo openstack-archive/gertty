@@ -49,6 +49,7 @@ class ConfigSchema(object):
               v.Required('git-root'): str,
               'git-url': str,
               'log-file': str,
+              'lock-file': str,
               'socket': str,
               'auth-type': v.Any('basic', 'digest', 'form'),
               }
