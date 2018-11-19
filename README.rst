@@ -43,7 +43,7 @@ Fedora
 
 Gertty is packaged starting in Fedora 21.  You can install it with::
 
-  yum install python-gertty
+  dnf install python-gertty
 
 openSUSE
 ~~~~~~~~
