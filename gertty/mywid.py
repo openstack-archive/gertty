@@ -438,7 +438,7 @@ class HyperText(urwid.Text):
         pos = self.getPosAtCoords(maxcol, col, row)
         index = 0
         for item, start, end in self.selectable_items:
-            if start <= pos <= end:
+            if pos is not None and start <= pos <= end:
                 return index
             index += 1
         return None
