@@ -1490,6 +1490,9 @@ class Sync(object):
         self.checkResponse(r)
         self.log.debug('Received: %s' % (r.text,))
         ret = None
+        if r.status_code > 400:
+            raise Exception("POST to %s failed with http code %s (%s)",
+                            path, r.status_code, r.text)
         if r.text and len(r.text)>4:
             try:
                 ret = json.loads(r.text[4:])
