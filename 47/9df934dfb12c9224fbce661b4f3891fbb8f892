@@ -1,0 +1,9 @@
+Code-Review+1: Natal Ngétal <hobbestigrou@erakis.eu>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Tue, 29 Jan 2019 21:16:05 +0000
+Reviewed-on: https://review.openstack.org/626076
+Project: openstack/gertty
+Branch: refs/heads/master
