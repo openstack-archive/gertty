@@ -1,0 +1,10 @@
+Code-Review+1: Natal Ngétal <hobbestigrou@erakis.eu>
+Code-Review+1: Tobias Henkel <tobias.henkel@bmw.de>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Tue, 29 Jan 2019 21:17:38 +0000
+Reviewed-on: https://review.openstack.org/619938
+Project: openstack/gertty
+Branch: refs/heads/master
