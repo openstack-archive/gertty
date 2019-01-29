@@ -446,6 +446,26 @@ class ChangeMessageBox(mywid.HyperText):
         comment_text = ['\n'.join(lines)]
         for commentlink in self.app.config.commentlinks:
             comment_text = commentlink.run(self.app, comment_text)
+
+        inline_comments = {}
+        for file in message.revision.files:
+            comments = [c for c in file.comments
+                        if c.author.id == message.author.id
+                        and c.created == message.created]
+            for comment in comments:
+                path = comment.file.path
+                inline_comments.setdefault(path, [])
+                inline_comments[path].append((comment.line, comment.message))
+        for v in inline_comments.values():
+            v.sort()
+
+        if inline_comments:
+            comment_text.append(u'\n')
+        for key, value in inline_comments.items():
+            comment_text.append(('filename-inline-comment', u'%s' % key))
+            for line, comment in value:
+                comment_text.append(u'\n  %s: %s\n' % (line, comment))
+
         self.set_text(text+comment_text)
 
 class CommitMessageBox(mywid.HyperText):
