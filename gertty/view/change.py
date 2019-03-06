@@ -1170,3 +1170,5 @@ class ChangeView(urwid.WidgetWrap):
                 self.app.sync.submitTask(
                     sync.UploadReviewTask(message_key, sync.HIGH_PRIORITY))
         self.refresh()
+        if self.app.config.close_change_on_review:
+            self.app.backScreen()

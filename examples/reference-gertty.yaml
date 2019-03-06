@@ -166,6 +166,10 @@ commentlinks:
 # at the bottom of the screen:
 # breadcrumbs: false
 
+# Uncomment the following line to close a change after saving
+# a review.
+# close-change-on-review: true
+
 # Uncomment the following line to use a unified diff view instead
 # of the default side-by-side:
 # diff-view: unified
