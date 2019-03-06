@@ -320,6 +320,9 @@ For example, to hide comments from a CI system:
   Specifies how patch diffs should be displayed.  The values `unified`
   or `side-by-side` (the default) are supported.
 
+**close-change-on-review**
+  When a review is saved, close the change view and pop up to the
+  previous screen, which will be the change list for the repo.
 
 Dashboards
 ++++++++++

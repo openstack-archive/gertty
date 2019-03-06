@@ -401,6 +401,11 @@ class App(object):
         self.clearInputBuffer()
         self.frame.body = widget
 
+    def getPreviousScreen(self):
+        if not self.screens:
+            return None
+        return self.screens[-1]
+
     def backScreen(self, target_widget=None):
         if not self.screens:
             return

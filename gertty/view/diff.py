@@ -170,7 +170,11 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
     def help(self):
         key = self.app.config.keymap.formatKeys
         commands = self.getCommands()
-        return [(c[0], key(c[0]), c[1]) for c in commands]
+        ret = [(c[0], key(c[0]), c[1]) for c in commands]
+        for k in self.app.config.reviewkeys.values():
+            action = ', '.join(['{category}:{value}'.format(**a) for a in k['approvals']])
+            ret.append(('', keymap.formatKey(k['key']), action))
+        return ret
 
     def __init__(self, app, new_revision_key):
         super(BaseDiffView, self).__init__(urwid.Pile([]))
@@ -471,6 +475,9 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
         if keymap.INTERACTIVE_SEARCH in commands:
             self.searchStart()
             return None
+        if key in self.app.config.reviewkeys:
+            self.reviewKey(self.app.config.reviewkeys[key])
+            return None
         return key
 
     def mouse_event(self, size, event, button, x, y, focus):
@@ -520,6 +527,12 @@ class BaseDiffView(urwid.WidgetWrap, mywid.Searchable):
                                             line_num, text, draft=True)
             key = comment.key
         return key
+
+    def reviewKey(self, reviewkey):
+        change_view = self.app.getPreviousScreen()
+        if change_view:
+            change_view.reviewKey(reviewkey)
+        self.app.backScreen()
 
     def openPatchsetDialog(self):
         revisions = []

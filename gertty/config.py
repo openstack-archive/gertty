@@ -133,6 +133,7 @@ class ConfigSchema(object):
                            'display-times-in-utc': bool,
                            'handle-mouse': bool,
                            'breadcrumbs': bool,
+                           'close-change-on-review': bool,
                            'change-list-options': self.change_list_options,
                            'expire-age': str,
                            'size-column': self.size_column,
@@ -248,6 +249,7 @@ class Config(object):
         self.thread_changes = self.config.get('thread-changes', True)
         self.utc = self.config.get('display-times-in-utc', False)
         self.breadcrumbs = self.config.get('breadcrumbs', True)
+        self.close_change_on_review = self.config.get('close-change-on-review', False)
         self.handle_mouse = self.config.get('handle-mouse', True)
 
         change_list_options = self.config.get('change-list-options', {})
