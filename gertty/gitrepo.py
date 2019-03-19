@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2014 OpenStack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -220,7 +221,8 @@ class DiffFile(object):
                 (a, b) = l
                 return (a, re.sub(r'\t', replace, b))
         except:
-            return l
+            raise
+            #return l
 
     def addDiffLines(self, old, new):
         if (self.current_chunk and
@@ -537,7 +539,10 @@ class Repo(object):
                 f.old_lineno = 1
                 f.new_lineno = 1
                 for line in blob.data_stream.read().splitlines():
-                    f.addContextLine(line)
+                    if isinstance(line, six.string_types):
+                        f.addContextLine(line)
+                    else:
+                        f.addContextLine(line.decode('utf8'))
             f.finalize()
         return files
 
@@ -554,7 +559,10 @@ class Repo(object):
         except KeyError:
             return None
         for line in blob.data_stream.read().splitlines():
-            f.addContextLine(line)
+            if isinstance(line, six.string_types):
+                f.addContextLine(line)
+            else:
+                f.addContextLine(line.decode('utf8'))
         f.finalize()
         return f
 
