@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2014 OpenStack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -173,6 +174,8 @@ class DiffChangedChunk(DiffChunk):
     context = False
 
 class DiffFile(object):
+    log = logging.getLogger('gertty.gitrepo')
+
     def __init__(self):
         self.newname = 'Unknown File'
         self.oldname = 'Unknown File'
@@ -219,7 +222,8 @@ class DiffFile(object):
             else:
                 (a, b) = l
                 return (a, re.sub(r'\t', replace, b))
-        except:
+        except Exception:
+            self.log.exception("Error expanding tabs")
             return l
 
     def addDiffLines(self, old, new):
@@ -537,7 +541,10 @@ class Repo(object):
                 f.old_lineno = 1
                 f.new_lineno = 1
                 for line in blob.data_stream.read().splitlines():
-                    f.addContextLine(line)
+                    if isinstance(line, six.string_types):
+                        f.addContextLine(line)
+                    else:
+                        f.addContextLine(line.decode('utf8'))
             f.finalize()
         return files
 
@@ -554,7 +561,10 @@ class Repo(object):
         except KeyError:
             return None
         for line in blob.data_stream.read().splitlines():
-            f.addContextLine(line)
+            if isinstance(line, six.string_types):
+                f.addContextLine(line)
+            else:
+                f.addContextLine(line.decode('utf8'))
         f.finalize()
         return f
 
