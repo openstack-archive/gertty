@@ -374,12 +374,12 @@ class App(object):
             try:
                 s, addr = self.socket.accept()
                 self.log.debug("Accepted socket connection %s" % (s,))
-                buf = ''
+                buf = b''
                 while True:
                     buf += s.recv(1)
-                    if buf[-1] == '\n':
+                    if buf[-1] == 10:
                         break
-                buf = buf.strip()
+                buf = buf.decode('utf8').strip()
                 self.log.debug("Received %s from socket" % (buf,))
                 s.close()
                 parts = buf.split()
@@ -874,7 +874,7 @@ class OpenChangeAction(argparse.Action):
 
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(cf.socket_path)
-        s.sendall('open %s\n' % url)
+        s.sendall(('open %s\n' % url).encode('utf8'))
         sys.exit(0)
 
 def main():
