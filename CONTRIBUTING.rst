@@ -2,7 +2,7 @@ Contributing
 ============
 
 To browse the latest code, see: https://git.openstack.org/cgit/stackforge/gertty/tree/
-To clone the latest code, use `git clone git://git.openstack.org/stackforge/gertty`
+To clone the latest code, use `git clone https://git.openstack.org/stackforge/gertty`
 
 Bugs are handled at: https://storyboard.openstack.org/#!/project/698
 
