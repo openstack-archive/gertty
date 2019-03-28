@@ -1,0 +1,9 @@
+Code-Review+1: Jeremy Stanley <fungi@yuggoth.org>
+Code-Review+2: James E. Blair <corvus@inaugust.com>
+Workflow+1: James E. Blair <corvus@inaugust.com>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Thu, 28 Mar 2019 15:05:19 +0000
+Reviewed-on: https://review.openstack.org/608154
+Project: openstack/gertty
+Branch: refs/heads/master
