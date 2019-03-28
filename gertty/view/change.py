@@ -455,7 +455,7 @@ class ChangeMessageBox(mywid.HyperText):
             for comment in comments:
                 path = comment.file.path
                 inline_comments.setdefault(path, [])
-                inline_comments[path].append((comment.line, comment.message))
+                inline_comments[path].append((comment.line or 0, comment.message))
         for v in inline_comments.values():
             v.sort()
 
@@ -464,8 +464,8 @@ class ChangeMessageBox(mywid.HyperText):
         for key, value in inline_comments.items():
             comment_text.append(('filename-inline-comment', u'%s' % key))
             for line, comment in value:
-                if line is None:
-                    comment_text.append(u'\n  %s' % comment)
+                if not line:
+                    comment_text.append(u'\n  %s\n' % comment)
                 else:
                     comment_text.append(u'\n  %s: %s\n' % (line, comment))
 
