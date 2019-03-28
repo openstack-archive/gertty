@@ -187,9 +187,12 @@ class DiffFile(object):
     def finalize(self):
         if not self.current_chunk:
             return
+        oldlines = [(n, d, self.expand_tabs(l)) for (n, d, l)
+                        in self.current_chunk.oldlines]
+        newlines = [(n, d, self.expand_tabs(l)) for (n, d, l)
+                        in self.current_chunk.newlines]
         self.current_chunk.lines = list(
-                six.moves.zip(self.current_chunk.oldlines,
-                              self.current_chunk.newlines))
+                six.moves.zip(oldlines, newlines))
         if not self.chunks:
             self.current_chunk.first = True
         else:
@@ -198,6 +201,26 @@ class DiffFile(object):
         self.current_chunk.calcRange()
         self.chunks.append(self.current_chunk)
         self.current_chunk = None
+
+    def expand_tabs(self, l, tabstop = 8):
+        offset = { 'start': 0, 'prevstart': 0 }
+        def replace(match):
+            offset['start'] += match.start(0) - offset['prevstart']
+            offset['prevstart'] = match.start(0)
+            cnt = tabstop - offset['start'] % tabstop - 1
+            offset['start'] += cnt
+            return "»" + " " * cnt
+
+        try:
+            if isinstance(l, six.string_types):
+                return re.sub(r'\t', replace, l)
+            elif isinstance(l, list):
+                return [self.expand_tabs(e) for e in l]
+            else:
+                (a, b) = l
+                return (a, re.sub(r'\t', replace, b))
+        except:
+            return l
 
     def addDiffLines(self, old, new):
         if (self.current_chunk and
