@@ -33,7 +33,9 @@ except:
 import requests
 import requests.utils
 import six
-from six.moves import queue
+from six.moves.queue import PriorityQueue
+from six.moves.queue import Queue as STDQueue
+from six.moves.queue import Empty as QueueEmpty
 from six.moves.urllib import parse as urlparse
 
 import gertty.version
@@ -51,73 +53,51 @@ CLOSED_STATUSES = ['MERGED', 'ABANDONED']
 class OfflineError(Exception):
     pass
 
-class MultiQueue(object):
-    def __init__(self, priorities):
-        try:
-            self.queues = collections.OrderedDict()
-        except AttributeError:
-            self.queues = ordereddict.OrderedDict()
-        for key in priorities:
-            self.queues[key] = collections.deque()
+class PQueue(object):
+    def __init__(self):
+        # the stdlib queue is thread safe but the
+        # running set and pending dict are not.
         self.condition = threading.Condition()
-        self.incomplete = []
+        self.queue = PriorityQueue()
+        self.running = set()
+        self.pending = {}
 
     def qsize(self):
-        count = 0
-        self.condition.acquire()
-        try:
-            for queue in self.queues.values():
-                count += len(queue)
-            return count + len(self.incomplete)
-        finally:
-            self.condition.release()
+        with self.condition:
+            return self.queue.qsize() + len(self.running)
+
+    def is_pending(self, item):
+        return item in self.pending.values()
 
     def put(self, item, priority):
         added = False
-        self.condition.acquire()
-        try:
-            if item not in self.queues[priority]:
-                self.queues[priority].append(item)
+        with self.condition:
+            if not self.is_pending(item):
+                self.queue.put_nowait(item.to_priority_list())
+                self.pending[item.id] = item
                 added = True
-            self.condition.notify()
-        finally:
-            self.condition.release()
+                self.condition.notify()
         return added
 
     def get(self):
-        self.condition.acquire()
-        try:
-            while True:
-                for queue in self.queues.values():
-                    try:
-                        ret = queue.popleft()
-                        self.incomplete.append(ret)
-                        return ret
-                    except IndexError:
-                        pass
+        with self.condition:
+            if self.queue.empty():
                 self.condition.wait()
-        finally:
-            self.condition.release()
+            item = self.queue.get_nowait()
+            id = item[1]
+            task = item[2]
+            self.running.add(id)
+            del self.pending[id]
+            return task
 
-    def find(self, klass, priority):
-        results = []
-        self.condition.acquire()
-        try:
-            for item in self.queues[priority]:
-                if isinstance(item, klass):
-                    results.append(item)
-        finally:
-            self.condition.release()
-        return results
+    def find(self, klass, _):
+        with self.condition:
+            return [item for item in self.pending.values()
+                    if isinstance(item, klass)]
 
     def complete(self, item):
-        self.condition.acquire()
-        try:
-            if item in self.incomplete:
-                self.incomplete.remove(item)
-        finally:
-            self.condition.release()
-
+        with self.condition:
+            self.running.discard(item.id)
 
 class UpdateEvent(object):
     def updateRelatedChanges(self, session, change):
@@ -166,13 +146,18 @@ class ChangeUpdatedEvent(UpdateEvent):
         self.held_changed = False
 
 class Task(object):
+    task_id = 0
     def __init__(self, priority=NORMAL_PRIORITY):
+        self.id , Task.task_id =  Task.task_id, Task.task_id +1
         self.log = logging.getLogger('gertty.sync')
         self.priority = priority
         self.succeeded = None
         self.event = threading.Event()
         self.tasks = []
         self.results = []
+
+    def to_priority_list(self):
+        return [self.priority, self.id, self]
 
     def complete(self, success):
         self.succeeded = success
@@ -1368,8 +1353,8 @@ class Sync(object):
         self.account_id = None
         self.app = app
         self.log = logging.getLogger('gertty.sync')
-        self.queue = MultiQueue([HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY])
-        self.result_queue = queue.Queue()
+        self.queue = PQueue()
+        self.result_queue = STDQueue()
         self.session = requests.Session()
         if self.app.config.auth_type == 'basic':
             authclass = requests.auth.HTTPBasicAuth
