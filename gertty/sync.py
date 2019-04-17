@@ -26,10 +26,6 @@ import datetime
 import warnings
 
 import dateutil.parser
-try:
-    import ordereddict
-except:
-    pass
 import requests
 import requests.utils
 import six
@@ -41,6 +37,9 @@ from six.moves.urllib import parse as urlparse
 import gertty.version
 from gertty import gitrepo
 from gertty.auth import FormAuth
+
+import futurist
+import futurist.waiters
 
 HIGH_PRIORITY=0
 NORMAL_PRIORITY=1
@@ -1364,6 +1363,11 @@ class Sync(object):
             authclass = requests.auth.HTTPDigestAuth
         self.auth = authclass(
             self.app.config.username, self.app.config.password)
+        # NOTE(sean-k-mooney): by default futrist seams to default
+        # to roughly 40 threads on a laptop with 4 cores and 8
+        # hyperthreads. limit to 8 threads as using more has little
+        # benifit currently.
+        self.executor = futurist.ThreadPoolExecutor(max_workers=8)
 
     def syncPeriodic(self):
         self.submitTask(SyncSubscribedProjectsTask(LOW_PRIORITY))
@@ -1399,42 +1403,61 @@ class Sync(object):
 
     def run(self, pipe):
         self.submitStartupTasks()
-        task = None
+        tasks = []
         while True:
-            task = self._run(pipe, task)
+            tasks = self._run(pipe, tasks)
 
-    def _run(self, pipe, task=None):
-        if not task:
+    def _run(self, pipe, tasks=[]):
+        errored_tasks = []
+        pending = []
+        if not tasks:
+            batch_size = 4 if self.queue.qsize() > 4 else self.queue.qsize()
+        while batch_size > 0:
             task = self.queue.get()
-        self.log.debug('Run: %s' % (task,))
-        try:
-            task.run(self)
-            task.complete(True)
-            self.queue.complete(task)
-        except (requests.ConnectionError, OfflineError,
-                requests.exceptions.ChunkedEncodingError,
-                requests.exceptions.ReadTimeout
-        ) as e:
-            self.log.warning("Offline due to: %s" % (e,))
-            if not self.offline:
-                self.submitTask(GetVersionTask(HIGH_PRIORITY))
-                self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
-            self.offline = True
-            self.app.status.update(offline=True, refresh=False)
-            os.write(pipe, six.b('refresh\n'))
-            time.sleep(30)
-            return task
-        except Exception:
-            task.complete(False)
-            self.queue.complete(task)
-            self.log.exception('Exception running task %s' % (task,))
-            self.app.status.update(error=True, refresh=False)
-        self.offline = False
-        self.app.status.update(offline=False, refresh=False)
-        for r in task.results:
-            self.result_queue.put(r)
+            if task:
+                tasks.append(task)
+            batch_size -= 1
+        for task in tasks:
+            self.log.debug('Run: %s' % (task,))
+            future = self.executor.submit(task.run, self)
+            pending.append((task, future))
+        # Wait for all futures to be done.
+        futurist.waiters.wait_for_all([ pair[1] for pair in pending],
+                                      timeout=60)
+        for task, future in pending:
+            if not future.done():
+                future.cancel()
+                task.complete(False)
+                errored_tasks.append(task)
+                tasks.remove(task)
+
+        for task in tasks:
+            try:
+                task.complete(True)
+                self.queue.complete(task)
+            except (requests.ConnectionError, OfflineError,
+                    requests.exceptions.ChunkedEncodingError,
+                    requests.exceptions.ReadTimeout
+            ) as e:
+                self.log.warning("Offline due to: %s" % (e,))
+                if not self.offline:
+                    self.submitTask(GetVersionTask(HIGH_PRIORITY))
+                    self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+                self.offline = True
+                self.app.status.update(offline=True, refresh=False)
+                os.write(pipe, six.b('refresh\n'))
+                errored_tasks.append(task)
+            except Exception:
+                task.complete(False)
+                self.queue.complete(task)
+                self.log.exception('Exception running task %s' % (task,))
+                self.app.status.update(error=True, refresh=False)
+            self.offline = False
+            self.app.status.update(offline=False, refresh=False)
+            for r in task.results:
+                self.result_queue.put(r)
         os.write(pipe, six.b('refresh\n'))
-        return None
+        return errored_tasks
 
     def url(self, path):
         return self.app.config.url + 'a/' + path

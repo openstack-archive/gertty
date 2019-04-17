@@ -11,3 +11,4 @@ PyYAML>=3.1.0
 voluptuous>=0.7
 ply>=3.4
 six
+futurist
