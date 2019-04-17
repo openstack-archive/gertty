@@ -1351,6 +1351,7 @@ class Sync(object):
         self.version = (0, 0, 0)
         self.offline = False
         self.account_id = None
+        self.disable_background_sync = disable_background_sync
         self.app = app
         self.log = logging.getLogger('gertty.sync')
         self.queue = PQueue()
@@ -1364,33 +1365,20 @@ class Sync(object):
             authclass = requests.auth.HTTPDigestAuth
         self.auth = authclass(
             self.app.config.username, self.app.config.password)
-        self.submitTask(GetVersionTask(HIGH_PRIORITY))
-        self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
-        if not disable_background_sync:
-            self.submitTask(CheckReposTask(HIGH_PRIORITY))
-            self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
-            self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
-            self.submitTask(SyncSubscribedProjectsTask(NORMAL_PRIORITY))
-            self.submitTask(SyncSubscribedProjectBranchesTask(LOW_PRIORITY))
-            self.submitTask(SyncOutdatedChangesTask(LOW_PRIORITY))
-            self.submitTask(PruneDatabaseTask(self.app.config.expire_age, LOW_PRIORITY))
-            self.periodic_thread = threading.Thread(target=self.periodicSync)
-            self.periodic_thread.daemon = True
-            self.periodic_thread.start()
 
-    def periodicSync(self):
-        hourly = time.time()
-        while True:
-            try:
-                time.sleep(60)
-                self.syncSubscribedProjects()
-                now = time.time()
-                if now-hourly > 3600:
-                    hourly = now
-                    self.pruneDatabase()
-                    self.syncOutdatedChanges()
-            except Exception:
-                self.log.exception('Exception in periodicSync')
+    def syncPeriodic(self):
+        self.submitTask(SyncSubscribedProjectsTask(LOW_PRIORITY))
+        self.syncTimer = threading.Timer(60, self.syncPeriodic)
+        self.syncTimer.daemon = True
+        self.syncTimer.start()
+
+    def hourlyPeriodic(self):
+        self.submitTask(SyncOutdatedChangesTask(LOW_PRIORITY))
+        self.submitTask(PruneDatabaseTask(self.app.config.expire_age,
+                                          LOW_PRIORITY))
+        self.hourlyTimer = threading.Timer(3600, self.hourlyPeriodic)
+        self.hourlyTimer.daemon = True
+        self.hourlyTimer.start()
 
     def submitTask(self, task):
         if not self.offline:
@@ -1399,7 +1387,19 @@ class Sync(object):
         else:
             task.complete(False)
 
+    def submitStartupTasks(self):
+        self.submitTask(GetVersionTask(HIGH_PRIORITY))
+        self.submitTask(SyncOwnAccountTask(HIGH_PRIORITY))
+        if not self.disable_background_sync:
+            self.submitTask(CheckReposTask(HIGH_PRIORITY))
+            self.submitTask(UploadReviewsTask(HIGH_PRIORITY))
+            self.submitTask(SyncProjectListTask(HIGH_PRIORITY))
+            self.syncPeriodic()
+            self.hourlyPeriodic()
+
+
     def run(self, pipe):
+        self.submitStartupTasks()
         task = None
         while True:
             task = self._run(pipe, task)
