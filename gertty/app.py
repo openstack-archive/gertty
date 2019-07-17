@@ -286,6 +286,8 @@ class App(object):
         self.ring = mywid.KillRing()
         self.input_buffer = []
         webbrowser.register('xdg-open', None, BackgroundBrowser("xdg-open"))
+        # Open the browser on Windows when running in cygwin:
+        webbrowser.register('cygstart', None, BackgroundBrowser("cygstart"))
 
         self.fetch_missing_refs = fetch_missing_refs
         self.config.keymap.updateCommandMap()
